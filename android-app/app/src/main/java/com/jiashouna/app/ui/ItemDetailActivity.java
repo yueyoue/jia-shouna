@@ -1,6 +1,7 @@
 package com.jiashouna.app.ui;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.gson.JsonArray;
