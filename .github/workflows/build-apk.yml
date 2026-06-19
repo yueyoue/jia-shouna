@@ -1,4 +1,4 @@
-name: Build Android APK & Package Web
+name: Build APK
 
 on:
   push:
@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -19,68 +19,53 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
 
       - name: Build Debug APK
         working-directory: android-app
-        run: gradle assembleDebug
+        run: ./gradlew assembleDebug --no-daemon --stacktrace --info
 
       - name: Build Release APK
         working-directory: android-app
-        run: gradle assembleRelease
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Upload Debug APK to Artifacts
+      - name: List outputs
+        run: find android-app -name "*.apk" -type f 2>/dev/null || echo "No APK found"
+
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: app-debug
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Upload Release APK to Artifacts
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: app-release
           path: android-app/app/build/outputs/apk/release/app-release-unsigned.apk
 
-      - name: Create Release and Upload APK
+      - name: Package web
+        if: always()
+        run: |
+          mkdir -p release
+          cp -r backend release/ 2>/dev/null || true
+          cp -r web-admin release/ 2>/dev/null || true
+          cp database/schema.sql release/ 2>/dev/null || true
+          mkdir -p release/backend/uploads/images
+          mkdir -p release/backend/uploads/apks
+          mkdir -p release/backend/uploads/backups
+          cd release && tar -czf ../jia-shouna-web.tar.gz . && cd ..
+
+      - name: Upload to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             android-app/app/build/outputs/apk/debug/app-debug.apk
             android-app/app/build/outputs/apk/release/app-release-unsigned.apk
-          generate_release_notes: true
+            jia-shouna-web.tar.gz
         env:
           GITHUB_TOKEN: *** secrets.GITHUB_TOKEN }}
-
-  package-web:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Package web admin
-        run: |
-          mkdir -p dist
-          cd dist
-          cp -r ../backend .
-          cp -r ../web-admin .
-          cp ../database/schema.sql .
-          mkdir -p backend/uploads/images
-          mkdir -p backend/uploads/apks
-          mkdir -p backend/uploads/backups
-          tar -czf jia-shouna-web-v1.0.0.tar.gz backend/ web-admin/ schema.sql
-
-      - name: Upload web package to Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/jia-shouna-web-v1.0.0.tar.gz
-        env:
-          GITHUB_TOKEN: *** secrets.GITHUB_TOKEN }}
-
-      - name: Upload web package as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-package
-          path: dist/jia-shouna-web-v1.0.0.tar.gz
