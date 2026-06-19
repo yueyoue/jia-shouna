@@ -1,6 +1,7 @@
 package com.jiashouna.app.ui.fragment;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.*;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 public class SpacesFragment extends Fragment {
     private RecyclerView recyclerView;
     private LinearLayout emptyView;
+    private TextView tvError;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -40,31 +42,60 @@ public class SpacesFragment extends Fragment {
     }
 
     private void loadSpaces() {
-        HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(App.getInstance().getCurrentHouseId()));
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (houseId <= 0) {
+            showEmpty("暂无家庭，请先创建一个家庭");
+            return;
+        }
 
-        ApiClient.get("space.php", params, new ApiClient.ApiCallback() {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+
+        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
-                    if (data.has("list")) {
-                        JsonArray list = data.getAsJsonArray("list");
-                        if (list.size() == 0) {
-                            emptyView.setVisibility(View.VISIBLE);
-                            recyclerView.setVisibility(View.GONE);
-                        } else {
+                    try {
+                        JsonArray list = null;
+                        if (data.has("tree") && !data.get("tree").isJsonNull()) {
+                            list = data.getAsJsonArray("tree");
+                        } else if (data.has("list") && !data.get("list").isJsonNull()) {
+                            list = data.getAsJsonArray("list");
+                        }
+                        if (list != null && list.size() > 0) {
                             emptyView.setVisibility(View.GONE);
                             recyclerView.setVisibility(View.VISIBLE);
                             recyclerView.setAdapter(new SpaceAdapter(list));
+                        } else {
+                            showEmpty("暂无收纳空间\n点击下方按钮创建");
                         }
+                    } catch (Exception e) {
+                        showEmpty("数据解析错误");
                     }
                 });
             }
             @Override public void onError(String msg) {
-                if (getActivity() != null) getActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show());
+                if (getActivity() != null) getActivity().runOnUiThread(() -> {
+                    if (msg.contains("403") || msg.contains("不是该房屋成员")) {
+                        showEmpty("暂无权限访问\n请联系家庭管理员");
+                    } else {
+                        showEmpty("加载失败: " + msg);
+                    }
+                });
             }
         });
+    }
+
+    private void showEmpty(String message) {
+        emptyView.setVisibility(View.VISIBLE);
+        recyclerView.setVisibility(View.GONE);
+        // 在emptyView中显示提示
+        if (emptyView.getChildCount() > 0) {
+            View child = emptyView.getChildAt(0);
+            if (child instanceof TextView) {
+                ((TextView) child).setText(message);
+            }
+        }
     }
 
     class SpaceAdapter extends RecyclerView.Adapter<SpaceAdapter.VH> {
@@ -76,15 +107,35 @@ public class SpacesFragment extends Fragment {
         }
 
         @Override public void onBindViewHolder(VH holder, int position) {
-            JsonObject item = items.get(position).getAsJsonObject();
-            holder.tvIcon.setText(item.has("icon") ? item.get("icon").getAsString() : "🏠");
-            holder.tvName.setText(item.get("name").getAsString());
-            holder.tvCount.setText("📦 " + item.get("item_count").getAsInt() + " 件");
-            holder.tvExpiring.setText("⏰ " + (item.has("expiring_count") ? item.get("expiring_count").getAsInt() : 0) + " 临期");
-            holder.itemView.setOnClickListener(e -> {
-                // 进入空间详情
-                Toast.makeText(getContext(), "查看空间: " + item.get("name").getAsString(), Toast.LENGTH_SHORT).show();
-            });
+            try {
+                JsonObject item = items.get(position).getAsJsonObject();
+                holder.tvIcon.setText(item.has("icon") && !item.get("icon").isJsonNull() ? item.get("icon").getAsString() : "🏠");
+                holder.tvName.setText(item.has("name") ? item.get("name").getAsString() : "");
+                int itemCount = item.has("item_count") ? item.get("item_count").getAsInt() : 0;
+                int expiringCount = item.has("expiring_count") ? item.get("expiring_count").getAsInt() : 0;
+                holder.tvCount.setText("📦 " + itemCount + " 件");
+                holder.tvExpiring.setText("⏰ " + expiringCount + " 临期");
+
+                // 显示子空间
+                if (item.has("children") && !item.get("children").isJsonNull()) {
+                    JsonArray children = item.getAsJsonArray("children");
+                    if (children.size() > 0) {
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < Math.min(children.size(), 3); i++) {
+                            JsonObject child = children.get(i).getAsJsonObject();
+                            if (sb.length() > 0) sb.append(" · ");
+                            sb.append(child.has("name") ? child.get("name").getAsString() : "");
+                        }
+                        holder.tvExpiring.setText(holder.tvExpiring.getText() + "\n" + sb.toString());
+                    }
+                }
+
+                holder.itemView.setOnClickListener(e -> {
+                    Toast.makeText(getContext(), "查看空间: " + item.get("name").getAsString(), Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                holder.tvName.setText("数据错误");
+            }
         }
 
         @Override public int getItemCount() { return items.size(); }

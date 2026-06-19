@@ -65,6 +65,7 @@
                     </LinearLayout>
 
                     <TextView
+                        android:id="@+id/btn_notifications"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:background="@drawable/bg_circle_white_20"
@@ -73,6 +74,7 @@
                         android:textSize="16sp" />
 
                     <TextView
+                        android:id="@+id/btn_quick_add"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:layout_marginStart="8dp"
@@ -93,6 +95,7 @@
                 android:elevation="6dp">
 
                 <LinearLayout
+                    android:id="@+id/btn_search"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_search_bar"
@@ -545,6 +548,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_tag_red"
                         android:paddingTop="2dp" android:paddingBottom="2dp" android:paddingLeft="8dp" android:paddingRight="8dp"
+                        android:id="@+id/tv_expiring_tag"
                         android:text="5 件"
                         android:textColor="#9B2C2C"
                         android:textSize="10sp" />
@@ -593,6 +597,7 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tv_view_all_recent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="查看全部"
@@ -601,6 +606,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/ll_recent_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
