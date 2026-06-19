@@ -240,16 +240,16 @@ $medals = ['🥇','🥈','🥉'];
                             <div class="api-usage-name">📊 条码查询</div>
                             <span class="api-usage-status">正常</span>
                         </div>
-                        <div class="progress"><div class="progress-bar success" style="width:32%"></div></div>
-                        <div class="api-usage-meta"><span>已用 320 / 1000 次</span><span>32%</span></div>
+                        <div class="progress"><div class="progress-bar success" style="width:0%"></div></div>
+                        <div class="api-usage-meta"><span>已用 <?= $stats['api_today'] ?> / 1000 次</span><span>0%</span></div>
                     </div>
                     <div class="api-usage-item">
                         <div class="api-usage-head">
                             <div class="api-usage-name">📷 图像识别</div>
                             <span class="api-usage-status warn">预警</span>
                         </div>
-                        <div class="progress"><div class="progress-bar warning" style="width:78%"></div></div>
-                        <div class="api-usage-meta"><span>已用 780 / 1000 次</span><span>78%</span></div>
+                        <div class="progress"><div class="progress-bar warning" style="width:0%"></div></div>
+                        <div class="api-usage-meta"><span>已用 0 / 1000 次</span><span>0%</span></div>
                     </div>
                 </div>
             </div>
