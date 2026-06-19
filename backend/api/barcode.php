@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/helpers.php';
 /**
  * 条码查询接口 - 转发到配置的第三方接口
  */

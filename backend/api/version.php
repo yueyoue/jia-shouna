@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/helpers.php';
 /**
  * APP版本检查接口
  */

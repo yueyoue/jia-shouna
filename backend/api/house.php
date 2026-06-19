@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/helpers.php';
 /**
  * 房屋/家庭组管理接口
  */

@@ -2,6 +2,8 @@
 /**
  * 认证接口 - 登录/注册/刷新Token
  */
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/helpers.php';
 require_once __DIR__ . '/../config/jwt.php';
 
 $action = $_GET['action'] ?? '';
