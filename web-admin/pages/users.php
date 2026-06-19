@@ -38,52 +38,63 @@ $houses = $db->query("SELECT h.*, u.username as creator_name FROM house h LEFT J
 $logs = $db->query("SELECT * FROM operate_log ORDER BY created_at DESC LIMIT 50")->fetchAll();
 ?>
 
-<div class="card-header" style="margin-bottom: 16px;">
-    <h2 style="font-size: 18px;">用户与家庭组管理</h2>
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <div class="page-title" style="font-size:22px;font-weight:700">用户与家庭组管理</div>
+    </div>
+    <?php if ($tab === 'users'): ?>
+    <button class="btn btn-primary btn-sm" onclick="showModal('addUserModal')">+ 添加用户</button>
+    <?php endif; ?>
 </div>
 
 <?php if (!empty($msg)): ?>
-    <div class="toast toast-success" style="position: relative; margin-bottom: 16px;"><?= $msg ?></div>
+    <div class="alert alert-success" style="margin-bottom:16px;">
+        <span class="alert-icon">✅</span>
+        <div><?= $msg ?></div>
+    </div>
 <?php endif; ?>
 
-<!-- Tab切换 -->
-<div style="display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #eee;">
-    <a href="?p=users&tab=users" style="padding: 10px 20px; font-size: 14px; font-weight: 600; border-bottom: 2px solid <?= $tab === 'users' ? '#FF8C42' : 'transparent' ?>; margin-bottom: -2px; color: <?= $tab === 'users' ? '#FF8C42' : '#636E72' ?>;">👥 用户管理</a>
-    <a href="?p=users&tab=houses" style="padding: 10px 20px; font-size: 14px; font-weight: 600; border-bottom: 2px solid <?= $tab === 'houses' ? '#FF8C42' : 'transparent' ?>; margin-bottom: -2px; color: <?= $tab === 'houses' ? '#FF8C42' : '#636E72' ?>;">🏠 家庭组</a>
-    <a href="?p=users&tab=logs" style="padding: 10px 20px; font-size: 14px; font-weight: 600; border-bottom: 2px solid <?= $tab === 'logs' ? '#FF8C42' : 'transparent' ?>; margin-bottom: -2px; color: <?= $tab === 'logs' ? '#FF8C42' : '#636E72' ?>;">📋 操作日志</a>
+<!-- Tabs -->
+<div class="tabs">
+    <a href="?p=users&tab=users" class="tab <?= $tab === 'users' ? 'active' : '' ?>">👥 用户管理</a>
+    <a href="?p=users&tab=houses" class="tab <?= $tab === 'houses' ? 'active' : '' ?>">🏠 家庭组</a>
+    <a href="?p=users&tab=logs" class="tab <?= $tab === 'logs' ? 'active' : '' ?>">📋 操作日志</a>
 </div>
 
 <?php if ($tab === 'users'): ?>
 <!-- 用户管理 -->
-<div class="card">
-    <div class="card-header">
-        <div class="card-title">用户列表</div>
-        <button class="btn btn-primary btn-sm" onclick="showModal('addUserModal')">+ 添加用户</button>
-    </div>
+<div class="card" style="overflow:hidden;">
     <div class="table-wrapper">
         <table>
             <thead><tr><th>用户名</th><th>昵称</th><th>手机号</th><th>角色</th><th>状态</th><th>最后登录</th><th>操作</th></tr></thead>
             <tbody>
                 <?php foreach ($users as $u): ?>
                 <tr>
-                    <td><strong><?= htmlspecialchars($u['username']) ?></strong></td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#FFB07A,#4ECDC4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px;flex-shrink:0"><?= mb_substr(htmlspecialchars($u['nickname'] ?: $u['username']), 0, 1) ?></div>
+                            <strong><?= htmlspecialchars($u['username']) ?></strong>
+                        </div>
+                    </td>
                     <td><?= htmlspecialchars($u['nickname']) ?></td>
                     <td><?= $u['phone'] ?: '-' ?></td>
-                    <td><span class="badge <?= $u['role'] == 1 ? 'badge-warning' : 'badge-info' ?>"><?= $u['role'] == 1 ? '管理员' : '普通用户' ?></span></td>
-                    <td><?= $u['status'] ? '<span class="badge badge-success">正常</span>' : '<span class="badge badge-danger">禁用</span>' ?></td>
-                    <td><?= $u['last_login_time'] ? date('m-d H:i', $u['last_login_time']) : '-' ?></td>
+                    <td><span class="tag <?= $u['role'] == 1 ? 'tag-orange' : 'tag-blue' ?>"><?= $u['role'] == 1 ? '管理员' : '普通用户' ?></span></td>
+                    <td><?= $u['status'] ? '<span class="tag tag-green">正常</span>' : '<span class="tag tag-red">禁用</span>' ?></td>
+                    <td style="font-size:12px;color:var(--text-3)"><?= $u['last_login_time'] ? date('m-d H:i', $u['last_login_time']) : '-' ?></td>
                     <td>
-                        <form method="POST" style="display: inline;">
-                            <input type="hidden" name="action" value="toggle_user">
-                            <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                            <input type="hidden" name="status" value="<?= $u['status'] ? 0 : 1 ?>">
-                            <button type="submit" class="btn btn-sm btn-outline"><?= $u['status'] ? '禁用' : '启用' ?></button>
-                        </form>
-                        <form method="POST" style="display: inline;" onsubmit="return confirm('确定重置密码为123456？')">
-                            <input type="hidden" name="action" value="reset_password">
-                            <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                            <button type="submit" class="btn btn-sm btn-outline">重置密码</button>
-                        </form>
+                        <div style="display:flex;gap:4px;">
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="toggle_user">
+                                <input type="hidden" name="id" value="<?= $u['id'] ?>">
+                                <input type="hidden" name="status" value="<?= $u['status'] ? 0 : 1 ?>">
+                                <button type="submit" class="btn btn-sm btn-outline" style="padding:4px 8px;font-size:11px"><?= $u['status'] ? '禁用' : '启用' ?></button>
+                            </form>
+                            <form method="POST" style="display:inline;" onsubmit="return confirm('确定重置密码为123456？')">
+                                <input type="hidden" name="action" value="reset_password">
+                                <input type="hidden" name="id" value="<?= $u['id'] ?>">
+                                <button type="submit" class="btn btn-sm btn-outline" style="padding:4px 8px;font-size:11px">重置密码</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -131,10 +142,7 @@ $logs = $db->query("SELECT * FROM operate_log ORDER BY created_at DESC LIMIT 50"
 
 <?php elseif ($tab === 'houses'): ?>
 <!-- 家庭组 -->
-<div class="card">
-    <div class="card-header">
-        <div class="card-title">家庭组列表</div>
-    </div>
+<div class="card" style="overflow:hidden;">
     <div class="table-wrapper">
         <table>
             <thead><tr><th>名称</th><th>邀请码</th><th>创建者</th><th>成员数</th><th>空间数</th><th>物品数</th><th>创建时间</th></tr></thead>
@@ -142,12 +150,12 @@ $logs = $db->query("SELECT * FROM operate_log ORDER BY created_at DESC LIMIT 50"
                 <?php foreach ($houses as $h): ?>
                 <tr>
                     <td><strong><?= htmlspecialchars($h['name']) ?></strong></td>
-                    <td><code style="background: #f8f9fa; padding: 2px 8px; border-radius: 4px;"><?= $h['invite_code'] ?></code></td>
+                    <td><code style="background:var(--bg);padding:2px 8px;border-radius:4px;font-size:12px;"><?= $h['invite_code'] ?></code></td>
                     <td><?= htmlspecialchars($h['creator_name'] ?? '-') ?></td>
-                    <td><?= $h['member_count'] ?></td>
+                    <td><strong><?= $h['member_count'] ?></strong></td>
                     <td><?= $h['space_count'] ?></td>
                     <td><?= $h['item_count'] ?></td>
-                    <td><?= date('Y-m-d', $h['created_at']) ?></td>
+                    <td style="font-size:12px;color:var(--text-3)"><?= date('Y-m-d', $h['created_at']) ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -157,26 +165,37 @@ $logs = $db->query("SELECT * FROM operate_log ORDER BY created_at DESC LIMIT 50"
 
 <?php else: ?>
 <!-- 操作日志 -->
-<div class="card">
+<div class="card" style="overflow:hidden;">
     <div class="card-header">
         <div class="card-title">操作日志</div>
     </div>
-    <div class="table-wrapper">
-        <table>
-            <thead><tr><th>时间</th><th>操作人</th><th>模块</th><th>操作</th><th>内容</th><th>IP</th></tr></thead>
-            <tbody>
-                <?php foreach ($logs as $log): ?>
-                <tr>
-                    <td><?= date('m-d H:i:s', $log['created_at']) ?></td>
-                    <td><?= htmlspecialchars($log['username']) ?></td>
-                    <td><span class="badge badge-info"><?= $log['module'] ?></span></td>
-                    <td><?= $log['action'] ?></td>
-                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($log['content']) ?></td>
-                    <td><?= $log['ip'] ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+    <div style="padding:4px 0;">
+        <?php
+        $logIcons = ['add' => ['icon' => '➕', 'bg' => 'rgba(72,187,120,.12)', 'color' => '#22543D'],
+                     'edit' => ['icon' => '✎', 'bg' => 'rgba(91,159,237,.12)', 'color' => '#2C5282'],
+                     'delete' => ['icon' => '🗑', 'bg' => 'rgba(245,101,101,.12)', 'color' => '#9B2C2C'],
+                     'login' => ['icon' => '🔑', 'bg' => 'rgba(255,140,66,.12)', 'color' => '#C25A1E']];
+        foreach ($logs as $log):
+            $li = $logIcons[$log['action']] ?? ['icon' => '📋', 'bg' => 'var(--bg)', 'color' => 'var(--text-2)'];
+        ?>
+        <div style="padding:14px 20px;display:flex;gap:12px;border-bottom:1px solid var(--border-2);font-size:13px;transition:background .15s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
+            <div style="width:32px;height:32px;border-radius:8px;background:<?= $li['bg'] ?>;color:<?= $li['color'] ?>;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"><?= $li['icon'] ?></div>
+            <div style="flex:1;min-width:0">
+                <div style="color:var(--text);line-height:1.5"><strong style="color:var(--primary)"><?= htmlspecialchars($log['username']) ?></strong> <?= htmlspecialchars($log['action']) ?> · <?= htmlspecialchars($log['content']) ?></div>
+                <div style="display:flex;gap:10px;margin-top:4px;font-size:11px;color:var(--text-4);">
+                    <span><?= date('m-d H:i:s', $log['created_at']) ?></span>
+                    <span class="tag tag-blue" style="font-size:10px"><?= $log['module'] ?></span>
+                    <span style="font-family:monospace"><?= $log['ip'] ?></span>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        <?php if (empty($logs)): ?>
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">暂无操作日志</div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 <?php endif; ?>

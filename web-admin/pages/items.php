@@ -29,68 +29,111 @@ $items = $stmt->fetchAll();
 $categories = ['食品', '衣物', '药品', '日用品', '数码', '证件', '厨具', '其他'];
 ?>
 
-<div class="card-header" style="margin-bottom: 16px;">
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
     <div>
-        <h2 style="font-size: 18px;">物品信息管理</h2>
-        <p style="color: #999; font-size: 12px;">共 <?= number_format($total) ?> 件物品</p>
+        <div class="page-title" style="font-size:22px;font-weight:700">物品信息管理</div>
+        <div class="page-desc" style="color:var(--text-3);font-size:13px;margin-top:4px">共 <?= number_format($total) ?> 件物品 · 多条件筛选</div>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn btn-outline" onclick="exportItems()">📤 导出</button>
-        <button class="btn btn-outline" onclick="importItems()">📥 Excel导入</button>
+    <div style="display:flex;gap:10px;">
+        <button class="btn btn-outline btn-sm" onclick="exportItems()">📤 导出</button>
+        <button class="btn btn-outline btn-sm" onclick="importItems()">📥 Excel导入</button>
     </div>
 </div>
 
-<!-- 筛选栏 -->
-<div class="card" style="margin-bottom: 16px;">
-    <form class="filter-bar" method="GET">
-        <input type="hidden" name="p" value="items">
-        <input type="text" name="keyword" class="form-control" placeholder="搜索物品名称/条码" value="<?= htmlspecialchars($keyword) ?>">
-        <select name="category" class="form-control">
-            <option value="">全部分类</option>
-            <?php foreach ($categories as $cat): ?>
-                <option value="<?= $cat ?>" <?= $category === $cat ? 'selected' : '' ?>><?= $cat ?></option>
-            <?php endforeach; ?>
-        </select>
-        <select name="privacy" class="form-control">
-            <option value="">全部状态</option>
-            <option value="shared" <?= $privacy === 'shared' ? 'selected' : '' ?>>共享</option>
-            <option value="private" <?= $privacy === 'private' ? 'selected' : '' ?>>隐藏</option>
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm">🔍 搜索</button>
-        <a href="?p=items" class="btn btn-outline btn-sm">重置</a>
-    </form>
+<!-- Filter bar -->
+<div class="card" style="margin-bottom:16px;">
+    <div style="padding:16px 20px;">
+        <form style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:flex-end;" method="GET">
+            <input type="hidden" name="p" value="items">
+            <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">物品名称</label>
+                <input type="text" name="keyword" class="form-control" placeholder="搜索名称/条码..." value="<?= htmlspecialchars($keyword) ?>">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">物品分类</label>
+                <select name="category" class="form-control">
+                    <option value="">全部分类</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?= $cat ?>" <?= $category === $cat ? 'selected' : '' ?>><?= $cat ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">可见性</label>
+                <select name="privacy" class="form-control">
+                    <option value="">全部</option>
+                    <option value="shared" <?= $privacy === 'shared' ? 'selected' : '' ?>>👁 正常可见</option>
+                    <option value="private" <?= $privacy === 'private' ? 'selected' : '' ?>>🔒 隐藏物品</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:8px;padding-top:4px;">
+                <button type="submit" class="btn btn-primary btn-sm">🔍 搜索</button>
+                <a href="?p=items" class="btn btn-outline btn-sm">↻ 重置</a>
+            </div>
+        </form>
+    </div>
 </div>
 
-<!-- 物品列表 -->
-<div class="card">
+<!-- Items table -->
+<div class="card" style="overflow:hidden;">
+    <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-2);background:#FAFBFC;">
+        <strong style="font-size:14px">物品列表</strong>
+        <span style="font-size:12px;color:var(--text-4)">· 显示 <?= $offset + 1 ?>-<?= min($offset + $pageSize, $total) ?> / <?= number_format($total) ?></span>
+    </div>
+
     <div class="table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <th>物品名称</th><th>条码</th><th>分类</th><th>存放位置</th><th>数量</th><th>保质期</th><th>隐私</th><th>操作</th>
+                    <th>物品信息</th>
+                    <th>分类</th>
+                    <th>存放位置</th>
+                    <th>数量</th>
+                    <th>保质期</th>
+                    <th>可见性</th>
+                    <th style="width:80px">操作</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($items)): ?>
-                    <tr><td colspan="8" class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">暂无物品数据</div></td></tr>
+                    <tr><td colspan="7" class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">暂无物品数据</div></td></tr>
                 <?php else: foreach ($items as $item): ?>
                     <tr>
-                        <td><strong><?= htmlspecialchars($item['name']) ?></strong></td>
-                        <td style="font-family: monospace;"><?= $item['barcode'] ?: '-' ?></td>
-                        <td><?= $item['category'] ?: '-' ?></td>
-                        <td><?= htmlspecialchars($item['space_name'] ?? '-') ?></td>
-                        <td><?= $item['quantity'] ?> <?= $item['unit'] ?></td>
-                        <td><?= $item['expiry_date'] ?: '-' ?></td>
                         <td>
-                            <?php if ($item['is_private']): ?>
-                                <span class="badge badge-private">🔒 隐藏</span>
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#FFE8D6,#FFD3B0);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📦</div>
+                                <div>
+                                    <div style="font-size:13px;font-weight:600;line-height:1.3"><?= htmlspecialchars($item['name']) ?></div>
+                                    <div style="font-size:11px;color:var(--text-4);margin-top:2px"><?= $item['barcode'] ? '条码: '.$item['barcode'] : '' ?></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="tag tag-orange"><?= $item['category'] ?: '-' ?></span></td>
+                        <td><div style="font-size:11px;color:var(--text-3);line-height:1.5"><?= htmlspecialchars($item['space_name'] ?? '-') ?></div></td>
+                        <td><strong><?= $item['quantity'] ?></strong> <?= $item['unit'] ?></td>
+                        <td>
+                            <?php if ($item['expiry_date']): 
+                                $daysLeft = floor((strtotime($item['expiry_date']) - time()) / 86400);
+                            ?>
+                                <span style="font-size:12px;font-weight:500;<?= $daysLeft <= 0 ? 'color:var(--danger)' : ($daysLeft <= 7 ? 'color:var(--warning)' : 'color:var(--success)') ?>">
+                                    <?= $daysLeft <= 0 ? '⚠ 已过期' : ($daysLeft <= 7 ? '⏰ '.$daysLeft.'天后' : $item['expiry_date']) ?>
+                                </span>
                             <?php else: ?>
-                                <span class="badge badge-success">共享</span>
+                                <span style="font-size:12px;color:var(--text-4)">— 无</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <a href="?p=items&action=edit&id=<?= $item['id'] ?>" class="btn btn-sm btn-outline">编辑</a>
-                            <button class="btn btn-sm btn-danger" onclick="deleteItem(<?= $item['id'] ?>)">删除</button>
+                            <?php if ($item['is_private']): ?>
+                                <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;background:rgba(159,122,234,.12);color:#553C9A;font-size:11px;font-weight:600">🔒 隐藏</span>
+                            <?php else: ?>
+                                <span style="font-size:11px;color:var(--text-4)">👁 可见</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:4px;">
+                                <a href="?p=items&action=edit&id=<?= $item['id'] ?>" class="btn btn-sm btn-outline" style="padding:4px 8px;font-size:11px">✎</a>
+                                <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:11px" onclick="deleteItem(<?= $item['id'] ?>)">🗑</button>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; endif; ?>
@@ -115,7 +158,6 @@ async function deleteItem(id) {
 
 function exportItems() {
     showToast('正在准备导出...', 'info');
-    // 简单实现：跳转到导出API
     window.open('../backend/admin/export.php?type=items', '_blank');
 }
 
