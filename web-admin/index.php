@@ -5,7 +5,9 @@
 session_start();
 
 // 检查是否已安装
-if (!file_exists(__DIR__ . '/../install.lock') && basename($_SERVER['SCRIPT_FILENAME']) !== 'install.php') {
+$lockFile = dirname(__DIR__) . '/install.lock';
+$isInstalled = file_exists($lockFile) || file_exists(__DIR__ . '/../install.lock');
+if (!$isInstalled && basename($_SERVER['SCRIPT_FILENAME']) !== 'install.php') {
     header('Location: install.php');
     exit;
 }

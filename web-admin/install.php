@@ -107,7 +107,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     // 标记安装完成
                     $lockFile = dirname(__DIR__) . '/install.lock';
-                    file_put_contents($lockFile, date('Y-m-d H:i:s'));
+                    $lockResult = @file_put_contents($lockFile, date('Y-m-d H:i:s'));
+                    if ($lockResult === false) {
+                        // 尝试创建空文件
+                        @touch($lockFile);
+                    }
+                    // 确认文件已创建
+                    if (!file_exists($lockFile)) {
+                        $error = '安装完成但无法创建 install.lock 文件，请手动创建：' . $lockFile;
+                        // 仍然跳转，因为数据库和配置已就绪
+                    }
 
                     unset($_SESSION['install_db']);
                     header('Location: install.php?step=4');
