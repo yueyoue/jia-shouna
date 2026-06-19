@@ -73,4 +73,4 @@ jobs:
             android-app/app/build/outputs/apk/release/app-release-unsigned.apk
             jia-shouna-web.tar.gz
         env:
-          GITHUB_TOKEN: *** secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
