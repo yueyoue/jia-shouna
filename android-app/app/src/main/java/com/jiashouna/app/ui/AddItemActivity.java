@@ -25,7 +25,7 @@ public class AddItemActivity extends AppCompatActivity {
     private Switch swPrivate;
     private Button btnSave;
     private FrameLayout scanContainer;
-    private View tabScan, tabPhoto, tabManual;
+    private TextView tabScan, tabPhoto, tabManual;
     private int selectedSpaceId = 0;
     private String selectedSpaceName = "";
     private LocalDb localDb;
@@ -88,26 +88,26 @@ public class AddItemActivity extends AppCompatActivity {
         tabScan.setTextColor(Color.parseColor("#718096"));
         tabPhoto.setTextColor(Color.parseColor("#718096"));
         tabManual.setTextColor(Color.parseColor("#718096"));
-        ((TextView) tabScan).setTypeface(null, android.graphics.Typeface.NORMAL);
-        ((TextView) tabPhoto).setTypeface(null, android.graphics.Typeface.NORMAL);
-        ((TextView) tabManual).setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabScan.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabPhoto.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabManual.setTypeface(null, android.graphics.Typeface.NORMAL);
 
         switch (mode) {
             case "scan":
                 tabScan.setTextColor(Color.parseColor("#FF8C42"));
-                ((TextView) tabScan).setTypeface(null, android.graphics.Typeface.BOLD);
+                tabScan.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
                 startBarcodeScan();
                 break;
             case "photo":
                 tabPhoto.setTextColor(Color.parseColor("#FF8C42"));
-                ((TextView) tabPhoto).setTypeface(null, android.graphics.Typeface.BOLD);
+                tabPhoto.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
                 startPhotoCapture();
                 break;
             case "manual":
                 tabManual.setTextColor(Color.parseColor("#FF8C42"));
-                ((TextView) tabManual).setTypeface(null, android.graphics.Typeface.BOLD);
+                tabManual.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.GONE);
                 break;
         }
