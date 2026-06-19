@@ -3,6 +3,13 @@
  * Web管理后台入口 - 路由分发
  */
 session_start();
+
+// 检查是否已安装
+if (!file_exists(__DIR__ . '/../install.lock') && basename($_SERVER['SCRIPT_FILENAME']) !== 'install.php') {
+    header('Location: install.php');
+    exit;
+}
+
 require_once __DIR__ . '/../backend/config/database.php';
 
 // 检查登录状态(管理后台用Session)
