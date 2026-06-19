@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    android:layout_marginBottom="10dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+        <TextView android:id="@+id/tv_icon" android:layout_width="40dp" android:layout_height="40dp" android:textSize="24sp" android:gravity="center" android:background="@drawable/bg_icon_circle" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="12dp">
+            <TextView android:id="@+id/tv_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="15sp" android:textStyle="bold" />
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+                <TextView android:id="@+id/tv_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="#999" android:layout_marginEnd="12dp" />
+                <TextView android:id="@+id/tv_expiring" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="#F56565" />
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textSize="20sp" android:textColor="#ccc" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

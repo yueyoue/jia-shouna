@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F6FA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 用户信息 -->
+        <androidx.cardview.widget.CardView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp" app:cardElevation="2dp"
+            android:layout_marginBottom="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp" android:gravity="center">
+                <TextView android:layout_width="60dp" android:layout_height="60dp" android:text="👤" android:textSize="32sp" android:gravity="center" android:background="@drawable/bg_icon_circle" />
+                <TextView android:id="@+id/tv_nickname" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="用户" android:textSize="18sp" android:textStyle="bold" android:layout_marginTop="8dp" />
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="12dp">
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingStart="20dp" android:paddingEnd="20dp">
+                        <TextView android:id="@+id/tv_item_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="#FF8C42" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="录入物品" android:textSize="11sp" android:textColor="#999" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingStart="20dp" android:paddingEnd="20dp">
+                        <TextView android:id="@+id/tv_space_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="#4ECDC4" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="创建空间" android:textSize="11sp" android:textColor="#999" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingStart="20dp" android:paddingEnd="20dp">
+                        <TextView android:id="@+id/tv_operations" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="#5B9FED" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总操作" android:textSize="11sp" android:textColor="#999" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 房屋信息 -->
+        <androidx.cardview.widget.CardView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp" app:cardElevation="2dp"
+            android:layout_marginBottom="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🏠 我的家" android:textSize="16sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tv_house_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="#999" />
+                </LinearLayout>
+                <TextView android:id="@+id/tv_member_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 位成员" android:textSize="13sp" android:textColor="#999" android:layout_marginTop="4dp" />
+                <Button android:id="@+id/btn_family_share" android:layout_width="match_parent" android:layout_height="40dp" android:text="共享管理" android:textSize="13sp" android:layout_marginTop="12dp" android:backgroundTint="#F5F6FA" android:textColor="#FF8C42" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 版本更新 -->
+        <androidx.cardview.widget.CardView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp" app:cardElevation="2dp"
+            android:layout_marginBottom="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📱 版本更新" android:textSize="15sp" />
+                <TextView android:id="@+id/tv_version" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v1.0.0" android:textSize="13sp" android:textColor="#999" android:layout_marginEnd="12dp" />
+                <Button android:id="@+id/btn_check_update" android:layout_width="wrap_content" android:layout_height="36dp" android:text="检查更新" android:textSize="12sp" android:backgroundTint="#FF8C42" android:textColor="#FFFFFF" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 退出登录 -->
+        <Button
+            android:id="@+id/btn_logout"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="退出登录"
+            android:textSize="15sp"
+            android:backgroundTint="#F56565"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+</ScrollView>

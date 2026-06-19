@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#F5F6FA">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="👨‍👩‍👧 家庭共享管理" android:textSize="20sp" android:textStyle="bold" />
+    </LinearLayout>
+    <androidx.cardview.widget.CardView xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" app:cardCornerRadius="12dp" app:cardElevation="2dp" android:layout_marginStart="16dp" android:layout_marginEnd="16dp" android:layout_marginBottom="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+            <TextView android:id="@+id/tv_house_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="我的家" android:textSize="16sp" android:textStyle="bold" />
+            <TextView android:id="@+id/tv_member_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 位成员" android:textSize="13sp" android:textColor="#999" android:layout_marginBottom="12dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="邀请码" android:textSize="12sp" android:textColor="#999" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+                <TextView android:id="@+id/tv_invite_code" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="HOME-XXXX" android:textSize="18sp" android:textStyle="bold" android:textColor="#FF8C42" />
+                <Button android:id="@+id/btn_copy_code" android:layout_width="wrap_content" android:layout_height="36dp" android:text="复制" android:textSize="12sp" android:backgroundTint="#5B9FED" android:textColor="#FFF" />
+            </LinearLayout>
+            <Button android:id="@+id/btn_join" android:layout_width="match_parent" android:layout_height="40dp" android:text="🔗 加入其他房屋" android:textSize="13sp" android:backgroundTint="#F5F6FA" android:textColor="#FF8C42" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="👥 成员列表" android:textSize="16sp" android:textStyle="bold" android:paddingStart="16dp" android:paddingEnd="16dp" android:layout_marginBottom="8dp" />
+    <LinearLayout android:id="@+id/ll_members" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp" />
+</LinearLayout>

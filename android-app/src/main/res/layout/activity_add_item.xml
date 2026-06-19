@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F6FA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📦 物品录入" android:textSize="20sp" android:textStyle="bold" android:layout_marginBottom="16dp" />
+
+        <!-- 扫码按钮 -->
+        <Button android:id="@+id/btn_scan" android:layout_width="match_parent" android:layout_height="48dp" android:text="📷 扫码录入" android:textSize="15sp" android:backgroundTint="#4ECDC4" android:textColor="#FFFFFF" android:layout_marginBottom="16dp" />
+
+        <androidx.cardview.widget.CardView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_width="match_parent" android:layout_height="wrap_content" app:cardCornerRadius="12dp" app:cardElevation="2dp" android:layout_marginBottom="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="✏️ 物品信息" android:textSize="15sp" android:textStyle="bold" android:layout_marginBottom="12dp" />
+
+                <EditText android:id="@+id/et_name" android:layout_width="match_parent" android:layout_height="44dp" android:hint="物品名称 *" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" android:layout_marginBottom="10dp" />
+                <EditText android:id="@+id/et_barcode" android:layout_width="match_parent" android:layout_height="44dp" android:hint="条形码" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" android:layout_marginBottom="10dp" />
+                <EditText android:id="@+id/et_category" android:layout_width="match_parent" android:layout_height="44dp" android:hint="分类" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" android:layout_marginBottom="10dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="10dp">
+                    <EditText android:id="@+id/et_quantity" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:hint="数量" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" android:inputType="numberDecimal" android:layout_marginEnd="8dp" />
+                    <EditText android:id="@+id/et_unit" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:hint="单位(个)" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" />
+                </LinearLayout>
+
+                <Spinner android:id="@+id/sp_space" android:layout_width="match_parent" android:layout_height="44dp" android:background="@drawable/bg_input" android:layout_marginBottom="10dp" />
+
+                <EditText android:id="@+id/et_expiry" android:layout_width="match_parent" android:layout_height="44dp" android:hint="保质期(点击选择)" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" android:focusable="false" android:clickable="true" android:layout_marginBottom="10dp" />
+                <EditText android:id="@+id/et_price" android:layout_width="match_parent" android:layout_height="44dp" android:hint="购买价格" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" android:inputType="numberDecimal" android:layout_marginBottom="10dp" />
+                <EditText android:id="@+id/et_note" android:layout_width="match_parent" android:layout_height="80dp" android:hint="备注" android:background="@drawable/bg_input" android:padding="12dp" android:textSize="14sp" android:gravity="top" android:layout_marginBottom="10dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔒 仅自己可见" android:textSize="14sp" />
+                    <Switch android:id="@+id/sw_private" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <Button android:id="@+id/btn_save" android:layout_width="match_parent" android:layout_height="48dp" android:text="💾 保存物品" android:textSize="16sp" android:backgroundTint="#FF8C42" android:textColor="#FFFFFF" />
+
+    </LinearLayout>
+</ScrollView>
