@@ -99,7 +99,7 @@ public class ApiClient {
                 JsonObject json = JsonParser.parseString(body).getAsJsonObject();
                 int code = json.get("code").getAsInt();
                 if (code == 0) {
-                    callback onSuccess(json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject());
+                    callback.onSuccess(json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject());
                 } else {
                     callback.onError(json.has("msg") ? json.get("msg").getAsString() : "请求失败");
                 }
