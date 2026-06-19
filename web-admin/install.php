@@ -105,17 +105,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $configContent = preg_replace("/define\('DB_PASS',\s*'[^']*'\)/", "define('DB_PASS', '{$dbInfo['pass']}')", $configContent);
                     file_put_contents($configFile, $configContent);
 
-                    // 标记安装完成
-                    $lockFile = dirname(__DIR__) . '/install.lock';
-                    $lockResult = @file_put_contents($lockFile, date('Y-m-d H:i:s'));
-                    if ($lockResult === false) {
-                        // 尝试创建空文件
-                        @touch($lockFile);
-                    }
-                    // 确认文件已创建
-                    if (!file_exists($lockFile)) {
-                        $error = '安装完成但无法创建 install.lock 文件，请手动创建：' . $lockFile;
-                        // 仍然跳转，因为数据库和配置已就绪
+                    // 标记安装完成（写入多个位置确保检测到）
+                    $lockTargets = [
+                        __DIR__ . '/install.lock',              // web-admin/install.lock
+                        dirname(__DIR__) . '/install.lock',      // 上级/install.lock
+                    ];
+                    foreach ($lockTargets as $lockFile) {
+                        @file_put_contents($lockFile, date('Y-m-d H:i:s'));
                     }
 
                     unset($_SESSION['install_db']);

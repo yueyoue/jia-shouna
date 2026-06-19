@@ -4,10 +4,32 @@
  */
 session_start();
 
-// 检查是否已安装
-$lockFile = dirname(__DIR__) . '/install.lock';
-$isInstalled = file_exists($lockFile) || file_exists(__DIR__ . '/../install.lock');
-if (!$isInstalled && basename($_SERVER['SCRIPT_FILENAME']) !== 'install.php') {
+// 检查是否已安装（多路径检测）
+$installed = false;
+$lockPaths = [
+    __DIR__ . '/install.lock',           // web-admin/install.lock
+    dirname(__DIR__) . '/install.lock',   // 上级/install.lock
+];
+foreach ($lockPaths as $lp) {
+    if (file_exists($lp)) { $installed = true; break; }
+}
+// 也检查数据库是否已初始化（有管理员账号）
+if (!$installed) {
+    try {
+        require_once __DIR__ . '/../backend/config/database.php';
+        $db = getDB();
+        $stmt = $db->query("SELECT COUNT(*) as c FROM sys_user WHERE role=1");
+        $row = $stmt->fetch();
+        if ($row && $row['c'] > 0) {
+            // 数据库已初始化，自动创建锁文件
+            @file_put_contents(__DIR__ . '/install.lock', date('Y-m-d H:i:s'));
+            $installed = true;
+        }
+    } catch (Exception $e) {
+        // 数据库未配置，继续安装流程
+    }
+}
+if (!$installed && basename($_SERVER['SCRIPT_FILENAME']) !== 'install.php') {
     header('Location: install.php');
     exit;
 }
