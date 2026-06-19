@@ -1,0 +1,144 @@
+/* 家收纳 管理后台样式 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #F5F6FA; color: #2D3436; font-size: 14px; }
+a { color: #5B9FED; text-decoration: none; }
+a:hover { color: #4A8FE7; }
+
+/* 布局 */
+.admin-layout { display: flex; min-height: 100vh; }
+
+/* 侧边栏 */
+.sidebar { width: 240px; background: #fff; border-right: 1px solid #eee; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+.sidebar-header { padding: 20px; border-bottom: 1px solid #eee; }
+.sidebar-header .logo { font-size: 24px; margin-right: 8px; }
+.sidebar-header .logo-text { font-size: 18px; font-weight: bold; color: #FF8C42; }
+.sidebar-header .version { display: block; font-size: 12px; color: #999; margin-top: 4px; }
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 0; }
+.nav-section { margin-bottom: 8px; }
+.nav-section-title { padding: 8px 20px; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+.nav-item { display: flex; align-items: center; padding: 10px 20px; color: #636E72; transition: all 0.2s; gap: 10px; }
+.nav-item:hover { background: #f8f9fa; color: #FF8C42; }
+.nav-item.active { background: #FFF5EE; color: #FF8C42; font-weight: 600; border-right: 3px solid #FF8C42; }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.sidebar-footer { padding: 15px 20px; border-top: 1px solid #eee; }
+.admin-info { display: flex; align-items: center; gap: 10px; }
+.admin-avatar { font-size: 24px; }
+.admin-name { font-weight: 600; font-size: 13px; }
+.admin-role { font-size: 11px; color: #999; }
+
+/* 主内容 */
+.main-content { flex: 1; margin-left: 240px; }
+.content-header { background: #fff; padding: 15px 25px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+.breadcrumb { font-size: 14px; color: #636E72; }
+.header-actions { display: flex; gap: 10px; }
+.btn-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f8f9fa; cursor: pointer; font-size: 16px; }
+.btn-icon:hover { background: #eee; }
+.content-body { padding: 25px; }
+
+/* 卡片 */
+.card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; margin-bottom: 20px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.card-title { font-size: 16px; font-weight: 600; }
+.card-subtitle { font-size: 12px; color: #999; margin-top: 2px; }
+
+/* 按钮 */
+.btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; gap: 6px; }
+.btn-primary { background: #FF8C42; color: #fff; }
+.btn-primary:hover { background: #e67e3a; }
+.btn-success { background: #48BB78; color: #fff; }
+.btn-success:hover { background: #3da367; }
+.btn-danger { background: #F56565; color: #fff; }
+.btn-danger:hover { background: #e05252; }
+.btn-info { background: #5B9FED; color: #fff; }
+.btn-info:hover { background: #4A8FE7; }
+.btn-outline { background: #fff; color: #636E72; border: 1px solid #ddd; }
+.btn-outline:hover { background: #f8f9fa; border-color: #ccc; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-lg { padding: 12px 24px; font-size: 15px; }
+
+/* 表格 */
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+table th, table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+table th { background: #f8f9fa; font-weight: 600; color: #636E72; white-space: nowrap; }
+table tr:hover { background: #fafbfc; }
+
+/* 表单 */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #2D3436; }
+.form-control { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }
+.form-control:focus { outline: none; border-color: #FF8C42; box-shadow: 0 0 0 3px rgba(255,140,66,0.1); }
+select.form-control { appearance: auto; }
+textarea.form-control { min-height: 100px; resize: vertical; }
+
+/* 开关 */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 24px; transition: 0.3s; }
+.switch-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+.switch input:checked + .switch-slider { background: #FF8C42; }
+.switch input:checked + .switch-slider:before { transform: translateX(20px); }
+
+/* 统计卡片 */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.stat-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.stat-card .stat-icon { font-size: 28px; margin-bottom: 8px; }
+.stat-card .stat-value { font-size: 28px; font-weight: bold; }
+.stat-card .stat-label { font-size: 13px; color: #999; margin-top: 4px; }
+.stat-card .stat-change { font-size: 12px; margin-top: 8px; }
+.stat-card .stat-change.up { color: #48BB78; }
+.stat-card .stat-change.down { color: #F56565; }
+
+/* 徽章 */
+.badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.badge-success { background: #E6F9F0; color: #48BB78; }
+.badge-danger { background: #FEE; color: #F56565; }
+.badge-warning { background: #FFF5E6; color: #ED8936; }
+.badge-info { background: #E8F4FD; color: #5B9FED; }
+.badge-private { background: #FFF5EE; color: #FF8C42; }
+
+/* 分页 */
+.pagination { display: flex; gap: 4px; margin-top: 15px; justify-content: center; }
+.pagination a, .pagination span { padding: 6px 12px; border-radius: 6px; font-size: 13px; border: 1px solid #ddd; }
+.pagination a:hover { background: #f8f9fa; }
+.pagination .active { background: #FF8C42; color: #fff; border-color: #FF8C42; }
+
+/* 搜索/筛选栏 */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.filter-bar .form-control { width: auto; min-width: 150px; }
+
+/* 空状态 */
+.empty-state { text-align: center; padding: 40px 20px; color: #999; }
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state .empty-text { font-size: 14px; }
+
+/* 弹窗 */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* 树形结构 */
+.tree { font-size: 13px; }
+.tree-node { padding: 8px 10px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+.tree-node:hover { background: #f8f9fa; }
+.tree-node.active { background: #FFF5EE; color: #FF8C42; }
+.tree-node .node-icon { font-size: 16px; }
+.tree-node .node-name { flex: 1; }
+.tree-node .node-count { font-size: 11px; color: #999; }
+.tree-children { padding-left: 24px; }
+
+/* Toast */
+.toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 14px; z-index: 9999; animation: slideIn 0.3s; }
+.toast-success { background: #48BB78; }
+.toast-error { background: #F56565; }
+.toast-info { background: #5B9FED; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main-content { margin-left: 0; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
