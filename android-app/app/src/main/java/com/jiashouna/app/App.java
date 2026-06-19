@@ -6,8 +6,8 @@ import android.content.SharedPreferences;
 
 public class App extends Application {
     private static App instance;
-    public static final String BASE_URL = "http://j.tthsdd.top:2001/backend/api/";
-    public static final String IMAGE_BASE = "http://j.tthsdd.top:2001/backend/uploads/";
+    public static final String BASE_URL = "http://1.189.102.155:2001/backend/api/";
+    public static final String IMAGE_BASE = "http://1.189.102.155:2001/backend/uploads/";
 
     @Override
     public void onCreate() {
