@@ -1,7 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/nav_home" android:icon="@android:drawable/ic_menu_today" android:title="首页" />
-    <item android:id="@+id/nav_spaces" android:icon="@android:drawable/ic_menu_mapmode" android:title="空间" />
-    <item android:id="@+id/nav_reminders" android:icon="@android:drawable/ic_popup_reminder" android:title="提醒" />
-    <item android:id="@+id/nav_profile" android:icon="@android:drawable/ic_menu_myplaces" android:title="我的" />
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@android:drawable/ic_menu_today"
+        android:title="首页" />
+    <item
+        android:id="@+id/nav_spaces"
+        android:icon="@android:drawable/ic_menu_mapmode"
+        android:title="空间" />
+    <item
+        android:id="@+id/nav_scan"
+        android:icon="@android:drawable/ic_menu_camera"
+        android:title="扫码" />
+    <item
+        android:id="@+id/nav_reminders"
+        android:icon="@android:drawable/ic_popup_reminder"
+        android:title="提醒" />
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="我的" />
 </menu>
