@@ -18,7 +18,7 @@ define('JWT_EXPIRE', 86400 * 30); // 30天过期
 define('UPLOAD_PATH', dirname(__DIR__) . '/uploads/');
 define('IMAGE_MAX_SIZE', 2 * 1024 * 1024); // 2MB
 define('APK_MAX_SIZE', 100 * 1024 * 1024); // 100MB
-define('IMAGE_URL_PREFIX', 'http://j.tthsdd.top:2001/backend/uploads/');
+define('IMAGE_URL_PREFIX', 'https://sn.tthsdd.top/backend/uploads/');
 
 // 调试模式
 define('DEBUG', true);
