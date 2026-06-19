@@ -182,7 +182,7 @@
                         android:background="@drawable/bg_level_option"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="8dp" android:paddingRight="8dp"
+                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="8dp" android:paddingRight="8dp">
 
                         <TextView
                             android:layout_width="wrap_content"
