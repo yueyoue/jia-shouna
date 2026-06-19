@@ -13,6 +13,7 @@ import com.jiashouna.app.db.LocalDb;
 import com.jiashouna.app.model.Goods;
 import com.jiashouna.app.utils.NetworkUtils;
 import java.util.Calendar;
+import java.util.HashMap;
 
 public class AddItemActivity extends AppCompatActivity {
     private EditText etName, etBarcode, etQuantity, etUnit, etExpiry, etPrice, etNote;
