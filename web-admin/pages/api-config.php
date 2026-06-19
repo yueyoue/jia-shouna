@@ -47,10 +47,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
 .channel-item{padding:14px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border-2);transition:all .15s}
 .channel-item:last-child{border-bottom:none}
 .channel-item:hover{background:#FAFBFC}
-.channel-item.main{background:linear-gradient(90deg,#FFF7F0 0%,#fff 50%);position:relative;padding-left:23px}
-.channel-item.main::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#FF8C42,#FF6B6B);border-radius:3px}
 .channel-rank{width:24px;height:24px;border-radius:50%;background:#F7FAFC;color:#718096;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
-.channel-item.main .channel-rank{background:#FF8C42;color:#fff}
 .channel-info{flex:1;min-width:0}
 .channel-name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
 .channel-name .badge-main{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,140,66,.12);color:#C25A1E;font-weight:600}
@@ -108,7 +105,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
     </div>
     <div class="channel-list">
         <?php foreach ($barcodeApis as $idx => $api): ?>
-        <div class="channel-item <?= $api['is_active'] ? 'main' : '' ?>">
+        <div class="channel-item">
             <div class="channel-rank"><?= $idx + 1 ?></div>
             <div class="channel-info">
                 <div class="channel-name">
@@ -183,7 +180,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
     </div>
     <div class="channel-list">
         <?php foreach ($imageApis as $idx => $api): ?>
-        <div class="channel-item <?= $api['is_active'] ? 'main' : '' ?>">
+        <div class="channel-item">
             <div class="channel-rank"><?= $idx + 1 ?></div>
             <div class="channel-info">
                 <div class="channel-name">
