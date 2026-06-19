@@ -75,10 +75,10 @@ $versions = $db->query("SELECT * FROM app_version ORDER BY version_code DESC")->
 </div>
 
 <?php if (!empty($msg)): ?>
-    <div class="toast toast-success" style="position: relative; margin-bottom: 16px;"><?= $msg ?></div>
+    <div class="toast toast-success" ><?= $msg ?></div>
 <?php endif; ?>
 <?php if (!empty($error)): ?>
-    <div class="toast toast-error" style="position: relative; margin-bottom: 16px;"><?= $error ?></div>
+    <div class="toast toast-error" ><?= $error ?></div>
 <?php endif; ?>
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
