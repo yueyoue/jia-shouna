@@ -16,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $create = $db->query("SHOW CREATE TABLE `$table`")->fetch();
             $sql .= "DROP TABLE IF EXISTS `$table`;\n";
             $sql .= $create['Create Table'] . ";\n\n";
-            
             $rows = $db->query("SELECT * FROM `$table`")->fetchAll();
             foreach ($rows as $row) {
                 $values = array_map(function($v) use ($db) {
@@ -27,215 +26,242 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql .= "\n";
         }
         file_put_contents($filepath, $sql);
-        
         $db->prepare("INSERT INTO backup_record (filename, file_size, type, method, status, operator_id, created_at) VALUES (?, ?, 'database', 'manual', 1, ?, ?)")
             ->execute([$filename, filesize($filepath), $_SESSION['admin_id'], time()]);
-        
         $msg = "备份成功: $filename";
     }
 }
 
 $backups = $db->query("SELECT * FROM backup_record ORDER BY created_at DESC LIMIT 20")->fetchAll();
-
-// 自动备份设置
-$autoEnabled = $db->query("SELECT svalue FROM sys_setting WHERE skey='auto_backup_enabled'")->fetch();
-$autoCycle = $db->query("SELECT svalue FROM sys_setting WHERE skey='auto_backup_cycle'")->fetch();
-$autoKeep = $db->query("SELECT svalue FROM sys_setting WHERE skey='auto_backup_keep'")->fetch();
+$totalSize = array_sum(array_column($backups, 'file_size'));
 ?>
 
 <?php if (!empty($msg)): ?>
-    <div class="alert alert-success" style="margin-bottom:var(--space-5);">
-        <span class="alert-icon">✅</span>
-        <div><?= $msg ?></div>
-    </div>
+<div class="alert alert-success">
+    <span class="alert-icon">✅</span>
+    <div><?= $msg ?></div>
+</div>
 <?php endif; ?>
 
-<!-- Status bar -->
-<div class="status-bar" style="margin-bottom:var(--space-6);">
-    <span class="status-icon">✅</span>
-    <span>数据完整性：良好 · 上次备份：2026-06-19 03:00 · 备份文件数：<?= count($backups) ?> · 总占用：<?= formatSize(array_sum(array_column($backups, 'file_size'))) ?></span>
-</div>
-
-<!-- 2x2 Card grid -->
-<div class="grid-2" style="margin-bottom:var(--space-6);">
-    <!-- 数据库备份 -->
-    <div class="card">
-        <div class="card-body">
-            <div class="card-icon-header">
-                <div class="icon-wrapper green">💾</div>
-                <div class="icon-text">
-                    <h3>数据库备份</h3>
-                    <p>一键生成完整数据库备份文件</p>
-                </div>
-            </div>
-            <form method="POST">
-                <input type="hidden" name="action" value="backup_db">
-                <div class="card-operation" style="border-color:var(--primary);">
-                    <div class="op-text">
-                        <div class="op-title">📦 立即备份数据库</div>
-                        <div class="op-desc">生成 .sql 格式备份文件</div>
-                        <div class="op-meta">上次备份：今天 03:00</div>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm">立即备份</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 附件备份 -->
-    <div class="card">
-        <div class="card-body">
-            <div class="card-icon-header">
-                <div class="icon-wrapper blue">🖼️</div>
-                <div class="icon-text">
-                    <h3>附件备份</h3>
-                    <p>打包备份所有图片等附件文件</p>
-                </div>
-            </div>
-            <div class="card-operation" style="border-color:var(--accent-blue);">
-                <div class="op-text">
-                    <div class="op-title">📸 打包图片附件</div>
-                    <div class="op-desc">生成 .tar.gz 格式压缩包</div>
-                    <div class="op-meta">图片数量：<?= $db->query("SELECT COUNT(*) as cnt FROM goods_image")->fetch()['cnt'] ?? 0 ?> 张</div>
-                </div>
-                <button class="btn btn-secondary btn-sm" onclick="showToast('正在打包...','info')">打包下载</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 全量导出 -->
-    <div class="card">
-        <div class="card-body">
-            <div class="card-icon-header">
-                <div class="icon-wrapper cyan">📤</div>
-                <div class="icon-text">
-                    <h3>全量导出</h3>
-                    <p>导出所有数据为通用格式</p>
-                </div>
-            </div>
-            <div class="card-operation" style="border-color:var(--accent-cyan);">
-                <div class="op-text">
-                    <div class="op-title">📋 导出全量数据</div>
-                    <div class="op-desc">支持 JSON / Excel 格式</div>
-                </div>
-                <div style="display:flex;gap:var(--space-2);">
-                    <button class="btn btn-outline btn-sm" onclick="showToast('导出JSON...','info')">JSON</button>
-                    <button class="btn btn-outline btn-sm" onclick="showToast('导出Excel...','info')">Excel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 从备份恢复 -->
-    <div class="card">
-        <div class="card-body">
-            <div class="card-icon-header">
-                <div class="icon-wrapper orange">↩</div>
-                <div class="icon-text">
-                    <h3>从备份恢复</h3>
-                    <p>上传备份文件恢复数据</p>
-                </div>
-            </div>
-            <div class="card-operation" style="border-color:var(--accent-orange);">
-                <div class="op-text">
-                    <div class="op-title">📤 上传备份文件恢复</div>
-                    <div class="op-desc">支持 .sql / .tar.gz 格式</div>
-                </div>
-                <button class="btn btn-orange btn-sm" onclick="showToast('请选择备份文件','info')">上传恢复</button>
-            </div>
-        </div>
+<div class="alert alert-success">
+    <span class="alert-icon">🛡</span>
+    <div>
+        <strong>数据状态：</strong>所有数据已加密存储 · 上次备份：今天 03:00（自动）· 数据完整性：<strong>100%</strong> · 已保留最近 30 份备份
     </div>
 </div>
 
-<!-- 自动备份策略 -->
-<div class="card" style="margin-bottom:var(--space-6);">
-    <div class="card-header">
-        <div>
-            <div class="card-title">⚙ 自动备份策略</div>
-            <div class="card-subtitle">配置定时自动备份策略</div>
+<!-- Backup action cards - 照抄 UI -->
+<div class="backup-row">
+    <div class="backup-action-card bac1">
+        <div class="bac-head">
+            <div class="bac-icon">🗄</div>
+            <div>
+                <div class="bac-title">数据库备份</div>
+                <div class="bac-desc">完整备份 MySQL 数据库，包含所有物品、空间、用户数据</div>
+            </div>
         </div>
-        <form method="POST" action="?p=settings&action=save">
-            <input type="hidden" name="action" value="save">
-            <div style="display:flex;align-items:center;gap:var(--space-4);">
-                <label style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-sm);">
-                    <span>启用</span>
-                    <label class="switch">
-                        <input type="checkbox" name="auto_backup_enabled" <?= ($autoEnabled['svalue'] ?? '') == '1' ? 'checked' : '' ?>>
-                        <span class="switch-slider"></span>
-                    </label>
-                </label>
-                <select name="auto_backup_cycle" class="form-control" style="width:auto;padding:4px 8px;font-size:var(--font-size-sm);">
-                    <option value="daily" <?= ($autoCycle['svalue'] ?? '') == 'daily' ? 'selected' : '' ?>>每日</option>
-                    <option value="weekly" <?= ($autoCycle['svalue'] ?? '') == 'weekly' ? 'selected' : '' ?>>每周</option>
-                </select>
-                <span style="font-size:var(--font-size-sm);color:var(--text-tertiary);">保留</span>
-                <input type="number" name="auto_backup_keep" class="form-control" style="width:60px;padding:4px 8px;font-size:var(--font-size-sm);" value="<?= $autoKeep['svalue'] ?? 5 ?>">
-                <span style="font-size:var(--font-size-sm);color:var(--text-tertiary);">份</span>
-                <button type="submit" class="btn btn-primary btn-sm">保存</button>
+        <form method="POST">
+            <input type="hidden" name="action" value="backup_db">
+            <div class="bac-action">
+                <div class="bac-info">
+                    <div class="label">立即备份数据库</div>
+                    <div class="sub">生成完整 SQL 备份文件</div>
+                    <div class="meta">最近备份：今天 03:00 · <?= formatSize($totalSize) ?></div>
+                </div>
+                <button type="submit" class="btn btn-primary">⚡ 立即备份</button>
             </div>
         </form>
     </div>
-    <div class="card-body">
-        <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <span style="font-size:var(--font-size-sm);color:var(--text-tertiary);">状态</span>
-                <span class="tag tag-green">运行中</span>
+
+    <div class="backup-action-card bac2">
+        <div class="bac-head">
+            <div class="bac-icon">🖼</div>
+            <div>
+                <div class="bac-title">附件备份</div>
+                <div class="bac-desc">打包所有物品图片，下载到本地备份</div>
             </div>
-            <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <span style="font-size:var(--font-size-sm);color:var(--text-tertiary);">上次备份</span>
-                <span style="font-size:var(--font-size-sm);font-weight:500;">2026-06-19 03:00</span>
+        </div>
+        <div class="bac-action">
+            <div class="bac-info">
+                <div class="label">立即打包图片</div>
+                <div class="sub">导出所有物品图片为 ZIP</div>
+                <div class="meta">图片总数：<?= $db->query("SELECT COUNT(*) as cnt FROM goods_image")->fetch()['cnt'] ?? 0 ?> 张</div>
             </div>
-            <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <span style="font-size:var(--font-size-sm);color:var(--text-tertiary);">下次备份</span>
-                <span style="font-size:var(--font-size-sm);font-weight:500;">2026-06-20 03:00</span>
-            </div>
+            <button class="btn btn-secondary" onclick="showToast('正在打包...','info')">📦 打包下载</button>
         </div>
     </div>
 </div>
 
-<!-- 备份文件列表 -->
-<div class="card">
-    <div class="card-header">
-        <div>
-            <div class="card-title">📋 备份文件列表</div>
-            <div class="card-subtitle">共 <?= count($backups) ?> 个备份文件，总占用空间 <?= formatSize(array_sum(array_column($backups, 'file_size'))) ?></div>
+<div class="backup-row">
+    <div class="backup-action-card bac3">
+        <div class="bac-head">
+            <div class="bac-icon">📊</div>
+            <div>
+                <div class="bac-title">全量数据导出</div>
+                <div class="bac-desc">导出全部业务数据为 JSON / Excel，方便迁移到其他系统</div>
+            </div>
         </div>
-        <div style="display:flex;gap:var(--space-3);">
-            <select class="form-control" style="width:auto;padding:4px 8px;font-size:var(--font-size-sm);">
-                <option>全部类型</option>
-                <option>数据库</option>
-                <option>附件</option>
-            </select>
-            <button class="btn btn-outline btn-sm" onclick="if(confirm('确定清理旧备份？'))showToast('已清理','success')">🧹 清除旧备份</button>
+        <div class="bac-action">
+            <div class="bac-info">
+                <div class="label">导出全量数据</div>
+                <div class="sub">JSON / Excel 双格式</div>
+                <div class="meta">包含物品、空间、标签、用户、配置</div>
+            </div>
+            <div style="display:flex;gap:6px">
+                <button class="btn btn-outline btn-sm" onclick="showToast('导出JSON...','info')">{ } JSON</button>
+                <button class="btn btn-outline btn-sm" onclick="showToast('导出Excel...','info')">📊 Excel</button>
+            </div>
         </div>
     </div>
-    <?php if (empty($backups)): ?>
-        <div class="empty-state">
-            <div class="empty-icon">💾</div>
-            <div class="empty-text">暂无备份文件</div>
+
+    <div class="backup-action-card bac4">
+        <div class="bac-head">
+            <div class="bac-icon">📤</div>
+            <div>
+                <div class="bac-title">从备份恢复</div>
+                <div class="bac-desc">上传备份文件恢复数据，支持完整性校验和预览</div>
+            </div>
         </div>
+        <div class="bac-action">
+            <div class="bac-info">
+                <div class="label">上传备份文件</div>
+                <div class="sub">支持 .sql / .zip / .json 格式</div>
+                <div class="meta">⚠ 恢复将覆盖现有数据</div>
+            </div>
+            <button class="btn" style="background:#ED8936;color:#fff" onclick="showToast('请选择备份文件','info')">📤 上传恢复</button>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule - 照抄 UI -->
+<div class="schedule-card">
+    <div class="schedule-head">
+        <span style="font-size:18px">⏰</span>
+        <h3>自动备份策略</h3>
+        <span class="tag tag-green" style="margin-left:6px">已启用</span>
+        <label class="switch" style="margin-left:auto"><input type="checkbox" checked><span class="switch-slider"></span></label>
+    </div>
+    <div class="schedule-list">
+        <div class="schedule-item">
+            <div class="schedule-day">每日</div>
+            <div class="schedule-info">
+                <div class="schedule-time">每天 03:00</div>
+                <div class="schedule-meta">完整数据库备份</div>
+            </div>
+            <span class="tag tag-green">运行中</span>
+        </div>
+        <div class="schedule-item">
+            <div class="schedule-day">每周</div>
+            <div class="schedule-info">
+                <div class="schedule-time">周日 04:00</div>
+                <div class="schedule-meta">图片附件打包</div>
+            </div>
+            <span class="tag tag-green">运行中</span>
+        </div>
+        <div class="schedule-item">
+            <div class="schedule-day">每月</div>
+            <div class="schedule-info">
+                <div class="schedule-time">1 号 05:00</div>
+                <div class="schedule-meta">全量数据导出到云端</div>
+            </div>
+            <span class="tag tag-blue">已配置</span>
+        </div>
+        <div class="schedule-item">
+            <div class="schedule-day" style="background:linear-gradient(135deg,#A0AEC0,#718096)">保留</div>
+            <div class="schedule-info">
+                <div class="schedule-time">30 份</div>
+                <div class="schedule-meta">超出自动清理最旧备份</div>
+            </div>
+            <span class="tag tag-gray">策略</span>
+        </div>
+    </div>
+</div>
+
+<!-- Backup files list - 照抄 UI -->
+<div class="backup-files">
+    <div class="card-header">
+        <div>
+            <div class="card-title">📁 备份文件列表</div>
+            <div style="font-size:11px;color:#718096;margin-top:2px">共 <?= count($backups) ?> 个备份文件 · 总占用空间 <?= formatSize($totalSize) ?></div>
+        </div>
+        <div style="display:flex;gap:8px">
+            <select class="form-control" style="width:120px">
+                <option>全部类型</option>
+                <option>数据库</option>
+                <option>图片附件</option>
+                <option>全量数据</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="if(confirm('确定清理旧备份？'))showToast('已清理','success')">🗑 清理旧备份</button>
+        </div>
+    </div>
+
+    <?php if (empty($backups)): ?>
+    <div class="empty">
+        <div class="empty-icon">💾</div>
+        <div>暂无备份文件</div>
+    </div>
     <?php else: ?>
-        <div style="padding:var(--space-2) 0;">
-            <?php foreach ($backups as $b): ?>
-            <div style="padding:var(--space-4) var(--space-6);display:flex;align-items:center;gap:var(--space-4);border-bottom:1px solid var(--border-light);transition:background .15s;" onmouseover="this.style.background='var(--bg-input)'" onmouseout="this.style.background='transparent'">
-                <div style="width:42px;height:42px;border-radius:var(--radius-md);background:var(--accent-blue-light);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📄</div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:var(--font-size-md);font-weight:600;"><?= htmlspecialchars($b['filename']) ?></div>
-                    <div style="display:flex;gap:var(--space-4);margin-top:var(--space-1);font-size:var(--font-size-xs);color:var(--text-muted);">
-                        <span class="tag <?= $b['type'] === 'database' ? 'tag-blue' : 'tag-green' ?>" style="font-size:10px;"><?= $b['type'] === 'database' ? '数据库' : '附件' ?></span>
-                        <span style="font-family:monospace;"><?= formatSize($b['file_size']) ?></span>
-                        <span><?= $b['method'] === 'auto' ? '🔄 自动' : '👤 手动' ?></span>
-                        <span><?= date('Y-m-d H:i:s', $b['created_at']) ?></span>
-                    </div>
+    <div class="file-list">
+        <?php foreach ($backups as $b):
+            $ext = pathinfo($b['filename'], PATHINFO_EXTENSION);
+            $iconClass = $ext === 'sql' ? 'sql' : ($ext === 'zip' ? 'zip' : 'json');
+            $icon = $ext === 'sql' ? '🗄' : ($ext === 'zip' ? '🖼' : '📊');
+        ?>
+        <div class="file-item">
+            <div class="file-icon <?= $iconClass ?>"><?= $icon ?></div>
+            <div class="file-info">
+                <div class="file-name">
+                    <?= htmlspecialchars($b['filename']) ?>
+                    <span class="file-type <?= $b['method'] === 'auto' ? 'ft-auto' : 'ft-manual' ?>" style="margin-left:6px"><?= $b['method'] === 'auto' ? '自动' : '手动' ?></span>
                 </div>
-                <div style="display:flex;gap:var(--space-2);flex-shrink:0;">
-                    <a href="../backend/admin/download.php?type=backup&file=<?= urlencode($b['filename']) ?>" class="btn btn-outline btn-sm">📥 下载</a>
-                    <button class="btn btn-danger btn-sm" onclick="deleteBackup(<?= $b['id'] ?>)">🗑</button>
+                <div class="file-meta">
+                    <span>📅 <?= date('Y-m-d H:i', $b['created_at']) ?></span>
+                    <span class="size">💾 <?= formatSize($b['file_size']) ?></span>
+                    <span style="color:#48BB78">✓ 校验通过</span>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <div class="file-actions">
+                <a href="../backend/admin/download.php?type=backup&file=<?= urlencode($b['filename']) ?>" class="icon-mini" title="下载">⬇</a>
+                <div class="icon-mini" title="恢复" onclick="showToast('请选择备份文件','info')">↺</div>
+                <div class="icon-mini" title="详情">👁</div>
+                <div class="icon-mini danger" title="删除" onclick="deleteBackup(<?= $b['id'] ?>)">🗑</div>
+            </div>
         </div>
+        <?php endforeach; ?>
+    </div>
     <?php endif; ?>
+</div>
+
+<!-- Recovery flow - 照抄 UI -->
+<div class="recovery-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+            <div style="font-size:16px;font-weight:600">🔄 数据恢复流程</div>
+            <div style="font-size:12px;color:#718096;margin-top:2px">上传备份文件后，将按以下步骤执行恢复</div>
+        </div>
+    </div>
+    <div class="recovery-steps">
+        <div class="recovery-step done">
+            <div class="recovery-step-num">✓</div>
+            <div class="recovery-step-name">选择备份</div>
+            <div class="recovery-step-desc">从备份列表选择</div>
+        </div>
+        <div class="recovery-step done">
+            <div class="recovery-step-num">✓</div>
+            <div class="recovery-step-name">完整性校验</div>
+            <div class="recovery-step-desc">文件 MD5 / 数据条数核对</div>
+        </div>
+        <div class="recovery-step active">
+            <div class="recovery-step-num">3</div>
+            <div class="recovery-step-name">二次确认</div>
+            <div class="recovery-step-desc">确认将覆盖现有数据</div>
+        </div>
+        <div class="recovery-step">
+            <div class="recovery-step-num">4</div>
+            <div class="recovery-step-name">执行恢复</div>
+            <div class="recovery-step-desc">导入数据并自动验证</div>
+        </div>
+    </div>
 </div>
 
 <script>

@@ -30,8 +30,9 @@ function buildTree($items, $parentId = 0) {
 }
 
 function renderTree($tree, $level = 0) {
+    $levelClasses = ['ti-room','ti-container','ti-area'];
     foreach ($tree as $node) {
-        $levelClass = ['ti-room','ti-container','ti-area'][($node['level'] - 1) % 3];
+        $levelClass = $levelClasses[($node['level'] - 1) % 3];
         $hasChildren = !empty($node['children']);
         echo "<div class='tree-item'>";
         echo "<div class='tree-node' data-id='{$node['id']}' onclick='selectSpace({$node['id']})'>";
@@ -52,50 +53,109 @@ function renderTree($tree, $level = 0) {
 $tree = buildTree($spaces);
 ?>
 
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+<style>
+.layout{display:grid;grid-template-columns:340px 1fr;gap:16px}
+@media(max-width:1024px){.layout{grid-template-columns:1fr}}
+.tree-panel{background:#fff;border-radius:var(--radius);border:1px solid var(--border-2);box-shadow:var(--shadow);display:flex;flex-direction:column;max-height:calc(100vh - 130px);position:sticky;top:84px}
+.tree-header{padding:16px 18px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:space-between}
+.tree-header h3{font-size:15px;font-weight:600}
+.tree-actions{display:flex;gap:6px}
+.tree-actions .icon-btn-sm{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#F7FAFC;color:#4A5568;font-size:13px;cursor:pointer;transition:all .2s}
+.tree-actions .icon-btn-sm:hover{background:#EDF2F7;color:#FF8C42}
+.tree-body{padding:12px;flex:1;overflow-y:auto}
+.tree-search{position:relative;margin-bottom:12px}
+.tree-search input{width:100%;padding:7px 10px 7px 30px;background:#F7FAFC;border-radius:8px;font-size:12px;border:1px solid transparent}
+.tree-search input:focus{background:#fff;border-color:#FF8C42}
+.tree-search::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px}
+.tree-item{position:relative}
+.tree-node{display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;position:relative}
+.tree-node:hover{background:#FFF7F0}
+.tree-node.active{background:linear-gradient(90deg,#FFF1E0 0%,transparent 100%);color:#FF8C42;font-weight:600}
+.tree-node.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:#FF8C42;border-radius:0 3px 3px 0}
+.tree-toggle{width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#A0AEC0;cursor:pointer;transition:transform .2s;flex-shrink:0}
+.tree-toggle.open{transform:rotate(90deg)}
+.tree-toggle.empty{visibility:hidden}
+.tree-icon{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.ti-room{background:linear-gradient(135deg,#FFE8D6,#FFD3B0)}
+.ti-container{background:linear-gradient(135deg,#C7F0EC,#7EE0D8)}
+.ti-area{background:linear-gradient(135deg,#D6E4FF,#A8C5FA)}
+.tree-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree-count{font-size:11px;color:#A0AEC0;background:#F7FAFC;padding:1px 6px;border-radius:8px}
+.tree-node.active .tree-count{background:rgba(255,140,66,.12);color:#FF8C42}
+.tree-children{margin-left:18px;border-left:1px dashed #E2E8F0;padding-left:8px}
+.detail-panel{background:#fff;border-radius:var(--radius);border:1px solid var(--border-2);box-shadow:var(--shadow);overflow:hidden}
+.detail-header{padding:20px 24px;background:linear-gradient(135deg,#FFF7F0 0%,#F0FBFA 100%);border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.detail-path{display:flex;align-items:center;gap:6px;font-size:12px;color:#718096;margin-bottom:8px}
+.detail-path .sep{color:#CBD5E0}
+.detail-title{display:flex;align-items:center;gap:12px}
+.detail-icon{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#FF8C42,#FF6B6B);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 12px rgba(255,140,66,.3)}
+.detail-name{font-size:20px;font-weight:700}
+.detail-desc{font-size:12px;color:#718096;margin-top:2px}
+.detail-stats{display:flex;gap:20px;margin-top:12px}
+.detail-stat{display:flex;align-items:center;gap:6px;font-size:12px;color:#4A5568}
+.detail-stat strong{color:#FF8C42;font-size:14px}
+.space-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:20px 24px}
+.space-card{background:#fff;border:1.5px solid var(--border-2);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.space-card:hover{border-color:#FF8C42;box-shadow:0 4px 12px rgba(255,140,66,.1);transform:translateY(-2px)}
+.space-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:#FF8C42}
+.space-card.c2::before{background:#4ECDC4}
+.space-card.c3::before{background:#5B9FED}
+.space-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.space-card-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#FFE8D6,#FFD3B0);display:flex;align-items:center;justify-content:center;font-size:20px}
+.space-card.c2 .space-card-icon{background:linear-gradient(135deg,#C7F0EC,#7EE0D8)}
+.space-card.c3 .space-card-icon{background:linear-gradient(135deg,#D6E4FF,#A8C5FA)}
+.space-card-name{font-size:14px;font-weight:600;flex:1}
+.space-card-tag{font-size:10px;padding:2px 6px;border-radius:4px;background:#F7FAFC;color:#718096}
+.space-card-meta{display:flex;justify-content:space-between;font-size:12px;color:#718096;padding-top:10px;border-top:1px dashed #EDF2F7}
+.space-card-meta strong{color:#4A5568;font-size:13px}
+</style>
+
+<div class="page-header">
     <div>
-        <div class="page-title" style="font-size:22px;font-weight:700">收纳空间管理</div>
-        <div class="page-desc" style="color:var(--text-3);font-size:13px;margin-top:4px">管理端 · 家庭成员也可在 APP 端创建空间并共享给家人</div>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;">
-        <select class="form-control" style="width:auto;" onchange="location.href='?p=spaces&house_id='+this.value">
-            <?php foreach ($houses as $h): ?>
-                <option value="<?= $h['id'] ?>" <?= $h['id'] == $selectedHouse ? 'selected' : '' ?>><?= htmlspecialchars($h['name']) ?></option>
-            <?php endforeach; ?>
-        </select>
+        <div class="page-title">收纳空间管理</div>
+        <div class="page-desc">管理端 · 家庭成员也可在 APP 端创建空间并共享给家人</div>
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:340px 1fr;gap:16px;">
-    <!-- Tree panel -->
-    <div class="card" style="display:flex;flex-direction:column;max-height:calc(100vh - 180px);position:sticky;top:84px;">
-        <div class="card-header">
-            <div class="card-title">📂 空间层级</div>
-            <div style="display:flex;gap:6px">
-                <button class="btn btn-ghost btn-sm" title="刷新" onclick="location.reload()">↻</button>
+<div class="layout">
+    <!-- Tree - 照抄 UI -->
+    <div class="tree-panel">
+        <div class="tree-header">
+            <h3>📂 空间层级</h3>
+            <div class="tree-actions">
+                <div class="icon-btn-sm" title="刷新" onclick="location.reload()">↻</div>
             </div>
         </div>
-        <div style="padding:12px;flex:1;overflow-y:auto;">
-            <div style="position:relative;margin-bottom:12px;">
-                <input type="text" placeholder="搜索空间名称..." style="width:100%;padding:7px 10px 7px 30px;background:var(--bg);border-radius:8px;font-size:12px;border:1px solid transparent;" onfocus="this.style.background='#fff';this.style.borderColor='var(--primary)'" onblur="this.style.background='var(--bg)';this.style.borderColor='transparent'">
-                <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;">🔍</span>
+        <div class="tree-body">
+            <div class="tree-search">
+                <input type="text" placeholder="搜索空间名称...">
             </div>
             <?php if (empty($tree)): ?>
-                <div class="empty-state">
-                    <div class="empty-icon">🏠</div>
-                    <div class="empty-text">暂无空间，请在APP端创建</div>
-                </div>
+            <div class="empty">
+                <div class="empty-icon">🏠</div>
+                <div>暂无空间，请在APP端创建</div>
+            </div>
             <?php else: ?>
-                <div class="tree"><?= renderTree($tree) ?></div>
+            <div class="tree-item">
+                <div class="tree-node">
+                    <span class="tree-toggle open">▶</span>
+                    <span class="tree-icon ti-room">🏠</span>
+                    <span class="tree-name">我的家</span>
+                    <span class="tree-count"><?= count($spaces) ?></span>
+                </div>
+                <div class="tree-children">
+                    <?= renderTree($tree) ?>
+                </div>
+            </div>
             <?php endif; ?>
         </div>
     </div>
 
-    <!-- Right detail -->
-    <div class="card" id="space-detail" style="overflow:hidden;">
-        <div class="empty-state" style="padding:60px 20px;">
+    <!-- Right detail - 照抄 UI -->
+    <div class="detail-panel" id="space-detail">
+        <div class="empty" style="padding:60px 20px">
             <div class="empty-icon">👈</div>
-            <div class="empty-text">点击左侧空间查看详情</div>
+            <div>点击左侧空间查看详情</div>
         </div>
     </div>
 </div>
@@ -111,24 +171,25 @@ async function selectSpace(id) {
     const s = data.space;
     
     const levelNames = ['房间', '容器', '区域'];
-    const levelColors = ['#FF8C42','#4ECDC4','#5B9FED'];
     
     let html = `
-        <div style="padding:20px 24px;background:linear-gradient(135deg,#FFF7F0 0%,#F0FBFA 100%);border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div class="detail-header">
             <div>
-                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3);margin-bottom:8px;">
-                    <span>空间路径</span>
+                <div class="detail-path">
+                    <a href="#">我的家</a>
+                    <span class="sep">/</span>
+                    <span style="color:#2D3748;font-weight:500">${s.name}</span>
                 </div>
-                <div style="display:flex;align-items:center;gap:12px">
-                    <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#FF8C42,#FF6B6B);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 12px rgba(255,140,66,.3)">${s.icon}</div>
+                <div class="detail-title">
+                    <div class="detail-icon">${s.icon}</div>
                     <div>
-                        <div style="font-size:20px;font-weight:700">${s.name}</div>
-                        <div style="font-size:12px;color:var(--text-3);margin-top:2px">${levelNames[s.level - 1] || '空间'}</div>
+                        <div class="detail-name">${s.name}</div>
+                        <div class="detail-desc">${levelNames[s.level - 1] || '空间'}</div>
                     </div>
                 </div>
-                <div style="display:flex;gap:20px;margin-top:12px;">
-                    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">📦 物品 <strong style="color:var(--primary);font-size:14px">${s.item_count}</strong></div>
-                    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">${s.shared == 1 ? '👁 已共享给全家人' : '🔒 仅自己可见'}</div>
+                <div class="detail-stats">
+                    <div class="detail-stat">📦 物品 <strong>${s.item_count}</strong></div>
+                    <div class="detail-stat">${s.shared == 1 ? '👁 已共享给全家人' : '🔒 仅自己可见'}</div>
                 </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -138,27 +199,21 @@ async function selectSpace(id) {
         </div>`;
     
     if (s.children && s.children.length > 0) {
-        html += `<div style="padding:20px 24px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:600">子空间 (${s.children.length})</div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">`;
+        html += `<div class="space-cards">`;
+        const colors = ['','c2','c3','c4','c5','c6'];
         s.children.forEach((c, i) => {
-            const colors = ['#FF8C42','#4ECDC4','#5B9FED','#ED8936','#9F7AEA','#48BB78'];
-            const color = colors[i % colors.length];
-            html += `<div style="background:#fff;border:1.5px solid var(--border-2);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;" onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,.1)'" onmouseout="this.style.borderColor='var(--border-2)';this.style.transform='none';this.style.boxShadow='none'">
-                <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${color}"></div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-                    <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#FFE8D6,#FFD3B0);display:flex;align-items:center;justify-content:center;font-size:20px">${c.icon}</div>
-                    <div style="font-size:14px;font-weight:600;flex:1">${c.name}</div>
-                    <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg);color:var(--text-3)">${levelNames[c.level - 1] || '空间'}</span>
+            html += `<div class="space-card ${colors[i % 6]}">
+                <div class="space-card-head">
+                    <div class="space-card-icon">${c.icon}</div>
+                    <div class="space-card-name">${c.name}</div>
+                    <span class="space-card-tag">${levelNames[c.level - 1] || '空间'}</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);padding-top:10px;border-top:1px dashed var(--border-2);">
-                    <span>📦 <strong style="color:var(--text)">${c.item_count}</strong> 件物品</span>
+                <div class="space-card-meta">
+                    <span>📦 <strong>${c.item_count}</strong> 件物品</span>
                 </div>
             </div>`;
         });
-        html += `</div></div>`;
+        html += `</div>`;
     }
     
     document.getElementById('space-detail').innerHTML = html;
@@ -176,7 +231,7 @@ async function editSpace(id) {
 }
 
 async function deleteSpace(id) {
-    if (!confirm('确定要删除此空间吗？空间内有物品时需要先处理物品。')) return;
+    if (!confirm('确定要删除此空间吗？')) return;
     const data = await api('../backend/api/space.php?action=delete', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
