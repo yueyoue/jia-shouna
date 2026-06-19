@@ -48,11 +48,11 @@ public class FamilyShareActivity extends AppCompatActivity {
                         JsonArray list = data.getAsJsonArray("list");
                         tvMemberCount.setText(list.size() + " 位成员");
                         llMembers.removeAllViews();
+                        String[] roles = {"", "管理员", "编辑", "只读"};
                         for (int i = 0; i < list.size(); i++) {
                             JsonObject m = list.get(i).getAsJsonObject();
                             View row = getLayoutInflater().inflate(R.layout.item_member, llMembers, false);
                             ((TextView) row.findViewById(R.id.tv_name)).setText(m.has("nickname") ? m.get("nickname").getAsString() : m.get("username").getAsString());
-                            String[] roles = {"", "管理员", "编辑", "只读"};
                             int role = m.get("role").getAsInt();
                             TextView tvRole = row.findViewById(R.id.tv_role);
                             tvRole.setText(roles[role]);
