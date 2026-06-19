@@ -35,15 +35,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = '找不到 schema.sql 文件，请确认文件位置';
             } else {
                 $sql = file_get_contents($sqlFile);
+                // 去掉SQL注释
+                $sql = preg_replace('/--.*$/m', '', $sql);
+                $sql = preg_replace('/\\/\\*.*?\\*\\//s', '', $sql);
                 // 按分号分割执行
                 $statements = array_filter(array_map('trim', explode(';', $sql)));
                 foreach ($statements as $stmt) {
-                    if (!empty($stmt) && $stmt !== 'SET NAMES utf8mb4' && strpos($stmt, '--') !== 0) {
-                        try {
-                            $pdo->exec($stmt);
-                        } catch (PDOException $e) {
-                            // 忽略重复表等错误
-                        }
+                    $stmt = trim($stmt);
+                    if (empty($stmt)) continue;
+                    if (strtoupper(substr($stmt, 0, 11)) === 'SET NAMES ') continue;
+                    if (strtoupper(substr($stmt, 0, 19)) === 'SET FOREIGN_KEY_CH') continue;
+                    try {
+                        $pdo->exec($stmt);
+                    } catch (PDOException $e) {
+                        // 忽略重复表等错误
                     }
                 }
                 
