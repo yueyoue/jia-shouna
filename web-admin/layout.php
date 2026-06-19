@@ -94,6 +94,7 @@ $pageTitle = $pageTitles[$currentPage] ?? '管理后台';
                 <span class="current"><?= htmlspecialchars($pageTitle) ?></span>
             </div>
             <div class="topbar-actions">
+                <button class="btn btn-outline btn-sm">📅 近 7 天</button>
                 <button class="icon-btn">🔔<span class="dot"></span></button>
                 <button class="icon-btn">❓</button>
             </div>

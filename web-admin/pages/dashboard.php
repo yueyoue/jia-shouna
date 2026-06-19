@@ -1,3 +1,51 @@
+<style>
+.welcome-card{background:linear-gradient(135deg,#FF8C42 0%,#FF6B6B 50%,#4ECDC4 100%);border-radius:16px;padding:24px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:relative;overflow:hidden}
+.welcome-card::before{content:'';position:absolute;right:-50px;top:-50px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.1)}
+.welcome-card::after{content:'';position:absolute;right:60px;bottom:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08)}
+.welcome-text{position:relative;z-index:1}
+.welcome-text h2{font-size:24px;font-weight:700;margin-bottom:6px}
+.welcome-text p{opacity:.92;font-size:14px}
+.welcome-actions{position:relative;z-index:1;display:flex;gap:10px}
+.btn-welcome{padding:10px 18px;border-radius:8px;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:500;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.3);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-welcome:hover{background:rgba(255,255,255,.3)}
+.row-2col{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+.row-2col-equal{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:1100px){.row-2col,.row-2col-equal{grid-template-columns:1fr}}
+.expiring-list{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;padding-right:6px}
+.expiring-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:#FFF7F0;border:1px solid rgba(255,140,66,.1);transition:all .2s;cursor:pointer}
+.expiring-item:hover{background:#FFEFE0;transform:translateX(2px)}
+.expiring-item.urgent{background:#FED7D7;border-color:rgba(245,101,101,.2)}
+.expiring-img{width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,#FFE8D6,#FFD3B0);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.expiring-info{flex:1;min-width:0}
+.expiring-name{font-size:13px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.expiring-loc{font-size:11px;color:#718096}
+.expiring-days{font-size:12px;font-weight:600;padding:3px 8px;border-radius:4px;background:rgba(237,137,54,.15);color:#9C4221;flex-shrink:0}
+.expiring-days.urgent{background:rgba(245,101,101,.15);color:#9B2C2C}
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:8px 0}
+.quick-action{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:10px;background:#F7FAFC;cursor:pointer;transition:all .2s;border:1px solid transparent;text-decoration:none;color:inherit}
+.quick-action:hover{background:#fff;border-color:#FF8C42;transform:translateY(-2px);box-shadow:0 4px 12px rgba(255,140,66,.15)}
+.quick-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.qa1 .quick-icon{background:rgba(255,140,66,.12);color:#FF8C42}
+.qa2 .quick-icon{background:rgba(78,205,196,.12);color:#0E9F8E}
+.qa3 .quick-icon{background:rgba(91,159,237,.12);color:#5B9FED}
+.qa4 .quick-icon{background:rgba(159,122,234,.12);color:#805AD5}
+.quick-label{font-size:12px;font-weight:500;color:#4A5568;text-align:center}
+.api-usage-list{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+.api-usage-item{padding:12px;border-radius:10px;background:#F7FAFC;border:1px solid #EDF2F7}
+.api-usage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.api-usage-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.api-usage-status{font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(72,187,120,.12);color:#22543D}
+.api-usage-status.warn{background:rgba(237,137,54,.12);color:#9C4221}
+.api-usage-meta{display:flex;justify-content:space-between;font-size:11px;color:#718096;margin-top:6px}
+.activity-list{display:flex;flex-direction:column;gap:14px}
+.activity-item{display:flex;gap:12px;font-size:13px}
+.activity-dot{width:8px;height:8px;border-radius:50%;background:#FF8C42;margin-top:6px;flex-shrink:0;box-shadow:0 0 0 3px rgba(255,140,66,.2)}
+.activity-content{flex:1}
+.activity-text{color:#2D3748;line-height:1.5}
+.activity-text strong{color:#FF8C42;font-weight:600}
+.activity-time{font-size:11px;color:#A0AEC0;margin-top:2px}
+</style>
+
 <?php
 $db = getDB();
 
