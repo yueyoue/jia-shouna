@@ -1,3 +1,30 @@
+<?php
+// PHP版分页函数
+function renderPagination($total, $page, $pageSize, $callback) {
+    $totalPages = ceil($total / $pageSize);
+    if ($totalPages <= 1) return '';
+    $html = '<div class="pagination">';
+    if ($page > 1) $html .= '<a href="javascript:void(0)" onclick="'. $callback .'('. ($page - 1) .')">上一页</a>';
+    for ($i = 1; $i <= $totalPages; $i++) {
+        if ($i == $page) {
+            $html .= '<span class="active">'. $i .'</span>';
+        } elseif (abs($i - $page) <= 2 || $i == 1 || $i == $totalPages) {
+            $html .= '<a href="javascript:void(0)" onclick="'. $callback .'('. $i .')">'. $i .'</a>';
+        } elseif (abs($i - $page) == 3) {
+            $html .= '<span>...</span>';
+        }
+    }
+    if ($page < $totalPages) $html .= '<a href="javascript:void(0)" onclick="'. $callback .'('. ($page + 1) .')">下一页</a>';
+    $html .= '</div>';
+    return $html;
+}
+
+function formatSize($bytes) {
+    if ($bytes < 1024) return $bytes . ' B';
+    if ($bytes < 1024 * 1024) return round($bytes / 1024, 1) . ' KB';
+    return round($bytes / (1024 * 1024), 1) . ' MB';
+}
+?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
