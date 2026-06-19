@@ -13,11 +13,12 @@ import com.jiashouna.app.utils.NetworkUtils;
 
 public class AddSpaceActivity extends AppCompatActivity {
     private EditText etName;
-    private Spinner spLevel;
+    private View levelRoom, levelContainer, levelArea;
     private Switch swShared;
     private Button btnSave;
     private String selectedIcon = "🏠";
     private String selectedColor = "#FF8C42";
+    private int selectedLevel = 1;
     private LocalDb localDb;
 
     private final String[] icons = {"🏠", "🛋", "🍳", "🛏", "🚿", "📖", "📺", "❄", "🚪", "📦", "💊", "👟", "👔", "🍽", "🎮", "🧹"};
@@ -30,9 +31,25 @@ public class AddSpaceActivity extends AppCompatActivity {
         localDb = new LocalDb(this);
 
         etName = findViewById(R.id.et_name);
-        spLevel = findViewById(R.id.sp_level);
+        levelRoom = findViewById(R.id.level_room);
+        levelContainer = findViewById(R.id.level_container);
+        levelArea = findViewById(R.id.level_area);
         swShared = findViewById(R.id.sw_shared);
         btnSave = findViewById(R.id.btn_save);
+
+        // 层级选择
+        View.OnClickListener levelClick = v -> {
+            resetLevelSelection();
+            v.setSelected(true);
+            v.setBackgroundResource(R.drawable.bg_button_primary);
+            if (v.getId() == R.id.level_room) selectedLevel = 1;
+            else if (v.getId() == R.id.level_container) selectedLevel = 2;
+            else if (v.getId() == R.id.level_area) selectedLevel = 3;
+        };
+        levelRoom.setOnClickListener(levelClick);
+        levelContainer.setOnClickListener(levelClick);
+        levelArea.setOnClickListener(levelClick);
+        levelRoom.setSelected(true);
 
         // 图标选择
         GridLayout iconGrid = findViewById(R.id.grid_icons);
@@ -51,6 +68,15 @@ public class AddSpaceActivity extends AppCompatActivity {
         btnSave.setOnClickListener(v -> saveSpace());
     }
 
+    private void resetLevelSelection() {
+        levelRoom.setSelected(false);
+        levelContainer.setSelected(false);
+        levelArea.setSelected(false);
+        levelRoom.setBackgroundResource(R.drawable.bg_level_option);
+        levelContainer.setBackgroundResource(R.drawable.bg_level_option);
+        levelArea.setBackgroundResource(R.drawable.bg_level_option);
+    }
+
     private void saveSpace() {
         String name = etName.getText().toString().trim();
         if (name.isEmpty()) {
@@ -58,7 +84,7 @@ public class AddSpaceActivity extends AppCompatActivity {
             return;
         }
 
-        int level = spLevel.getSelectedItemPosition() + 1;
+        int level = selectedLevel;
 
         if (NetworkUtils.isNetworkAvailable(this)) {
             JsonObject body = new JsonObject();

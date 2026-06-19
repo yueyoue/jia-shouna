@@ -16,7 +16,7 @@ import com.jiashouna.app.ui.LoginActivity;
 public class ProfileFragment extends Fragment {
     private TextView tvNickname, tvItemCount, tvSpaceCount, tvOperations;
     private TextView tvHouseName, tvMemberCount, tvVersion;
-    private Button btnLogout, btnCheckUpdate;
+    private Button btnLogout;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -30,15 +30,12 @@ public class ProfileFragment extends Fragment {
         tvMemberCount = v.findViewById(R.id.tv_member_count);
         tvVersion = v.findViewById(R.id.tv_version);
         btnLogout = v.findViewById(R.id.btn_logout);
-        btnCheckUpdate = v.findViewById(R.id.btn_check_update);
 
         btnLogout.setOnClickListener(e -> {
             App.getInstance().logout();
             startActivity(new Intent(getActivity(), LoginActivity.class));
             getActivity().finish();
         });
-
-        btnCheckUpdate.setOnClickListener(e -> checkUpdate());
 
         v.findViewById(R.id.btn_family_share).setOnClickListener(e -> 
             startActivity(new Intent(getActivity(), FamilyShareActivity.class)));

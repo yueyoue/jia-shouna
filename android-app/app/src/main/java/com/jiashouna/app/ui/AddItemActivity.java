@@ -13,13 +13,12 @@ import com.jiashouna.app.db.LocalDb;
 import com.jiashouna.app.model.Goods;
 import com.jiashouna.app.utils.NetworkUtils;
 import java.util.Calendar;
-import java.util.HashMap;
 
 public class AddItemActivity extends AppCompatActivity {
-    private EditText etName, etBarcode, etCategory, etQuantity, etUnit, etExpiry, etPrice, etNote;
-    private Spinner spSpace;
+    private EditText etName, etBarcode, etQuantity, etUnit, etExpiry, etPrice, etNote;
+    private View spacePicker;
     private Switch swPrivate;
-    private Button btnSave, btnScan;
+    private Button btnSave;
     private int selectedSpaceId = 0;
     private LocalDb localDb;
 
@@ -32,26 +31,18 @@ public class AddItemActivity extends AppCompatActivity {
 
         etName = findViewById(R.id.et_name);
         etBarcode = findViewById(R.id.et_barcode);
-        etCategory = findViewById(R.id.et_category);
         etQuantity = findViewById(R.id.et_quantity);
         etUnit = findViewById(R.id.et_unit);
         etExpiry = findViewById(R.id.et_expiry);
         etPrice = findViewById(R.id.et_price);
         etNote = findViewById(R.id.et_note);
-        spSpace = findViewById(R.id.sp_space);
+        spacePicker = findViewById(R.id.space_picker);
         swPrivate = findViewById(R.id.sw_private);
         btnSave = findViewById(R.id.btn_save);
-        btnScan = findViewById(R.id.btn_scan);
 
         etExpiry.setOnClickListener(v -> showDatePicker());
         btnSave.setOnClickListener(v -> saveItem());
-        btnScan.setOnClickListener(v -> scanBarcode());
-
-        // 如果是手动模式，隐藏扫码按钮
-        String mode = getIntent().getStringExtra("mode");
-        if ("manual".equals(mode)) {
-            btnScan.setVisibility(android.view.View.GONE);
-        }
+        spacePicker.setOnClickListener(v -> showSpacePicker());
 
         loadSpaces();
     }
@@ -79,9 +70,9 @@ public class AddItemActivity extends AppCompatActivity {
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    private void scanBarcode() {
-        // 启动扫码Activity
-        Toast.makeText(this, "扫码功能开发中", Toast.LENGTH_SHORT).show();
+    private void showSpacePicker() {
+        // TODO: 显示空间选择弹窗
+        Toast.makeText(this, "空间选择功能开发中", Toast.LENGTH_SHORT).show();
     }
 
     private void saveItem() {
@@ -96,7 +87,7 @@ public class AddItemActivity extends AppCompatActivity {
         goods.spaceId = selectedSpaceId;
         goods.name = name;
         goods.barcode = etBarcode.getText().toString().trim();
-        goods.category = etCategory.getText().toString().trim();
+        goods.category = "";
         goods.quantity = Double.parseDouble(etQuantity.getText().toString().trim().isEmpty() ? "1" : etQuantity.getText().toString().trim());
         goods.unit = etUnit.getText().toString().trim().isEmpty() ? "个" : etUnit.getText().toString().trim();
         goods.expiryDate = etExpiry.getText().toString().trim();
