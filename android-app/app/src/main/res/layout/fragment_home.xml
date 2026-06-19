@@ -147,7 +147,7 @@
                         android:background="@drawable/bg_quick_item"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp 4dp">
+                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="40dp"
@@ -176,7 +176,7 @@
                         android:background="@drawable/bg_quick_item"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp 4dp">
+                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="40dp"
@@ -204,7 +204,7 @@
                         android:background="@drawable/bg_quick_item"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp 4dp">
+                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="40dp"
@@ -231,7 +231,7 @@
                         android:background="@drawable/bg_quick_item"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp 4dp">
+                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="40dp"
@@ -266,7 +266,7 @@
                         android:background="@drawable/bg_quick_item"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp 4dp">
+                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="40dp"
@@ -295,7 +295,7 @@
                         android:background="@drawable/bg_quick_item"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp 4dp">
+                        android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="40dp"
@@ -344,7 +344,7 @@
                         android:layout_weight="1"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="8dp 4dp">
+                        android:paddingTop="8dp" android:paddingBottom="8dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                     <TextView
                         android:id="@+id/tv_item_count"
@@ -374,7 +374,7 @@
                     android:layout_weight="1"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="8dp 4dp">
+                    android:paddingTop="8dp" android:paddingBottom="8dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                     <TextView
                         android:id="@+id/tv_expiring_count"
@@ -404,7 +404,7 @@
                     android:layout_weight="1"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="8dp 4dp">
+                    android:paddingTop="8dp" android:paddingBottom="8dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                     <TextView
                         android:id="@+id/tv_space_count"
@@ -434,7 +434,7 @@
                     android:layout_weight="1"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="8dp 4dp">
+                    android:paddingTop="8dp" android:paddingBottom="8dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                     <TextView
                         android:id="@+id/tv_member_count"
@@ -464,7 +464,7 @@
                 android:background="@drawable/bg_card_16"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="12dp 16dp">
+                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -478,7 +478,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:background="@drawable/bg_tag_orange"
-                    android:padding="3dp 8dp"
+                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
                     android:text="妈 86"
                     android:textColor="#C25A1E"
                     android:textSize="11sp" />
@@ -488,7 +488,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:background="@drawable/bg_tag_orange"
-                    android:padding="3dp 8dp"
+                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
                     android:text="爸 42"
                     android:textColor="#C25A1E"
                     android:textSize="11sp" />
@@ -498,7 +498,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:background="@drawable/bg_tag_blue"
-                    android:padding="3dp 8dp"
+                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
                     android:text="女 28"
                     android:textColor="#2C5282"
                     android:textSize="11sp" />
@@ -508,7 +508,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:background="@drawable/bg_tag_green"
-                    android:padding="3dp 8dp"
+                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
                     android:text="儿 12"
                     android:textColor="#22543D"
                     android:textSize="11sp" />
@@ -529,7 +529,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="14dp 16dp">
+                    android:paddingTop="14dp" android:paddingBottom="14dp" android:paddingLeft="16dp" android:paddingRight="16dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -544,7 +544,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_tag_red"
-                        android:padding="2dp 8dp"
+                        android:paddingTop="2dp" android:paddingBottom="2dp" android:paddingLeft="8dp" android:paddingRight="8dp"
                         android:text="5 件"
                         android:textColor="#9B2C2C"
                         android:textSize="10sp" />
@@ -569,7 +569,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="4dp 0dp" />
+                    android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingLeft="0dp" android:paddingRight="0dp" />
             </LinearLayout>
 
             <!-- ===== Recent Added Section ===== -->

@@ -12,7 +12,7 @@
         android:background="@drawable/bg_gradient_header"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp 20dp">
+        android:paddingTop="16dp" android:paddingBottom="16dp" android:paddingLeft="20dp" android:paddingRight="20dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -57,13 +57,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="12dp 16dp">
+            android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_tab_active"
-                android:padding="6dp 14dp"
+                android:paddingTop="6dp" android:paddingBottom="6dp" android:paddingLeft="14dp" android:paddingRight="14dp"
                 android:text="⏰ 临期"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
@@ -73,7 +73,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_tab_inactive"
-                android:padding="6dp 14dp"
+                android:paddingTop="6dp" android:paddingBottom="6dp" android:paddingLeft="14dp" android:paddingRight="14dp"
                 android:text="📉 库存"
                 android:textColor="#4A5568"
                 android:textSize="12sp" />
@@ -83,7 +83,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_tab_inactive"
-                android:padding="6dp 14dp"
+                android:paddingTop="6dp" android:paddingBottom="6dp" android:paddingLeft="14dp" android:paddingRight="14dp"
                 android:text="🔔 自定义"
                 android:textColor="#4A5568"
                 android:textSize="12sp" />
@@ -93,7 +93,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_tab_inactive"
-                android:padding="6dp 14dp"
+                android:paddingTop="6dp" android:paddingBottom="6dp" android:paddingLeft="14dp" android:paddingRight="14dp"
                 android:text="📅 整理"
                 android:textColor="#4A5568"
                 android:textSize="12sp" />
@@ -103,7 +103,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_tab_inactive"
-                android:padding="6dp 14dp"
+                android:paddingTop="6dp" android:paddingBottom="6dp" android:paddingLeft="14dp" android:paddingRight="14dp"
                 android:text="✓ 已处理"
                 android:textColor="#4A5568"
                 android:textSize="12sp" />
@@ -129,7 +129,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="12dp 16dp"
+                android:layout_marginTop="12dp" android:layout_marginBottom="12dp" android:layout_marginLeft="16dp" android:layout_marginRight="16dp"
                 android:background="@drawable/bg_alert_banner"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -215,7 +215,7 @@
                         android:background="@drawable/bg_summary_cell"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="10dp 4dp">
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -244,7 +244,7 @@
                         android:background="@drawable/bg_summary_cell"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="10dp 4dp">
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -273,7 +273,7 @@
                         android:background="@drawable/bg_summary_cell"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="10dp 4dp">
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
                             android:layout_width="wrap_content"
