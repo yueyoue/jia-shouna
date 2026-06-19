@@ -109,7 +109,7 @@ public class AddSpaceActivity extends AppCompatActivity {
                     if (text.equals("📦") || text.equals("容器")) {
                         if (text.equals("容器")) tv.setText("房间");
                     }
-                    if (text.startsWith("如衣柜")) tv.setText("如主卧、厨房";
+                    if (text.startsWith("如衣柜")) tv.setText("如主卧、厨房");
                 }
             }
             // level_area (第三个) → 容器
@@ -121,7 +121,7 @@ public class AddSpaceActivity extends AppCompatActivity {
                     if (text.equals("📂") || text.equals("区域")) {
                         if (text.equals("区域")) tv.setText("容器");
                     }
-                    if (text.startsWith("如上层")) tv.setText("如衣柜、冰箱";
+                    if (text.startsWith("如上层")) tv.setText("如衣柜、冰箱");
                 }
             }
         } catch (Exception ignored) {}
