@@ -22,7 +22,6 @@ public class ProfileFragment extends Fragment {
             setupViews(v);
             return v;
         } catch (Exception e) {
-            // 如果布局加载失败，返回一个简单的视图
             TextView tv = new TextView(getActivity());
             tv.setText("加载中...");
             tv.setGravity(android.view.Gravity.CENTER);
@@ -42,6 +41,7 @@ public class ProfileFragment extends Fragment {
             TextView tvVersion = v.findViewById(R.id.tv_version);
             Button btnLogout = v.findViewById(R.id.btn_logout);
 
+            // 退出登录
             if (btnLogout != null) {
                 btnLogout.setOnClickListener(e -> {
                     try {
@@ -52,19 +52,87 @@ public class ProfileFragment extends Fragment {
                 });
             }
 
+            // 家庭共享
             View btnFamily = v.findViewById(R.id.btn_family_share);
             if (btnFamily != null) {
                 btnFamily.setOnClickListener(e -> {
                     try {
                         startActivity(new Intent(getActivity(), FamilyShareActivity.class));
-                    } catch (Exception ex) {}
+                    } catch (Exception ex) {
+                        Toast.makeText(getContext(), "功能开发中", Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
 
+            // 物品盘点 - 跳转到物品列表
+            setupMenuClick(v, R.id.menu_inventory, () -> {
+                Toast.makeText(getContext(), "物品盘点：请在首页查看", Toast.LENGTH_SHORT).show();
+            });
+
+            // 数据统计
+            setupMenuClick(v, R.id.menu_stats, () -> {
+                Toast.makeText(getContext(), "数据统计功能开发中", Toast.LENGTH_SHORT).show();
+            });
+
+            // 数据导出
+            setupMenuClick(v, R.id.menu_export, () -> {
+                Toast.makeText(getContext(), "数据导出功能开发中", Toast.LENGTH_SHORT).show();
+            });
+
+            // 家庭成员
+            setupMenuClick(v, R.id.menu_members, () -> {
+                try {
+                    startActivity(new Intent(getActivity(), FamilyShareActivity.class));
+                } catch (Exception ex) {
+                    Toast.makeText(getContext(), "功能开发中", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            // 分享邀请
+            setupMenuClick(v, R.id.menu_invite, () -> {
+                try {
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.setType("text/plain");
+                    shareIntent.putExtra(Intent.EXTRA_TEXT, "来加入我的家庭收纳吧！家收纳APP");
+                    startActivity(Intent.createChooser(shareIntent, "分享"));
+                } catch (Exception ex) {
+                    Toast.makeText(getContext(), "分享失败", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            // 操作日志
+            setupMenuClick(v, R.id.menu_logs, () -> {
+                Toast.makeText(getContext(), "操作日志功能开发中", Toast.LENGTH_SHORT).show();
+            });
+
+            // 提醒设置
+            setupMenuClick(v, R.id.menu_reminder_settings, () -> {
+                Toast.makeText(getContext(), "提醒设置功能开发中", Toast.LENGTH_SHORT).show();
+            });
+
+            // 账号安全
+            setupMenuClick(v, R.id.menu_security, () -> {
+                Toast.makeText(getContext(), "账号安全功能开发中", Toast.LENGTH_SHORT).show();
+            });
+
+            // 帮助与反馈
+            setupMenuClick(v, R.id.menu_help, () -> {
+                Toast.makeText(getContext(), "帮助与反馈功能开发中", Toast.LENGTH_SHORT).show();
+            });
+
             loadProfile(tvNickname, tvItemCount, tvSpaceCount, tvOperations, tvHouseName, tvMemberCount, tvVersion);
-        } catch (Exception e) {
-            // 防止任何初始化错误导致崩溃
-        }
+        } catch (Exception e) {}
+    }
+
+    private void setupMenuClick(View v, int id, Runnable action) {
+        try {
+            View menu = v.findViewById(id);
+            if (menu != null) {
+                menu.setOnClickListener(e -> {
+                    try { action.run(); } catch (Exception ex) {}
+                });
+            }
+        } catch (Exception ignored) {}
     }
 
     private void loadProfile(TextView tvNickname, TextView tvItemCount, TextView tvSpaceCount,
@@ -115,9 +183,7 @@ public class ProfileFragment extends Fragment {
                         } catch (Exception e) {}
                     });
                 }
-                @Override public void onError(String msg) {
-                    // 静默处理错误
-                }
+                @Override public void onError(String msg) {}
             });
         } catch (Exception e) {}
     }

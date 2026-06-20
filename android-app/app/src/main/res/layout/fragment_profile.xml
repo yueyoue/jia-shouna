@@ -429,6 +429,7 @@
 
             <!-- 物品盘点 -->
             <LinearLayout
+                android:id="@+id/menu_inventory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -481,6 +482,7 @@
 
             <!-- 数据统计 -->
             <LinearLayout
+                android:id="@+id/menu_stats"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -533,6 +535,7 @@
 
             <!-- 数据导出 -->
             <LinearLayout
+                android:id="@+id/menu_export"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -599,6 +602,7 @@
 
             <!-- 家庭成员 -->
             <LinearLayout
+                android:id="@+id/menu_members"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -659,6 +663,7 @@
 
             <!-- 分享邀请 -->
             <LinearLayout
+                android:id="@+id/menu_invite"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -711,6 +716,7 @@
 
             <!-- 操作日志 -->
             <LinearLayout
+                android:id="@+id/menu_logs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -777,6 +783,7 @@
 
             <!-- 提醒设置 -->
             <LinearLayout
+                android:id="@+id/menu_reminder_settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -829,6 +836,7 @@
 
             <!-- 账号安全 -->
             <LinearLayout
+                android:id="@+id/menu_security"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -881,6 +889,7 @@
 
             <!-- 帮助与反馈 -->
             <LinearLayout
+                android:id="@+id/menu_help"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"

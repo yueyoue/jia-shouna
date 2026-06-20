@@ -6,7 +6,7 @@
     android:background="#F7FAFC"
     android:orientation="vertical">
 
-    <!-- Top Navigation Bar -->
+    <!-- Page Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -51,6 +51,24 @@
             android:textColor="#FF8C42"
             android:textSize="14sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_search"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:gravity="center"
+            android:text="🔍"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/btn_more"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="⋯"
+            android:textColor="#4A5568"
+            android:textSize="16sp" />
     </LinearLayout>
 
     <View
@@ -68,188 +86,137 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Breadcrumb Navigation -->
-            <LinearLayout
-                android:id="@+id/layout_breadcrumb"
+            <!-- Breadcrumb Path Bar -->
+            <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:paddingLeft="20dp"
-                android:paddingRight="20dp">
+                android:scrollbars="none">
 
-                <!-- Dynamically populated -->
-            </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/layout_breadcrumb"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:paddingLeft="20dp"
+                    android:paddingRight="20dp" />
+            </HorizontalScrollView>
 
-            <!-- Space Info Card -->
-            <androidx.cardview.widget.CardView
+            <!-- Overview Card -->
+            <LinearLayout
+                android:id="@+id/card_overview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                android:background="@drawable/bg_overview_gradient"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tv_space_icon"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_gradient_orange"
+                    android:gravity="center"
+                    android:text="📦"
+                    android:textSize="24sp" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                    <!-- Icon + Name + Shared -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/tv_space_name"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:text="空间名称"
+                        android:textColor="#2D3748"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_space_desc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text=""
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <TextView
-                            android:id="@+id/tv_space_icon"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:background="@drawable/bg_gradient_orange"
-                            android:gravity="center"
-                            android:text="🏠"
-                            android:textSize="24sp" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tv_space_name"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="空间名称"
-                                android:textColor="#2D3748"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tv_space_desc"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text=""
-                                android:textColor="#718096"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/tv_shared_badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@drawable/bg_icon_orange_light"
-                            android:paddingStart="8dp"
-                            android:paddingEnd="8dp"
-                            android:paddingTop="4dp"
-                            android:paddingBottom="4dp"
-                            android:text="共享"
+                            android:text="📦 "
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tv_item_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
                             android:textColor="#FF8C42"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" 件"
+                            android:textColor="#718096"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="⏰ "
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tv_expiring_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="#FF8C42"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" 临期"
+                            android:textColor="#718096"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tv_shared_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="👨‍👩‍👧 全家共享"
+                            android:textColor="#718096"
                             android:textSize="11sp"
                             android:visibility="gone" />
                     </LinearLayout>
-
-                    <!-- Stats Row -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tv_item_count"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textColor="#FF8C42"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="物品"
-                                android:textColor="#718096"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="1dp"
-                            android:layout_height="32dp"
-                            android:background="#EDF2F7" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tv_expiring_count"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textColor="#F56565"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="临期"
-                                android:textColor="#718096"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="1dp"
-                            android:layout_height="32dp"
-                            android:background="#EDF2F7" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tv_children_count"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textColor="#5B9FED"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="子空间"
-                                android:textColor="#718096"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                    </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
 
-            <!-- Sub-spaces Section -->
+            <!-- Sub-spaces Section Title -->
             <LinearLayout
                 android:id="@+id/layout_subspaces_header"
                 android:layout_width="match_parent"
@@ -263,6 +230,7 @@
                 android:visibility="gone">
 
                 <TextView
+                    android:id="@+id/tv_subspaces_title"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -270,8 +238,17 @@
                     android:textColor="#718096"
                     android:textSize="13sp"
                     android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btn_add_subspace"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ 新建"
+                    android:textColor="#FF8C42"
+                    android:textSize="12sp" />
             </LinearLayout>
 
+            <!-- Sub-spaces Grid (2 columns) -->
             <LinearLayout
                 android:id="@+id/layout_subspaces"
                 android:layout_width="match_parent"
@@ -280,7 +257,7 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp" />
 
-            <!-- Items Section -->
+            <!-- Items Section Title -->
             <LinearLayout
                 android:id="@+id/layout_items_header"
                 android:layout_width="match_parent"
@@ -293,23 +270,24 @@
                 android:paddingBottom="8dp">
 
                 <TextView
+                    android:id="@+id/tv_items_title"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📋 物品列表"
+                    android:text="📦 物品列表"
                     android:textColor="#718096"
                     android:textSize="13sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tv_items_count_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 件"
-                    android:textColor="#A0AEC0"
+                    android:text="排序 ⇅"
+                    android:textColor="#FF8C42"
                     android:textSize="12sp" />
             </LinearLayout>
 
+            <!-- Items List -->
             <LinearLayout
                 android:id="@+id/layout_items"
                 android:layout_width="match_parent"
