@@ -212,7 +212,6 @@ public class SpacesFragment extends Fragment {
                 holder.itemView.setOnClickListener(e -> {
                     int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
                     String itemName = item.has("name") ? item.get("name").getAsString() : "";
-                    boolean isHouse = item.has("is_house") && item.get("is_house").getAsBoolean();
                     if (isHouse) {
                         // 切换到该家并刷新空间列表
                         App.getInstance().setCurrentHouseId(itemId);
