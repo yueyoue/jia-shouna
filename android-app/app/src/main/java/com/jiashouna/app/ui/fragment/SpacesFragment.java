@@ -212,11 +212,19 @@ public class SpacesFragment extends Fragment {
                 holder.itemView.setOnClickListener(e -> {
                     int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
                     String itemName = item.has("name") ? item.get("name").getAsString() : "";
-                    Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
-                    intent.putExtra("space_id", itemId);
-                    intent.putExtra("space_name", itemName);
-                    intent.putExtra("house_id", App.getInstance().getCurrentHouseId());
-                    startActivity(intent);
+                    boolean isHouse = item.has("is_house") && item.get("is_house").getAsBoolean();
+                    if (isHouse) {
+                        // 切换到该家并刷新空间列表
+                        App.getInstance().setCurrentHouseId(itemId);
+                        App.getInstance().setCurrentHouseName(itemName);
+                        loadData();
+                    } else {
+                        Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
+                        intent.putExtra("space_id", itemId);
+                        intent.putExtra("space_name", itemName);
+                        intent.putExtra("house_id", App.getInstance().getCurrentHouseId());
+                        startActivity(intent);
+                    }
                 });
             } catch (Exception e) {
                 holder.tvName.setText("数据错误");

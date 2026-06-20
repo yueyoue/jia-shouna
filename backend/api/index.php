@@ -80,6 +80,9 @@ $routes = [
     // 条码查询
     'GET  /barcode/lookup'      => 'barcode.php?action=lookup',
     
+    // 图像识别
+    'POST /image-recognize/recognize' => 'image-recognize.php?action=recognize',
+    
     // 版本检查
     'GET  /version/check'       => 'version.php?action=check',
     'GET  /version/latest'      => 'version.php?action=latest',

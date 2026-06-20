@@ -219,7 +219,102 @@ public class AddItemActivity extends AppCompatActivity {
         iv.setLayoutParams(lp);
         iv.setBackgroundResource(R.drawable.bg_card_16);
         llPhotos.addView(iv);
-        Toast.makeText(this, "📷 已添加照片 (" + photos.size() + "/3)", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "📷 正在识别物品...", Toast.LENGTH_SHORT).show();
+        // 自动调用图像识别
+        recognizeImage(bitmap);
+    }
+
+    private void recognizeImage(Bitmap bitmap) {
+        // 将Bitmap转为字节流上传
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+        byte[] imageBytes = baos.toByteArray();
+
+        // 构建multipart请求
+        okhttp3.MultipartBody.Builder builder = new okhttp3.MultipartBody.Builder()
+            .setType(okhttp3.MultipartBody.FORM)
+            .addFormDataPart("image", "photo.jpg",
+                okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
+
+        String url = App.BASE_URL + "image-recognize.php?action=recognize";
+        okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
+            .url(url)
+            .post(builder.build());
+
+        String token = App.getInstance().getToken();
+        if (token != null && !token.isEmpty()) {
+            reqBuilder.addHeader("Authorization", "Bearer " + token);
+        }
+
+        new okhttp3.OkHttpClient.Builder()
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+            .newCall(reqBuilder.build())
+            .enqueue(new okhttp3.Callback() {
+                @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                    runOnUiThread(() -> Toast.makeText(AddItemActivity.this,
+                        "识别请求失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                }
+
+                @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                    String body = response.body() != null ? response.body().string() : "";
+                    runOnUiThread(() -> handleRecognizeResult(body));
+                }
+            });
+    }
+
+    private void handleRecognizeResult(String responseBody) {
+        try {
+            JsonObject json = com.google.gson.JsonParser.parseString(responseBody).getAsJsonObject();
+            if (json.get("code").getAsInt() != 0) {
+                Toast.makeText(this, "识别失败: " + json.get("msg").getAsString(), Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            JsonObject data = json.getAsJsonObject("data");
+            boolean recognized = data.has("recognized") && data.get("recognized").getAsBoolean();
+
+            if (recognized) {
+                String name = data.has("suggested_name") ? data.get("suggested_name").getAsString() : "";
+                String category = data.has("suggested_category") ? data.get("suggested_category").getAsString() : "";
+                String brand = data.has("suggested_brand") ? data.get("suggested_brand").getAsString() : "";
+                String barcode = data.has("barcode") ? data.get("barcode").getAsString() : "";
+
+                // 显示识别结果确认对话框
+                StringBuilder msg = new StringBuilder();
+                if (!name.isEmpty()) msg.append("名称: ").append(name).append("\n");
+                if (!category.isEmpty()) msg.append("分类: ").append(category).append("\n");
+                if (!brand.isEmpty()) msg.append("品牌: ").append(brand).append("\n");
+                if (!barcode.isEmpty()) msg.append("条码: ").append(barcode).append("\n");
+
+                if (msg.length() == 0) {
+                    Toast.makeText(this, "未能识别物品，请手动输入", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                new AlertDialog.Builder(this)
+                    .setTitle("✅ 识别结果")
+                    .setMessage(msg.toString() + "\n是否填入表单？")
+                    .setPositiveButton("确认填入", (d, w) -> {
+                        if (!name.isEmpty()) etName.setText(name);
+                        if (!barcode.isEmpty()) etBarcode.setText(barcode);
+                        Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("重新识别", (d, w) -> {
+                        if (photos.size() > 0) {
+                            recognizeImage(photos.get(photos.size() - 1));
+                        }
+                    })
+                    .setNeutralButton("手动输入", null)
+                    .show();
+            } else {
+                String message = data.has("message") ? data.get("message").getAsString() : "未能识别物品";
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "识别结果解析失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void lookupBarcode(String barcode) {

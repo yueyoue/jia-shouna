@@ -66,7 +66,7 @@ public class HomeFragment extends Fragment {
 
         // 搜索栏
         v.findViewById(R.id.btn_search).setOnClickListener(e -> {
-            Toast.makeText(getContext(), "搜索功能开发中", Toast.LENGTH_SHORT).show();
+            showSearchDialog();
         });
         v.findViewById(R.id.btn_scan_search).setOnClickListener(e -> {
             Intent i = new Intent(getActivity(), AddItemActivity.class);
@@ -369,6 +369,95 @@ public class HomeFragment extends Fragment {
         tv.setTextSize(13);
         tv.setPadding(0, dp(20), 0, dp(20));
         container.addView(tv);
+    }
+
+    private void showSearchDialog() {
+        if (getActivity() == null) return;
+
+        LinearLayout layout = new LinearLayout(getActivity());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(20), dp(16), dp(20), dp(8));
+
+        EditText etSearch = new EditText(getActivity());
+        etSearch.setHint("输入物品名称、条码、标签...");
+        etSearch.setTextSize(14);
+        etSearch.setPadding(dp(12), dp(10), dp(12), dp(10));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dp(8));
+        bg.setColor(0xFFF7FAFC);
+        bg.setStroke(dp(1), 0xFFE2E8F0);
+        etSearch.setBackground(bg);
+        layout.addView(etSearch);
+
+        new androidx.appcompat.app.AlertDialog.Builder(getActivity())
+            .setTitle("🔍 搜索物品")
+            .setView(layout)
+            .setPositiveButton("搜索", (d, w) -> {
+                String keyword = etSearch.getText().toString().trim();
+                if (!keyword.isEmpty()) {
+                    doSearch(keyword);
+                }
+            })
+            .setNegativeButton("取消", null)
+            .show();
+
+        etSearch.requestFocus();
+    }
+
+    private void doSearch(String keyword) {
+        int houseId = App.getInstance().getCurrentHouseId();
+        java.util.HashMap<String, String> params = new java.util.HashMap<>();
+        params.put("action", "search");
+        params.put("keyword", keyword);
+        if (houseId > 0) params.put("house_id", String.valueOf(houseId));
+
+        ApiClient.get("goods.php", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        JsonArray list = data.has("list") && !data.get("list").isJsonNull()
+                            ? data.getAsJsonArray("list") : new JsonArray();
+                        showSearchResults(list, keyword);
+                    } catch (Exception e) {
+                        Toast.makeText(getContext(), "搜索失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() ->
+                    Toast.makeText(getContext(), "搜索失败: " + msg, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+    private void showSearchResults(JsonArray results, String keyword) {
+        if (getActivity() == null) return;
+
+        StringBuilder sb = new StringBuilder();
+        if (results.size() == 0) {
+            sb.append("未找到与「").append(keyword).append("」相关的物品");
+        } else {
+            sb.append("找到 ").append(results.size()).append(" 件物品：\n\n");
+            for (int i = 0; i < results.size(); i++) {
+                JsonObject item = results.get(i).getAsJsonObject();
+                String name = item.has("name") ? item.get("name").getAsString() : "";
+                String space = item.has("space_name") && !item.get("space_name").isJsonNull()
+                    ? item.get("space_name").getAsString() : "未分类";
+                int qty = item.has("quantity") ? item.get("quantity").getAsInt() : 0;
+                String unit = item.has("unit") && !item.get("unit").isJsonNull()
+                    ? item.get("unit").getAsString() : "个";
+                sb.append("• ").append(name).append("  ×").append(qty).append(unit)
+                  .append("  📍").append(space).append("\n");
+            }
+        }
+
+        new androidx.appcompat.app.AlertDialog.Builder(getActivity())
+            .setTitle("搜索结果")
+            .setMessage(sb.toString())
+            .setPositiveButton("确定", null)
+            .show();
     }
 
     private int dp(int dp) {

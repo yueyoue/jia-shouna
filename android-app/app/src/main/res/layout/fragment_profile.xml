@@ -770,6 +770,60 @@
                 android:layout_marginStart="16dp"
                 android:background="#EDF2F7" />
 
+            <!-- 版本更新 -->
+            <LinearLayout
+                android:id="@+id/menu_version_update"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+
+                <TextView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/bg_icon_btn_rounded"
+                    android:gravity="center"
+                    android:text="🔄"
+                    android:textSize="16sp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="版本更新"
+                        android:textColor="#2D3748"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tv_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="检查新版本"
+                        android:textColor="#A0AEC0"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textColor="#CBD5E0"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="16dp"
+                android:background="#EDF2F7" />
+
             <!-- 账号安全 -->
             <LinearLayout
                 android:id="@+id/menu_security"

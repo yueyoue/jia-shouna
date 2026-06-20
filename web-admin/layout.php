@@ -25,6 +25,7 @@ $navGroups = [
     ],
     '设置' => [
         ['p' => 'settings', 'icon' => '⚙', 'label' => '系统设置'],
+        ['p' => 'version', 'icon' => '📱', 'label' => '版本管理'],
     ],
 ];
 

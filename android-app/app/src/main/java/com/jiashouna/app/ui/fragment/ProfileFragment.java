@@ -124,6 +124,11 @@ public class ProfileFragment extends Fragment {
             Toast.makeText(getContext(), "账号安全功能开发中", Toast.LENGTH_SHORT).show();
         });
 
+        // 版本更新
+        setupMenuClick(v, R.id.menu_version_update, () -> {
+            checkVersionUpdate();
+        });
+
         // 帮助与反馈
         setupMenuClick(v, R.id.menu_help, () -> {
             Intent browserIntent = new Intent(Intent.ACTION_VIEW,
@@ -510,6 +515,63 @@ public class ProfileFragment extends Fragment {
                 );
             }
         });
+    }
+
+    private void checkVersionUpdate() {
+        Toast.makeText(getContext(), "正在检查更新...", Toast.LENGTH_SHORT).show();
+        try {
+            int currentCode = requireContext().getPackageManager()
+                .getPackageInfo(requireContext().getPackageName(), 0).versionCode;
+            String currentName = requireContext().getPackageManager()
+                .getPackageInfo(requireContext().getPackageName(), 0).versionName;
+
+            java.util.HashMap<String, String> params = new java.util.HashMap<>();
+            params.put("action", "check");
+            params.put("version_code", String.valueOf(currentCode));
+
+            ApiClient.get("version.php", params, new ApiClient.ApiCallback() {
+                @Override public void onSuccess(JsonObject data) {
+                    if (getActivity() == null) return;
+                    getActivity().runOnUiThread(() -> {
+                        try {
+                            boolean hasUpdate = data.has("has_update") && data.get("has_update").getAsBoolean();
+                            if (hasUpdate && data.has("latest")) {
+                                JsonObject latest = data.getAsJsonObject("latest");
+                                String verName = latest.get("version_name").getAsString();
+                                String changelog = latest.has("changelog") ? latest.get("changelog").getAsString() : "";
+                                String apkUrl = latest.has("apk_url") ? latest.get("apk_url").getAsString() : "";
+                                boolean isForce = latest.has("is_force") && latest.get("is_force").getAsInt() == 1;
+
+                                new android.app.AlertDialog.Builder(requireActivity())
+                                    .setTitle("发现新版本 v" + verName)
+                                    .setMessage("当前版本: v" + currentName + "\n\n更新内容:\n" + changelog)
+                                    .setPositiveButton("立即更新", (d, w) -> {
+                                        if (!apkUrl.isEmpty()) {
+                                            Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(apkUrl));
+                                            try { startActivity(browserIntent); } catch (Exception e) {
+                                                Toast.makeText(getContext(), "无法打开下载链接", Toast.LENGTH_SHORT).show();
+                                            }
+                                        }
+                                    })
+                                    .setNegativeButton("取消", null)
+                                    .show();
+                            } else {
+                                Toast.makeText(getContext(), "已是最新版本 v" + currentName, Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(getContext(), "检查更新失败", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+                @Override public void onError(String msg) {
+                    if (getActivity() != null) getActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "检查更新失败: " + msg, Toast.LENGTH_SHORT).show()
+                    );
+                }
+            });
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "获取版本信息失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private int dp(int value) {

@@ -466,6 +466,79 @@ switch ($action) {
         success(['list' => $stmt->fetchAll()]);
         break;
 
+    case 'import':
+        $input = getJsonInput();
+        $houseId = intval($input['house_id'] ?? 0);
+        $items = $input['items'] ?? [];
+        if (!$houseId || empty($items)) error('请提供房屋ID和物品数据');
+
+        $role = getUserHouseRole($user['id'], $houseId);
+        if (!$role) error('你不是该房屋成员', 403);
+
+        $now = time();
+        $imported = 0;
+        $errors = [];
+
+        $db->beginTransaction();
+        try {
+            foreach ($items as $idx => $item) {
+                $name = trim($item['name'] ?? '');
+                if (empty($name)) {
+                    $errors[] = '第' . ($idx + 1) . '行: 物品名称为空';
+                    continue;
+                }
+
+                $spaceId = intval($item['space_id'] ?? 0);
+                if (!$spaceId) {
+                    $spaceName = trim($item['space_name'] ?? '');
+                    if ($spaceName) {
+                        $spStmt = $db->prepare('SELECT id FROM storage_space WHERE house_id = ? AND name = ? LIMIT 1');
+                        $spStmt->execute([$houseId, $spaceName]);
+                        $sp = $spStmt->fetch();
+                        if ($sp) $spaceId = $sp['id'];
+                    }
+                    if (!$spaceId) {
+                        $errors[] = '第' . ($idx + 1) . '行: 未找到空间';
+                        continue;
+                    }
+                }
+
+                $stmt = $db->prepare('INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
+                $stmt->execute([
+                    $houseId, $spaceId, $user['id'], $name,
+                    $item['barcode'] ?? '', $item['category'] ?? '', $item['brand'] ?? '',
+                    $item['spec'] ?? '', floatval($item['quantity'] ?? 1), $item['unit'] ?? '个',
+                    $item['purchase_date'] ?? null, $item['expiry_date'] ?? null,
+                    $item['purchase_price'] ?? null, $item['stock_threshold'] ?? null,
+                    $item['note'] ?? '', 0,
+                    $now, $now
+                ]);
+
+                $db->prepare('UPDATE storage_space SET item_count = item_count + 1, updated_at = ? WHERE id = ?')
+                    ->execute([$now, $spaceId]);
+                $db->prepare('UPDATE house SET item_count = item_count + 1, updated_at = ? WHERE id = ?')
+                    ->execute([$now, $houseId]);
+
+                $imported++;
+            }
+
+            $db->commit();
+            logOperation($user['id'], 'goods', 'import', $houseId, '批量导入物品: ' . $imported . '件');
+            success(['imported' => $imported, 'errors' => $errors]);
+        } catch (Exception $e) {
+            $db->rollBack();
+            error('导入失败: ' . $e->getMessage());
+        }
+        break;
+
+    case 'export-template':
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="goods_import_template.csv"');
+        echo "\xEF\xBB\xBF";
+        echo "物品名称,条形码,分类,品牌,规格,数量,单位,购买日期,保质期,价格,备注,空间名称\n";
+        echo "趣多多饼干,6901234567890,食品,趣多多,100g,2,盒,2025-01-15,2025-07-15,12.5,好吃,厨房\n";
+        exit;
+
     default:
         error('未知操作');
 }

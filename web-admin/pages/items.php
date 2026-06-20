@@ -1,5 +1,90 @@
 <?php
 $db = getDB();
+
+// 处理添加物品
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postAction = $_POST['post_action'] ?? '';
+    if ($postAction === 'add_item') {
+        $houseId = intval($_POST['house_id'] ?? 0);
+        $spaceId = intval($_POST['space_id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        if ($houseId && $spaceId && $name) {
+            $now = time();
+            $stmt = $db->prepare('INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, spec, quantity, unit, purchase_date, expiry_date, purchase_price, note, is_private, status, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)');
+            $stmt->execute([
+                $houseId, $spaceId, $name,
+                $_POST['barcode'] ?? '', $_POST['category'] ?? '', $_POST['brand'] ?? '',
+                $_POST['spec'] ?? '', floatval($_POST['quantity'] ?? 1), $_POST['unit'] ?? '个',
+                $_POST['purchase_date'] ?: null, $_POST['expiry_date'] ?: null,
+                $_POST['purchase_price'] ?: null, $_POST['note'] ?? '',
+                $now, $now
+            ]);
+            $goodsId = $db->lastInsertId();
+            $db->prepare('UPDATE storage_space SET item_count = item_count + 1, updated_at = ? WHERE id = ?')->execute([$now, $spaceId]);
+            $db->prepare('UPDATE house SET item_count = item_count + 1, updated_at = ? WHERE id = ?')->execute([$now, $houseId]);
+            $msg = '物品添加成功';
+        } else {
+            $error = '请填写物品名称并选择存放位置';
+        }
+    } elseif ($postAction === 'batch_import') {
+        $houseId = intval($_POST['house_id'] ?? 0);
+        $csvText = trim($_POST['csv_data'] ?? '');
+        if ($houseId && $csvText) {
+            $lines = array_filter(explode("\n", $csvText));
+            $imported = 0;
+            $importErrors = [];
+            $now = time();
+            foreach ($lines as $idx => $line) {
+                $line = trim($line);
+                if (empty($line) || $idx === 0) continue; // skip header
+                $cols = str_getcsv($line);
+                if (count($cols) < 1 || empty($cols[0])) continue;
+                $itemName = trim($cols[0]);
+                $barcode = isset($cols[1]) ? trim($cols[1]) : '';
+                $category = isset($cols[2]) ? trim($cols[2]) : '';
+                $brand = isset($cols[3]) ? trim($cols[3]) : '';
+                $spec = isset($cols[4]) ? trim($cols[4]) : '';
+                $qty = isset($cols[5]) && is_numeric($cols[5]) ? floatval($cols[5]) : 1;
+                $unit = isset($cols[6]) ? trim($cols[6]) : '个';
+                $purchaseDate = isset($cols[7]) ? trim($cols[7]) : '';
+                $expiryDate = isset($cols[8]) ? trim($cols[8]) : '';
+                $price = isset($cols[9]) && is_numeric($cols[9]) ? floatval($cols[9]) : null;
+                $note = isset($cols[10]) ? trim($cols[10]) : '';
+                $spaceName = isset($cols[11]) ? trim($cols[11]) : '';
+
+                // 查找空间
+                $spaceId = 0;
+                if ($spaceName) {
+                    $spStmt = $db->prepare('SELECT id FROM storage_space WHERE house_id = ? AND name = ? LIMIT 1');
+                    $spStmt->execute([$houseId, $spaceName]);
+                    $sp = $spStmt->fetch();
+                    if ($sp) $spaceId = $sp['id'];
+                }
+                if (!$spaceId) {
+                    $importErrors[] = "第" . ($idx+1) . "行: 未找到空间 '{$spaceName}'";
+                    continue;
+                }
+
+                $stmt = $db->prepare('INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, spec, quantity, unit, purchase_date, expiry_date, purchase_price, note, is_private, status, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)');
+                $stmt->execute([$houseId, $spaceId, $itemName, $barcode, $category, $brand, $spec, $qty, $unit, $purchaseDate ?: null, $expiryDate ?: null, $price, $note, $now, $now]);
+                $gid = $db->lastInsertId();
+                $db->prepare('UPDATE storage_space SET item_count = item_count + 1, updated_at = ? WHERE id = ?')->execute([$now, $spaceId]);
+                $db->prepare('UPDATE house SET item_count = item_count + 1, updated_at = ? WHERE id = ?')->execute([$now, $houseId]);
+                $imported++;
+            }
+            $msg = "批量导入完成: 成功 {$imported} 件";
+            if (!empty($importErrors)) {
+                $msg .= '，失败 ' . count($importErrors) . ' 件';
+            }
+        } else {
+            $error = '请选择家庭并粘贴CSV数据';
+        }
+    }
+}
+
+// 获取所有家庭
+$allHouses = $db->query('SELECT h.*, u.username as creator_name FROM house h LEFT JOIN sys_user u ON h.creator_id = u.id WHERE h.status = 1 ORDER BY h.created_at DESC')->fetchAll();
+
 $page = max(1, intval($_GET['pg'] ?? 1));
 $pageSize = 20;
 $keyword = $_GET['keyword'] ?? '';
@@ -108,6 +193,9 @@ tr:hover td .row-actions{opacity:1}
             <span style="font-size:12px;color:#A0AEC0">· 显示 <?= $offset + 1 ?>-<?= min($offset + $pageSize, $total) ?> / <?= number_format($total) ?></span>
         </div>
         <div class="right">
+            <button class="btn btn-primary btn-sm" onclick="showAddItem()">➕ 添加物品</button>
+            <button class="btn btn-outline btn-sm" onclick="showBatchImport()">📥 批量导入</button>
+            <a href="../backend/api/goods.php?action=export-template" class="btn btn-ghost btn-sm">📋 下载模板</a>
             <button class="btn btn-ghost btn-sm" onclick="location.reload()">🔄 刷新</button>
         </div>
     </div>
@@ -200,9 +288,107 @@ tr:hover td .row-actions{opacity:1}
 </div>
 
 <script>
+// 获取空间列表
+var spaceCache = {};
+async function loadSpaces(houseId) {
+    if (spaceCache[houseId]) return spaceCache[houseId];
+    try {
+        var resp = await fetch('../backend/api/space.php?action=list&house_id=' + houseId);
+        var data = await resp.json();
+        if (data.code === 0 && data.data && data.data.list) {
+            spaceCache[houseId] = data.data.list;
+            return data.data.list;
+        }
+    } catch(e) {}
+    return [];
+}
+
+async function showAddItem() {
+    var houses = <?= json_encode($allHouses ?? []) ?>;
+    if (houses.length === 0) { alert('请先创建家庭'); return; }
+
+    var html = '<form method="POST" style="text-align:left">';
+    html += '<input type="hidden" name="post_action" value="add_item">';
+    html += '<div class="form-group"><label class="form-label">所属家庭</label>';
+    html += '<select name="house_id" class="form-control" id="item_house_select" onchange="updateSpaceSelect()">';
+    houses.forEach(function(h) {
+        html += '<option value="' + h.id + '">' + h.name + (h.creator_name ? ' (' + h.creator_name + ')' : '') + '</option>';
+    });
+    html += '</select></div>';
+    html += '<div class="form-group"><label class="form-label">存放空间</label>';
+    html += '<select name="space_id" class="form-control" id="item_space_select"><option>加载中...</option></select></div>';
+    html += '<div class="form-group"><label class="form-label">物品名称 *</label><input name="name" class="form-control" required></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    html += '<div class="form-group"><label class="form-label">条形码</label><input name="barcode" class="form-control"></div>';
+    html += '<div class="form-group"><label class="form-label">分类</label><input name="category" class="form-control" placeholder="食品/日用品等"></div>';
+    html += '<div class="form-group"><label class="form-label">品牌</label><input name="brand" class="form-control"></div>';
+    html += '<div class="form-group"><label class="form-label">规格</label><input name="spec" class="form-control"></div>';
+    html += '<div class="form-group"><label class="form-label">数量</label><input name="quantity" class="form-control" type="number" value="1" step="0.01"></div>';
+    html += '<div class="form-group"><label class="form-label">单位</label><input name="unit" class="form-control" value="个"></div>';
+    html += '<div class="form-group"><label class="form-label">购买日期</label><input name="purchase_date" class="form-control" type="date"></div>';
+    html += '<div class="form-group"><label class="form-label">保质期</label><input name="expiry_date" class="form-control" type="date"></div>';
+    html += '<div class="form-group"><label class="form-label">价格</label><input name="purchase_price" class="form-control" type="number" step="0.01"></div>';
+    html += '</div>';
+    html += '<div class="form-group"><label class="form-label">备注</label><textarea name="note" class="form-control" rows="2"></textarea></div>';
+    html += '<button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:12px">确认添加</button>';
+    html += '</form>';
+
+    document.getElementById('modal-add-item-body').innerHTML = html;
+    document.getElementById('modal-add-item').style.display = 'flex';
+    updateSpaceSelect();
+}
+
+async function updateSpaceSelect() {
+    var houseId = document.getElementById('item_house_select').value;
+    var sel = document.getElementById('item_space_select');
+    sel.innerHTML = '<option>加载中...</option>';
+    var spaces = await loadSpaces(houseId);
+    sel.innerHTML = '';
+    if (spaces.length === 0) {
+        sel.innerHTML = '<option value="">暂无空间，请先创建</option>';
+    } else {
+        spaces.forEach(function(s) {
+            sel.innerHTML += '<option value="' + s.id + '">' + s.name + '</option>';
+        });
+    }
+}
+
+function showBatchImport() {
+    var houses = <?= json_encode($allHouses ?? []) ?>;
+    if (houses.length === 0) { alert('请先创建家庭'); return; }
+
+    var html = '<form method="POST" style="text-align:left">';
+    html += '<input type="hidden" name="post_action" value="batch_import">';
+    html += '<div class="form-group"><label class="form-label">导入到家庭</label>';
+    html += '<select name="house_id" class="form-control">';
+    houses.forEach(function(h) {
+        html += '<option value="' + h.id + '">' + h.name + '</option>';
+    });
+    html += '</select></div>';
+    html += '<div class="form-group"><label class="form-label">CSV数据</label>';
+    html += '<textarea name="csv_data" class="form-control" rows="12" placeholder="粘贴CSV数据，每行一条\n格式: 物品名称,条形码,分类,品牌,规格,数量,单位,购买日期,保质期,价格,备注,空间名称\n\n示例:\n趣多多饼干,6901234567890,食品,趣多多,100g,2,盒,2025-01-15,2025-07-15,12.5,好吃,厨房"></textarea></div>';
+    html += '<p style="font-size:12px;color:#999;margin:8px 0">提示: 先 <a href="../backend/api/goods.php?action=export-template" download>下载模板</a> 填写后粘贴</p>';
+    html += '<button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:8px">开始导入</button>';
+    html += '</form>';
+
+    document.getElementById('modal-add-item-body').innerHTML = html;
+    document.getElementById('modal-add-item').style.display = 'flex';
+}
+
 async function deleteItem(id) {
     if (!confirm('确定要删除此物品吗？')) return;
     const resp = await postJSON('../backend/api/goods.php?action=delete', {id: id});
     if (resp !== null) { showToast('删除成功', 'success'); location.reload(); }
 }
 </script>
+
+<!-- 添加物品/导入弹窗 -->
+<div id="modal-add-item" class="modal-mask" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;padding:24px;position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:16px;font-weight:600">添加物品</h3>
+            <span onclick="document.getElementById('modal-add-item').style.display='none'" style="cursor:pointer;font-size:20px;color:#999">&times;</span>
+        </div>
+        <div id="modal-add-item-body"></div>
+    </div>
+</div>

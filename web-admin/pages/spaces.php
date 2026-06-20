@@ -1,8 +1,43 @@
 <?php
 $db = getDB();
 
-// 获取房屋列表
-$stmt = $db->query("SELECT * FROM house WHERE status = 1 ORDER BY created_at DESC");
+// 处理POST操作
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postAction = $_POST['post_action'] ?? '';
+    if ($postAction === 'create_space') {
+        $houseId = intval($_POST['house_id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        $level = intval($_POST['level'] ?? 1);
+        $icon = $_POST['icon'] ?? '📦';
+        $parentId = intval($_POST['parent_id'] ?? 0);
+        if ($houseId && $name) {
+            $now = time();
+            $stmt = $db->prepare('INSERT INTO storage_space (house_id, parent_id, name, level, icon, color, shared, creator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)');
+            $stmt->execute([$houseId, $parentId, $name, $level, $icon, '#FF8C42', $now, $now]);
+            $db->prepare('UPDATE house SET space_count = space_count + 1, updated_at = ? WHERE id = ?')->execute([$now, $houseId]);
+            $msg = '空间创建成功';
+        } else {
+            $error = '请填写空间名称';
+        }
+    } elseif ($postAction === 'create_house') {
+        $name = trim($_POST['name'] ?? '');
+        if ($name) {
+            $now = time();
+            $code = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
+            $stmt = $db->prepare('INSERT INTO house (name, invite_code, creator_id, member_count, created_at, updated_at) VALUES (?, ?, 1, 1, ?, ?)');
+            $stmt->execute([$name, $code, $now, $now]);
+            $houseId = $db->lastInsertId();
+            $db->prepare('INSERT INTO house_member (house_id, user_id, role, is_current, joined_at) VALUES (?, 1, 1, 1, ?)')->execute([$houseId, $now]);
+            $msg = '家庭创建成功';
+        } else {
+            $error = '请输入家庭名称';
+        }
+    }
+}
+
+// 获取房屋列表(显示所有家，每个家绑定到创建者)
+$houses = [];
+$stmt = $db->query("SELECT h.*, u.username as creator_name FROM house h LEFT JOIN sys_user u ON h.creator_id = u.id WHERE h.status = 1 ORDER BY h.created_at DESC");
 $houses = $stmt->fetchAll();
 
 $selectedHouse = intval($_GET['house_id'] ?? 0);
@@ -123,24 +158,39 @@ $tree = buildTree($spaces);
         <div class="tree-header">
             <h3>📂 空间层级</h3>
             <div class="tree-actions">
+                <div class="icon-btn-sm" title="新建家庭" onclick="showCreateHouse()">🏠+</div>
+                <div class="icon-btn-sm" title="新建空间" onclick="showCreateSpace()">📁+</div>
                 <div class="icon-btn-sm" title="刷新" onclick="location.reload()">↻</div>
             </div>
         </div>
         <div class="tree-body">
+            <!-- 家庭选择器 -->
+            <?php if (!empty($houses)): ?>
+            <div style="margin-bottom:12px">
+                <select class="form-control" style="font-size:12px;padding:6px 10px" onchange="switchHouse(this.value)">
+                    <?php foreach ($houses as $h): ?>
+                    <option value="<?= $h['id'] ?>" <?= $h['id'] == $selectedHouse ? 'selected' : '' ?>>
+                        🏠 <?= htmlspecialchars($h['name']) ?> (创建者: <?= htmlspecialchars($h['creator_name'] ?? '未知') ?>)
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
+
             <div class="tree-search">
                 <input type="text" placeholder="搜索空间名称...">
             </div>
             <?php if (empty($tree)): ?>
             <div class="empty">
                 <div class="empty-icon">🏠</div>
-                <div>暂无空间，请在APP端创建</div>
+                <div>暂无空间，点击上方按钮创建</div>
             </div>
             <?php else: ?>
             <div class="tree-item">
                 <div class="tree-node">
                     <span class="tree-toggle open">▶</span>
                     <span class="tree-icon ti-room">🏠</span>
-                    <span class="tree-name">我的家</span>
+                    <span class="tree-name"><?= htmlspecialchars($houses[array_search($selectedHouse, array_column($houses, 'id'))]['name'] ?? '我的家') ?></span>
                     <span class="tree-count"><?= count($spaces) ?></span>
                 </div>
                 <div class="tree-children">
@@ -161,6 +211,41 @@ $tree = buildTree($spaces);
 </div>
 
 <script>
+function switchHouse(houseId) {
+    window.location.href = '?p=spaces&house_id=' + houseId;
+}
+
+function showCreateHouse() {
+    var name = prompt('请输入家庭名称（如：奶奶家、爷爷家）');
+    if (!name) return;
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.innerHTML = '<input type="hidden" name="post_action" value="create_house">' +
+        '<input type="hidden" name="name" value="' + name + '">';
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function showCreateSpace() {
+    var houseId = <?= $selectedHouse ?>;
+    if (!houseId) { alert('请先选择一个家庭'); return; }
+    var name = prompt('请输入空间名称（如：卧室、衣柜、抽屉）');
+    if (!name) return;
+    var level = prompt('空间层级：1=房间 2=容器 3=区域', '1');
+    if (!level) return;
+    var icons = {'1':'🛋','2':'📦','3':'📂'};
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.innerHTML = '<input type="hidden" name="post_action" value="create_space">' +
+        '<input type="hidden" name="house_id" value="' + houseId + '">' +
+        '<input type="hidden" name="name" value="' + name + '">' +
+        '<input type="hidden" name="level" value="' + level + '">' +
+        '<input type="hidden" name="icon" value="' + (icons[level]||'📦') + '">' +
+        '<input type="hidden" name="parent_id" value="0">';
+    document.body.appendChild(form);
+    form.submit();
+}
+
 async function selectSpace(id) {
     document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('active'));
     const node = document.querySelector(`.tree-node[data-id="${id}"]`);
