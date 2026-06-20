@@ -549,7 +549,7 @@
                         android:background="@drawable/bg_tag_red"
                         android:paddingTop="2dp" android:paddingBottom="2dp" android:paddingLeft="8dp" android:paddingRight="8dp"
                         android:id="@+id/tv_expiring_tag"
-                        android:text="5 件"
+                        android:text="0 件"
                         android:textColor="#9B2C2C"
                         android:textSize="10sp" />
 

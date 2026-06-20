@@ -9,6 +9,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare("UPDATE api_config SET api_url = ?, api_key = ?, api_secret = ?, is_active = ?, updated_at = ? WHERE id = ?");
         $stmt->execute([$_POST['api_url'], $_POST['api_key'], $_POST['api_secret'], isset($_POST['is_active']) ? 1 : 0, time(), $id]);
         $msg = '保存成功';
+    } elseif ($action === 'add_api') {
+        $type = $_POST['api_type'] ?? 'barcode';
+        $name = trim($_POST['api_name'] ?? '');
+        $apiUrl = trim($_POST['api_url'] ?? '');
+        $apiKey = trim($_POST['api_key'] ?? '');
+        $apiSecret = trim($_POST['api_secret'] ?? '');
+        if ($name && $apiUrl) {
+            $stmt = $db->prepare("INSERT INTO api_config (type, name, api_url, api_key, api_secret, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, 1, 0, 0, ?, ?)");
+            $stmt->execute([$type, $name, $apiUrl, $apiKey, $apiSecret, time(), time()]);
+            $msg = '接口添加成功';
+        } else {
+            $error = '请填写接口名称和地址';
+        }
+    } elseif ($action === 'delete_api') {
+        $id = intval($_POST['id'] ?? 0);
+        if ($id) {
+            $db->prepare('DELETE FROM api_config WHERE id = ?')->execute([$id]);
+            $msg = '接口已删除';
+        }
     } elseif ($action === 'test') {
         $id = intval($_POST['id'] ?? 0);
         $stmt = $db->prepare("SELECT * FROM api_config WHERE id = ?");
@@ -102,6 +121,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
                 <p>APP 扫码时调用的商品数据库</p>
             </div>
         </div>
+        <button class="btn btn-outline btn-sm" onclick="showAddApi('barcode')">＋ 添加接口</button>
     </div>
     <div class="channel-list">
         <?php foreach ($barcodeApis as $idx => $api): ?>
@@ -151,7 +171,10 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
                         <input type="text" name="api_key" class="form-control" value="<?= htmlspecialchars($api['api_key']) ?>" placeholder="如无需密钥可留空">
                     </div>
                 </div>
-                <input type="hidden" name="api_secret" value="<?= htmlspecialchars($api['api_secret']) ?>">
+                <div class="form-group" style="margin-top:12px;margin-bottom:0">
+                    <label class="form-label">Secret Key</label>
+                    <input type="text" name="api_secret" class="form-control" value="<?= htmlspecialchars($api['api_secret'] ?? '') ?>" placeholder="如无需Secret Key可留空">
+                </div>
                 <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
                     <label class="switch">
                         <input type="checkbox" name="is_active" <?= $api['is_active'] ? 'checked' : '' ?>>
@@ -177,6 +200,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
                 <p>APP 拍照识别物品时调用</p>
             </div>
         </div>
+        <button class="btn btn-outline btn-sm" onclick="showAddApi('image')">＋ 添加接口</button>
     </div>
     <div class="channel-list">
         <?php foreach ($imageApis as $idx => $api): ?>
@@ -192,6 +216,10 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
                     <?php endif; ?>
                 </div>
                 <div class="channel-desc"><?= htmlspecialchars($api['api_url']) ?></div>
+                <div class="channel-stats">
+                    <span>📊 今日 <strong><?= $api['total_calls'] ?></strong></span>
+                    <span>成功率 <strong class="green"><?= $api['total_calls'] > 0 ? round($api['success_calls']/$api['total_calls']*100) : 0 ?>%</strong></span>
+                </div>
             </div>
             <div class="channel-actions">
                 <form method="POST" style="display:inline">
@@ -279,4 +307,30 @@ function toggleEdit(id) {
         el.style.display = el.style.display === 'none' ? 'block' : 'none';
     }
 }
+function showAddApi(type) {
+    document.getElementById('add-api-type').value = type;
+    document.getElementById('add-api-modal').style.display = 'flex';
+}
+function hideAddApi() {
+    document.getElementById('add-api-modal').style.display = 'none';
+}
 </script>
+
+<!-- Add API Modal -->
+<div id="add-api-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;max-width:500px;width:90%;padding:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:16px;font-weight:600">添加自定义接口</h3>
+            <span onclick="hideAddApi()" style="cursor:pointer;font-size:20px;color:#999">&times;</span>
+        </div>
+        <form method="POST">
+            <input type="hidden" name="action" value="add_api">
+            <input type="hidden" name="api_type" id="add-api-type" value="barcode">
+            <div class="form-group"><label class="form-label">接口名称 *</label><input name="api_name" class="form-control" placeholder="如：我的自定义条码接口" required></div>
+            <div class="form-group"><label class="form-label">接口地址 *</label><input name="api_url" class="form-control" placeholder="如：https://api.example.com/barcode/" required></div>
+            <div class="form-group"><label class="form-label">API Key</label><input name="api_key" class="form-control" placeholder="可选"></div>
+            <div class="form-group"><label class="form-label">Secret Key</label><input name="api_secret" class="form-control" placeholder="可选"></div>
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%">添加接口</button>
+        </form>
+    </div>
+</div>

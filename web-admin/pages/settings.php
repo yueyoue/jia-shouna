@@ -107,8 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endif; ?>
 
 <div class="settings-layout">
-    <!-- Settings Nav - 照抄 UI -->
-    <div class="settings-nav">
+    <!-- Settings Nav - 隐藏，功能通过页面内锚点实现 -->
+    <div class="settings-nav" style="display:none">
         <div class="nav-group-title">基础</div>
         <div class="nav-item active"><span>🏠</span><span>站点配置</span></div>
         <div class="nav-item"><span>🔔</span><span>提醒规则</span></div>
@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <!-- Settings Content - 照抄 UI -->
-    <div class="settings-content">
+    <div class="settings-content" style="max-width:960px">
         <form method="POST">
             <input type="hidden" name="action" value="save">
 

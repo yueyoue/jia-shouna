@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $versions = $db->query("SELECT * FROM app_version ORDER BY version_code DESC")->fetchAll();
 ?>
 
+<div style="padding: 0 8px;">
 <div class="card-header" style="margin-bottom: 16px;">
     <div>
         <h2 style="font-size: 18px;">📱 APP版本更新管理</h2>
@@ -186,4 +187,5 @@ $versions = $db->query("SELECT * FROM app_version ORDER BY version_code DESC")->
             </table>
         </div>
     <?php endif; ?>
+</div>
 </div>

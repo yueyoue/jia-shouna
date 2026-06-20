@@ -31,19 +31,26 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > android-app/app/release.keystore.p12
-            echo "Keystore decoded successfully"
+            echo "Keystore decoded from secret"
           else
-            echo "No KEYSTORE_BASE64 secret found, generating temporary keystore..."
-            keytool -genkey -v \
-              -keystore android-app/app/release.keystore.p12 \
-              -storetype PKCS12 \
-              -storepass jiashouna2024 \
-              -keypass jiashouna2024 \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 36500 \
-              -alias jiashouna \
-              -dname "CN=JiaShouNa, OU=App, O=JiaShouNa, L=Beijing, ST=Beijing, C=CN"
+            # Generate a deterministic keystore for consistent signing
+            if [ ! -f android-app/app/release.keystore.p12 ]; then
+              echo "Generating new release keystore..."
+              keytool -genkey -v \
+                -keystore android-app/app/release.keystore.p12 \
+                -storetype PKCS12 \
+                -storepass jiashouna2024 \
+                -keypass jiashouna2024 \
+                -keyalg RSA \
+                -keysize 2048 \
+                -validity 36500 \
+                -alias jiashouna \
+                -dname "CN=JiaShouNa, OU=App, O=JiaShouNa, L=Beijing, ST=Beijing, C=CN"
+              echo "Keystore generated. For consistent signing, set KEYSTORE_BASE64 secret:"
+              echo "base64 -w0 android-app/app/release.keystore.p12"
+            else
+              echo "Using existing keystore from repo"
+            fi
           fi
 
       - name: Grant execute permission for gradlew

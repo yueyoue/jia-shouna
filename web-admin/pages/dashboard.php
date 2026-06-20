@@ -172,7 +172,21 @@ $medals = ['🥇','🥈','🥉'];
         </div>
         <div class="card-body" style="display:flex;flex-direction:column;align-items:center">
             <?php if (!empty($categories)): ?>
-            <div class="donut">
+            <?php
+            $catColors = ['#FF8C42','#4ECDC4','#5B9FED','#ED8936','#A0AEC0'];
+            $totalCat = array_sum(array_column($categories, 'cnt'));
+            $gradientParts = [];
+            $cum = 0;
+            foreach ($categories as $idx => $cat) {
+                $pct = $totalCat > 0 ? ($cat['cnt'] / $totalCat * 100) : 0;
+                $color = $catColors[$idx % 5];
+                $gradientParts[] = "$color {$cum}% " . ($cum + $pct) . "%";
+                $cum += $pct;
+            }
+            if ($cum < 100) $gradientParts[] = '#E2E8F0 ' . $cum . '% 100%';
+            $gradient = 'conic-gradient(' . implode(',', $gradientParts) . ')';
+            ?>
+            <div class="donut" style="background:<?= $gradient ?>">
                 <div class="donut-center">
                     <div class="num"><?= number_format($stats['items']) ?></div>
                     <div class="lbl">总物品数</div>
@@ -180,7 +194,6 @@ $medals = ['🥇','🥈','🥉'];
             </div>
             <div class="legend" style="width:100%">
                 <?php
-                $catColors = ['#FF8C42','#4ECDC4','#5B9FED','#ED8936','#A0AEC0'];
                 foreach ($categories as $idx => $cat):
                 ?>
                 <div class="legend-item">

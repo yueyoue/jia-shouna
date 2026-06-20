@@ -14,6 +14,7 @@ import com.jiashouna.app.R;
 import com.jiashouna.app.api.ApiClient;
 import com.jiashouna.app.ui.AddItemActivity;
 import com.jiashouna.app.ui.AddSpaceActivity;
+import com.jiashouna.app.ui.AllItemsActivity;
 import com.jiashouna.app.ui.FamilyShareActivity;
 
 import java.text.SimpleDateFormat;
@@ -31,6 +32,7 @@ public class HomeFragment extends Fragment {
         tvGreeting = v.findViewById(R.id.tv_greeting);
         tvHouseInfo = v.findViewById(R.id.tv_house_info);
         tvItemCount = v.findViewById(R.id.tv_item_count);
+        tvItemCount.setOnClickListener(e -> startActivity(new Intent(getActivity(), AllItemsActivity.class)));
         tvSpaceCount = v.findViewById(R.id.tv_space_count);
         tvExpiringCount = v.findViewById(R.id.tv_expiring_count);
         tvMemberCount = v.findViewById(R.id.tv_member_count);
@@ -64,9 +66,25 @@ public class HomeFragment extends Fragment {
         v.findViewById(R.id.btn_add_space).setOnClickListener(e -> startActivity(new Intent(getActivity(), AddSpaceActivity.class)));
         v.findViewById(R.id.btn_family).setOnClickListener(e -> startActivity(new Intent(getActivity(), FamilyShareActivity.class)));
 
-        // 搜索栏
-        v.findViewById(R.id.btn_search).setOnClickListener(e -> {
-            showSearchDialog();
+        // 搜索栏 - 直接输入搜索
+        EditText etSearchBar = v.findViewById(R.id.et_search_bar);
+        etSearchBar.setOnEditorActionListener((tv, actionId, event) -> {
+            String kw = tv.getText().toString().trim();
+            if (!kw.isEmpty()) {
+                Intent intent = new Intent(getActivity(), AllItemsActivity.class);
+                intent.putExtra("keyword", kw);
+                startActivity(intent);
+            }
+            return true;
+        });
+        etSearchBar.setOnFocusChangeListener((tv, hasFocus) -> {
+            if (hasFocus) {
+                String kw = ((EditText)tv).getText().toString().trim();
+                Intent intent = new Intent(getActivity(), AllItemsActivity.class);
+                if (!kw.isEmpty()) intent.putExtra("keyword", kw);
+                startActivity(intent);
+                tv.clearFocus();
+            }
         });
         v.findViewById(R.id.btn_scan_search).setOnClickListener(e -> {
             Intent i = new Intent(getActivity(), AddItemActivity.class);
@@ -82,7 +100,7 @@ public class HomeFragment extends Fragment {
             }
         });
         v.findViewById(R.id.tv_view_all_recent).setOnClickListener(e -> {
-            Toast.makeText(getContext(), "物品列表功能开发中", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(getActivity(), AllItemsActivity.class));
         });
 
         loadData();
@@ -142,7 +160,7 @@ public class HomeFragment extends Fragment {
                                 JsonObject house = houses.get(i).getAsJsonObject();
                                 if (house.has("id") && house.get("id").getAsInt() == houseId) {
                                     int members = house.has("member_count") ? house.get("member_count").getAsInt() : 1;
-                                    tvMemberCount.setText(members + " 人");
+                                    tvMemberCount.setText(members + "");
                                     break;
                                 }
                             }

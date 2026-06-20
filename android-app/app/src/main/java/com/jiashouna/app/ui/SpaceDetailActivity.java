@@ -404,7 +404,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
         int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
         row.setOnClickListener(v -> {
             Intent intent = new Intent(this, ItemDetailActivity.class);
-            intent.putExtra("item_id", itemId);
+            intent.putExtra("goods_id", itemId);
             startActivity(intent);
         });
 

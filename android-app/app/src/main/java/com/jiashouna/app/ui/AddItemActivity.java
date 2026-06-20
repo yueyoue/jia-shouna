@@ -113,9 +113,22 @@ public class AddItemActivity extends AppCompatActivity {
 
         loadSpaces();
         loadTags();
+
+        // 恢复上次选择的空间
+        int lastSpaceId = getSharedPreferences("add_item_prefs", MODE_PRIVATE).getInt("last_space_id", 0);
+        String lastSpaceName = getSharedPreferences("add_item_prefs", MODE_PRIVATE).getString("last_space_name", "");
+        String lastSpacePath = getSharedPreferences("add_item_prefs", MODE_PRIVATE).getString("last_space_path", "");
+        if (lastSpaceId > 0 && !lastSpaceName.isEmpty()) {
+            selectedSpaceId = lastSpaceId;
+            tvSpaceName.setText(lastSpaceName);
+            tvSpacePath.setText(lastSpacePath);
+        }
     }
 
     private void switchTab(String mode) {
+        tabScan.setBackgroundResource(R.drawable.bg_tab_normal);
+        tabPhoto.setBackgroundResource(R.drawable.bg_tab_normal);
+        tabManual.setBackgroundResource(R.drawable.bg_tab_normal);
         tabScan.setTextColor(Color.parseColor("#718096"));
         tabPhoto.setTextColor(Color.parseColor("#718096"));
         tabManual.setTextColor(Color.parseColor("#718096"));
@@ -125,7 +138,8 @@ public class AddItemActivity extends AppCompatActivity {
 
         switch (mode) {
             case "scan":
-                tabScan.setTextColor(Color.parseColor("#FF8C42"));
+                tabScan.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabScan.setTextColor(Color.parseColor("#FFFFFF"));
                 tabScan.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
                 tvScanHint.setText("点击下方按钮开始扫码识别条形码");
@@ -133,7 +147,8 @@ public class AddItemActivity extends AppCompatActivity {
                 btnStartScan.setOnClickListener(v -> startBarcodeScan());
                 break;
             case "photo":
-                tabPhoto.setTextColor(Color.parseColor("#FF8C42"));
+                tabPhoto.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabPhoto.setTextColor(Color.parseColor("#FFFFFF"));
                 tabPhoto.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
                 tvScanHint.setText("拍照识别物品，自动填充信息");
@@ -141,7 +156,8 @@ public class AddItemActivity extends AppCompatActivity {
                 btnStartScan.setOnClickListener(v -> startPhotoCapture());
                 break;
             case "manual":
-                tabManual.setTextColor(Color.parseColor("#FF8C42"));
+                tabManual.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabManual.setTextColor(Color.parseColor("#FFFFFF"));
                 tabManual.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.GONE);
                 break;
@@ -553,6 +569,15 @@ public class AddItemActivity extends AppCompatActivity {
         if (houseId <= 0) {
             Toast.makeText(this, "请先创建或加入一个家庭", Toast.LENGTH_SHORT).show();
             return;
+        }
+
+        // 保存上次选择的空间
+        if (selectedSpaceId > 0) {
+            getSharedPreferences("add_item_prefs", MODE_PRIVATE).edit()
+                .putInt("last_space_id", selectedSpaceId)
+                .putString("last_space_name", tvSpaceName.getText().toString())
+                .putString("last_space_path", tvSpacePath.getText().toString())
+                .apply();
         }
 
         Goods goods = new Goods();

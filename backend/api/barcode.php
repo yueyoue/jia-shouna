@@ -27,7 +27,13 @@ switch ($action) {
         $api = $apis[0]; // 使用优先级最高的接口
 
         try {
-            $url = $api['api_url'] . $barcode;
+            // Build URL - support {barcode} placeholder or simple append
+            $apiUrl = $api['api_url'];
+            if (strpos($apiUrl, '{barcode}') !== false) {
+                $url = str_replace('{barcode}', urlencode($barcode), $apiUrl);
+            } else {
+                $url = $apiUrl . $barcode;
+            }
             $headers = ['Accept: application/json'];
             if ($api['api_key']) {
                 $headers[] = 'Authorization: Bearer ' . $api['api_key'];

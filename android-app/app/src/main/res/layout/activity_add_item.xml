@@ -12,43 +12,46 @@
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="8dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
 
         <TextView
             android:id="@+id/tab_scan"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:padding="10dp"
             android:text="📷 扫码"
-            android:textColor="#FF8C42"
+            android:textColor="#FFFFFF"
             android:textSize="13sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:background="@drawable/bg_tab_selected" />
 
         <TextView
             android:id="@+id/tab_photo"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:padding="10dp"
             android:text="📸 拍照"
             android:textColor="#718096"
-            android:textSize="13sp" />
+            android:textSize="13sp"
+            android:background="@drawable/bg_tab_normal" />
 
         <TextView
             android:id="@+id/tab_manual"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:padding="10dp"
             android:text="✏️ 手动"
             android:textColor="#718096"
-            android:textSize="13sp" />
+            android:textSize="13sp"
+            android:background="@drawable/bg_tab_normal" />
     </LinearLayout>
 
     <View
@@ -365,7 +368,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="购买日期"
+                            android:text="生产日期"
                             android:textColor="#718096"
                             android:textSize="11sp" />
 

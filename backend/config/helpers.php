@@ -51,12 +51,22 @@ function getCurrentUser() {
     static $user = null;
     if ($user !== null) return $user;
 
+    // 1. Check Bearer token
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
         $token = $matches[1];
     } elseif (isset($_GET['token'])) {
         $token = $_GET['token'];
     } else {
+        // 2. Fallback: check PHP session (for web-admin calls)
+        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+        if (!empty($_SESSION['admin_id'])) {
+            $db = getDB();
+            $stmt = $db->prepare('SELECT * FROM sys_user WHERE id = ? AND status = 1');
+            $stmt->execute([$_SESSION['admin_id']]);
+            $user = $stmt->fetch();
+            return $user;
+        }
         return null;
     }
 

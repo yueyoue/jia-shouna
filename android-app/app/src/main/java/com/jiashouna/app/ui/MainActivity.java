@@ -52,10 +52,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        // FAB按钮
-        findViewById(R.id.fab_add).setOnClickListener(v -> {
-            startActivity(new Intent(this, AddItemActivity.class));
-        });
+
     }
 
     private void loadFragment(Fragment fragment) {

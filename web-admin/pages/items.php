@@ -1,6 +1,32 @@
 <?php
 $db = getDB();
 
+// 处理编辑物品
+$editItem = null;
+if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
+    $editId = intval($_GET['id']);
+    $stmt = $db->prepare('SELECT g.*, s.name as space_name FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE g.id = ? AND g.status = 1');
+    $stmt->execute([$editId]);
+    $editItem = $stmt->fetch();
+}
+
+// 处理保存编辑
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['post_action'] ?? '') === 'edit_item') {
+    $editId = intval($_POST['edit_id'] ?? 0);
+    if ($editId) {
+        $now = time();
+        $stmt = $db->prepare('UPDATE goods SET name=?, barcode=?, category=?, brand=?, spec=?, quantity=?, unit=?, purchase_date=?, expiry_date=?, purchase_price=?, note=?, updated_at=? WHERE id=?');
+        $stmt->execute([
+            trim($_POST['name'] ?? ''), $_POST['barcode'] ?? '', $_POST['category'] ?? '',
+            $_POST['brand'] ?? '', $_POST['spec'] ?? '', floatval($_POST['quantity'] ?? 1),
+            $_POST['unit'] ?? '个', $_POST['purchase_date'] ?: null, $_POST['expiry_date'] ?: null,
+            $_POST['purchase_price'] ?: null, $_POST['note'] ?? '', $now, $editId
+        ]);
+        $msg = '物品信息已更新';
+        $editItem = null;
+    }
+}
+
 // 处理添加物品
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postAction = $_POST['post_action'] ?? '';
@@ -104,7 +130,9 @@ $countStmt->execute($params);
 $total = $countStmt->fetch()['cnt'];
 
 $offset = ($page - 1) * $pageSize;
-$stmt = $db->prepare("SELECT g.*, s.name as space_name FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE $whereStr ORDER BY g.updated_at DESC LIMIT $pageSize OFFSET $offset");
+$stmt = $db->prepare("SELECT g.*, s.name as space_name,
+        (SELECT image_path FROM goods_image WHERE goods_id = g.id ORDER BY sort_order ASC LIMIT 1) as cover_image
+        FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE $whereStr ORDER BY g.updated_at DESC LIMIT $pageSize OFFSET $offset");
 $stmt->execute($params);
 $items = $stmt->fetchAll();
 
@@ -177,6 +205,17 @@ tr:hover td .row-actions{opacity:1}
                     <option value="private" <?= $privacy === 'private' ? 'selected' : '' ?>>🔒 隐藏物品</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label class="form-label">标签搜索</label>
+                <select name="tag" class="form-control" onchange="if(this.value)document.querySelector('input[name=keyword]').value=this.value;else document.querySelector('input[name=keyword]').value=''">
+                    <option value="">全部标签</option>
+                    <?php
+                    $allTags = $db->query('SELECT DISTINCT name FROM tag ORDER BY name ASC')->fetchAll();
+                    foreach ($allTags as $t): ?>
+                    <option value="<?= htmlspecialchars($t['name']) ?>" <?= ($keyword === $t['name']) ? 'selected' : '' ?>><?= htmlspecialchars($t['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
         <div class="filter-actions">
             <button type="submit" class="btn btn-primary btn-sm">🔍 搜索</button>
@@ -184,6 +223,18 @@ tr:hover td .row-actions{opacity:1}
         </div>
     </form>
 </div>
+
+<script>
+// Load tags for search
+var allTags = [];
+fetch('../backend/api/tag.php?action=list&house_id=0').then(r=>r.json()).then(d=>{
+    if(d.code===0 && d.data && d.data.list) allTags=d.data.list;
+}).catch(()=>{});
+function filterByTag(tagName) {
+    document.querySelector('input[name=keyword]').value = tagName;
+    document.querySelector('form').submit();
+}
+</script>
 
 <!-- Items table - 照抄 UI -->
 <div class="items-table">
@@ -219,7 +270,13 @@ tr:hover td .row-actions{opacity:1}
             <tr>
                 <td>
                     <div class="item-info">
+                        <?php if ($item['cover_image']): ?>
+                        <div class="item-img" style="background:none;position:relative;cursor:pointer" onmouseenter="showPreview(this, '<?= htmlspecialchars($item['cover_image']) ?>')" onmouseleave="hidePreview()">
+                            <img src="<?= htmlspecialchars($item['cover_image']) ?>" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.parentNode.innerHTML='📦'">
+                        </div>
+                        <?php else: ?>
                         <div class="item-img">📦</div>
+                        <?php endif; ?>
                         <div>
                             <div class="item-name"><?= htmlspecialchars($item['name']) ?></div>
                             <div class="item-meta"><?= $item['barcode'] ? '条码: '.$item['barcode'] : '' ?></div>
@@ -288,6 +345,24 @@ tr:hover td .row-actions{opacity:1}
 </div>
 
 <script>
+// Image preview
+var previewDiv = null;
+function showPreview(el, src) {
+    if (!previewDiv) {
+        previewDiv = document.createElement('div');
+        previewDiv.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);padding:4px;display:none';
+        previewDiv.innerHTML = '<img style="max-width:300px;max-height:300px;border-radius:6px;display:block">';
+        document.body.appendChild(previewDiv);
+    }
+    previewDiv.querySelector('img').src = src;
+    var rect = el.getBoundingClientRect();
+    previewDiv.style.left = (rect.right + 10) + 'px';
+    previewDiv.style.top = rect.top + 'px';
+    previewDiv.style.display = 'block';
+}
+function hidePreview() {
+    if (previewDiv) previewDiv.style.display = 'none';
+}
 // 获取空间列表
 var spaceCache = {};
 async function loadSpaces(houseId) {
@@ -392,3 +467,33 @@ async function deleteItem(id) {
         <div id="modal-add-item-body"></div>
     </div>
 </div>
+
+<!-- 编辑物品弹窗 -->
+<?php if ($editItem): ?>
+<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:999;display:flex;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;padding:24px;position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:16px;font-weight:600">编辑物品 - <?= htmlspecialchars($editItem['name']) ?></h3>
+            <a href="?p=items" style="cursor:pointer;font-size:20px;color:#999;text-decoration:none">&times;</a>
+        </div>
+        <form method="POST" style="text-align:left">
+            <input type="hidden" name="post_action" value="edit_item">
+            <input type="hidden" name="edit_id" value="<?= $editItem['id'] ?>">
+            <div class="form-group"><label class="form-label">物品名称 *</label><input name="name" class="form-control" required value="<?= htmlspecialchars($editItem['name']) ?>"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="form-group"><label class="form-label">条形码</label><input name="barcode" class="form-control" value="<?= htmlspecialchars($editItem['barcode'] ?? '') ?>"></div>
+                <div class="form-group"><label class="form-label">分类</label><input name="category" class="form-control" value="<?= htmlspecialchars($editItem['category'] ?? '') ?>"></div>
+                <div class="form-group"><label class="form-label">品牌</label><input name="brand" class="form-control" value="<?= htmlspecialchars($editItem['brand'] ?? '') ?>"></div>
+                <div class="form-group"><label class="form-label">规格</label><input name="spec" class="form-control" value="<?= htmlspecialchars($editItem['spec'] ?? '') ?>"></div>
+                <div class="form-group"><label class="form-label">数量</label><input name="quantity" class="form-control" type="number" step="0.01" value="<?= $editItem['quantity'] ?>"></div>
+                <div class="form-group"><label class="form-label">单位</label><input name="unit" class="form-control" value="<?= htmlspecialchars($editItem['unit'] ?? '个') ?>"></div>
+                <div class="form-group"><label class="form-label">生产日期</label><input name="purchase_date" class="form-control" type="date" value="<?= $editItem['purchase_date'] ?? '' ?>"></div>
+                <div class="form-group"><label class="form-label">保质期</label><input name="expiry_date" class="form-control" type="date" value="<?= $editItem['expiry_date'] ?? '' ?>"></div>
+                <div class="form-group"><label class="form-label">价格</label><input name="purchase_price" class="form-control" type="number" step="0.01" value="<?= $editItem['purchase_price'] ?? '' ?>"></div>
+            </div>
+            <div class="form-group"><label class="form-label">备注</label><textarea name="note" class="form-control" rows="2"><?= htmlspecialchars($editItem['note'] ?? '') ?></textarea></div>
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:12px">保存修改</button>
+        </form>
+    </div>
+</div>
+<?php endif; ?>

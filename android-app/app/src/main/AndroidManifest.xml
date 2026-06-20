@@ -32,7 +32,8 @@
         <activity android:name=".ui.AddSpaceActivity" />
         <activity android:name=".ui.FamilyShareActivity" />
         <activity android:name=".ui.SpaceDetailActivity" />
-        <activity android:name=".ui.BarcodeScanActivity" />
+        <activity android:name=".ui.BarcodeScanActivity" android:screenOrientation="portrait" />
+        <activity android:name=".ui.AllItemsActivity" />
 
         <provider
             android:name=".utils.FileProvider"
