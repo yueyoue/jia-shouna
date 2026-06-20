@@ -29,7 +29,8 @@ public class AddItemActivity extends AppCompatActivity {
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
     private Switch swPrivate;
-    private Button btnSave, btnStartScan, btnAddPhoto, btnAddTag;
+    private Button btnSave;
+    private TextView btnStartScan, btnAddPhoto, btnAddTag;
     private LinearLayout scanContainer, llPhotos, llTags;
     private TextView tabScan, tabPhoto, tabManual;
     private int selectedSpaceId = 0;
