@@ -2,6 +2,7 @@ name: Build APK
 
 on:
   push:
+    branches: [main]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -64,7 +65,47 @@ jobs:
           mkdir -p release/backend/uploads/backups
           cd release && tar -czf ../jia-shouna-web.tar.gz . && cd ..
 
-      - name: Upload to GitHub Release
+      # --- Auto version & release on push to main ---
+      - name: Generate version tag
+        if: github.ref == 'refs/heads/main'
+        id: version
+        run: |
+          TAG="v$(date +%Y%m%d.%H%M%S)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Generated tag: $TAG"
+
+      - name: Get short commit SHA
+        if: github.ref == 'refs/heads/main'
+        id: sha
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "构建 ${{ steps.version.outputs.tag }} (${{ steps.sha.outputs.sha }})"
+          body: |
+            ## 📦 自动构建
+
+            **提交**: `${{ steps.sha.outputs.sha }}`
+            **时间**: ${{ github.event.head_commit.timestamp }}
+            **信息**: ${{ github.event.head_commit.message }}
+
+            ### 📥 下载
+            - `app-debug.apk` — 调试版（可直接安装）
+            - `app-release-unsigned.apk` — 发布版（未签名）
+            - `jia-shouna-web.tar.gz` — Web 后端部署包
+          files: |
+            android-app/app/build/outputs/apk/debug/app-debug.apk
+            android-app/app/build/outputs/apk/release/app-release-unsigned.apk
+            jia-shouna-web.tar.gz
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Also release on manual tag push ---
+      - name: Upload to GitHub Release (tag)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
