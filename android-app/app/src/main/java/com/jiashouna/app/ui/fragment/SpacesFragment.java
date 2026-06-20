@@ -259,7 +259,7 @@ public class SpacesFragment extends Fragment {
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = dp(6);
         if (level > 0) {
-            lp.marginStart = dp(20);
+            lp.setMarginStart(dp(20));
         }
         item.setLayoutParams(lp);
 
@@ -280,7 +280,7 @@ public class SpacesFragment extends Fragment {
         LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT);
         infoLp.weight = 1;
         infoLp.gravity = android.view.Gravity.CENTER_VERTICAL;
-        infoLp.marginStart = dp(10);
+        infoLp.setMarginStart(dp(10));
         info.setLayoutParams(infoLp);
 
         TextView tvName = new TextView(getContext());

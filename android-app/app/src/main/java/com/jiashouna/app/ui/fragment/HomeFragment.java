@@ -66,25 +66,11 @@ public class HomeFragment extends Fragment {
         v.findViewById(R.id.btn_add_space).setOnClickListener(e -> startActivity(new Intent(getActivity(), AddSpaceActivity.class)));
         v.findViewById(R.id.btn_family).setOnClickListener(e -> startActivity(new Intent(getActivity(), FamilyShareActivity.class)));
 
-        // 搜索栏 - 直接输入搜索
-        EditText etSearchBar = v.findViewById(R.id.et_search_bar);
-        etSearchBar.setOnEditorActionListener((tv, actionId, event) -> {
-            String kw = tv.getText().toString().trim();
-            if (!kw.isEmpty()) {
-                Intent intent = new Intent(getActivity(), AllItemsActivity.class);
-                intent.putExtra("keyword", kw);
-                startActivity(intent);
-            }
-            return true;
-        });
-        etSearchBar.setOnFocusChangeListener((tv, hasFocus) -> {
-            if (hasFocus) {
-                String kw = ((EditText)tv).getText().toString().trim();
-                Intent intent = new Intent(getActivity(), AllItemsActivity.class);
-                if (!kw.isEmpty()) intent.putExtra("keyword", kw);
-                startActivity(intent);
-                tv.clearFocus();
-            }
+        // 搜索栏 - 点击进入所有物品页面搜索
+        v.findViewById(R.id.btn_search).setOnClickListener(e -> {
+            Intent intent = new Intent(getActivity(), AllItemsActivity.class);
+            intent.putExtra("focus_search", true);
+            startActivity(intent);
         });
         v.findViewById(R.id.btn_scan_search).setOnClickListener(e -> {
             Intent i = new Intent(getActivity(), AddItemActivity.class);

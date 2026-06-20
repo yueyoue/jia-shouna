@@ -44,6 +44,12 @@ public class AllItemsActivity extends AppCompatActivity {
         String title = getIntent().getStringExtra("title");
         if (title != null) tvTitle.setText(title);
 
+        boolean focusSearch = getIntent().getBooleanExtra("focus_search", false);
+        String initKeyword = getIntent().getStringExtra("keyword");
+        if (initKeyword != null && !initKeyword.isEmpty()) {
+            etSearch.setText(initKeyword);
+        }
+
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -55,7 +61,19 @@ public class AllItemsActivity extends AppCompatActivity {
             }
         });
 
-        loadItems("");
+        if (focusSearch) {
+            etSearch.requestFocus();
+            etSearch.postDelayed(() -> {
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                if (imm != null) imm.showSoftInput(etSearch, 0);
+            }, 200);
+        }
+
+        if (initKeyword != null && !initKeyword.isEmpty()) {
+            loadItems(initKeyword);
+        } else {
+            loadItems("");
+        }
     }
 
     private void loadItems(String keyword) {
