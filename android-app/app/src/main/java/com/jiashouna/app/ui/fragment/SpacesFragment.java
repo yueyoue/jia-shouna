@@ -54,6 +54,7 @@ public class SpacesFragment extends Fragment {
         if (currentViewingHouseId > 0) {
             houseId = currentViewingHouseId;
         }
+        final int finalHouseId = houseId;
 
         // 先加载家列表
         ApiClient.get("house/list", null, new ApiClient.ApiCallback() {
@@ -64,8 +65,8 @@ public class SpacesFragment extends Fragment {
                     }
                 } catch (Exception ignored) {}
 
-                if (houseId > 0) {
-                    loadSpaces(houseId);
+                if (finalHouseId > 0) {
+                    loadSpaces(finalHouseId);
                 } else if (houseList.size() > 0) {
                     JsonObject firstHouse = houseList.get(0).getAsJsonObject();
                     int newHouseId = firstHouse.get("id").getAsInt();
@@ -79,8 +80,8 @@ public class SpacesFragment extends Fragment {
                 }
             }
             @Override public void onError(String msg) {
-                if (houseId > 0) {
-                    loadSpaces(houseId);
+                if (finalHouseId > 0) {
+                    loadSpaces(finalHouseId);
                 } else {
                     if (getActivity() != null) getActivity().runOnUiThread(() -> showEmpty("暂无家庭\n点击下方按钮创建一个家"));
                 }
