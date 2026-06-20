@@ -272,7 +272,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
         // Left color bar
         View bar = new View(this);
-        FrameLayout.LayoutParams barLp = new FrameLayout.LayoutParams(dp(3), Frame.LayoutParams.MATCH_PARENT);
+        FrameLayout.LayoutParams barLp = new FrameLayout.LayoutParams(dp(3), FrameLayout.LayoutParams.MATCH_PARENT);
         bar.setLayoutParams(barLp);
         bar.setBackgroundColor(borderColor);
         frame.addView(bar);
