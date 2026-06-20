@@ -47,7 +47,8 @@ public class AddSpaceActivity extends AppCompatActivity {
 
         // 接收父级空间信息
         parentSpaceId = getIntent().getIntExtra("parent_id", 0);
-        parentSpaceName = getIntent().getStringExtra("parent_space_name") ?? "";
+        parentSpaceName = getIntent().getStringExtra("parent_space_name");
+        if (parentSpaceName == null) parentSpaceName = "";
         int intentHouseId = getIntent().getIntExtra("house_id", 0);
         if (intentHouseId > 0) selectedHouseId = intentHouseId;
 
