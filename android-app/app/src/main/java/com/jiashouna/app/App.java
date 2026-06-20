@@ -3,6 +3,7 @@ package com.jiashouna.app;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.jiashouna.app.ui.SplashActivity;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
