@@ -15,15 +15,33 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        new Handler().postDelayed(() -> {
-            App app = App.getInstance();
-            if (app.isLoggedIn()) {
-                checkUpdate();
-            } else {
-                startActivity(new Intent(this, LoginActivity.class));
-                finish();
-            }
-        }, 1500);
+
+        // Show crash error if coming from crash handler
+        String crashError = getIntent().getStringExtra("crash_error");
+        if (crashError != null && !crashError.isEmpty()) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("应用崩溃")
+                .setMessage("错误信息：\n" + crashError)
+                .setPositiveButton("确定", (d, w) -> {
+                    d.dismiss();
+                    navigateNext();
+                })
+                .setCancelable(false)
+                .show();
+            return;
+        }
+
+        new Handler().postDelayed(this::navigateNext, 1500);
+    }
+
+    private void navigateNext() {
+        App app = App.getInstance();
+        if (app.isLoggedIn()) {
+            checkUpdate();
+        } else {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+        }
     }
 
     private void checkUpdate() {

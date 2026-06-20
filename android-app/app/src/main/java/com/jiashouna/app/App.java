@@ -3,6 +3,8 @@ package com.jiashouna.app;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 public class App extends Application {
     private static App instance;
@@ -13,6 +15,26 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         instance = this;
+
+        // Global crash handler - show error in dialog
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            StringWriter sw = new StringWriter();
+            throwable.printStackTrace(new PrintWriter(sw));
+            String stackTrace = sw.toString();
+            // Keep only the first 5 lines for readability
+            String[] lines = stackTrace.split("\n");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < Math.min(lines.length, 8); i++) {
+                sb.append(lines[i]).append("\n");
+            }
+            String shortTrace = sb.toString();
+
+            android.content.Intent intent = new android.content.Intent(instance, SplashActivity.class);
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            intent.putExtra("crash_error", shortTrace);
+            startActivity(intent);
+            System.exit(1);
+        });
     }
 
     public static App getInstance() { return instance; }
