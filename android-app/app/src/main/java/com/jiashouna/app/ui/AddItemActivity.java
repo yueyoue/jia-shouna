@@ -19,7 +19,7 @@ import com.jiashouna.app.api.ApiClient;
 import com.jiashouna.app.db.LocalDb;
 import com.jiashouna.app.model.Goods;
 import com.jiashouna.app.utils.NetworkUtils;
-import com.journeyapps.barcodescanner.CaptureActivity;
+import com.jiashouna.app.ui.BarcodeScanActivity;
 
 import java.io.*;
 import java.util.*;
@@ -136,12 +136,10 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void startBarcodeScan() {
         try {
-            Intent intent = new Intent(this, CaptureActivity.class);
-            intent.putExtra("SCAN_MODE", "PRODUCT_MODE");
-            intent.putExtra("SCAN_FORMATS", "QR_CODE,DATA_MATRIX,EAN_13,EAN_8,CODE_128,CODE_39");
+            Intent intent = new Intent(this, BarcodeScanActivity.class);
             startActivityForResult(intent, REQUEST_BARCODE);
         } catch (Exception e) {
-            Toast.makeText(this, "扫码启动失败，请使用手动录入", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "扫码启动失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
