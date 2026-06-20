@@ -250,14 +250,12 @@ public class AddSpaceActivity extends AppCompatActivity {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
-                        // 如果是第一个家，设为当前家
+                        // 设为当前家
                         if (data.has("id")) {
                             int houseId = data.get("id").getAsInt();
                             App app = App.getInstance();
-                            if (app.getCurrentHouseId() <= 0) {
-                                app.setCurrentHouseId(houseId);
-                                app.setCurrentHouseName(name);
-                            }
+                            app.setCurrentHouseId(houseId);
+                            app.setCurrentHouseName(name);
                         }
                         Toast.makeText(AddSpaceActivity.this, "✅ 家庭创建成功", Toast.LENGTH_SHORT).show();
                         finish();

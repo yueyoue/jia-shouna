@@ -2,8 +2,10 @@ package com.jiashouna.app.ui;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +17,8 @@ import com.jiashouna.app.api.ApiClient;
 import com.jiashouna.app.db.LocalDb;
 import com.jiashouna.app.model.Goods;
 import com.jiashouna.app.utils.NetworkUtils;
+import com.journeyapps.barcodescanner.CaptureActivity;
+import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 
 import java.util.*;
 
@@ -27,12 +31,10 @@ public class AddItemActivity extends AppCompatActivity {
     private FrameLayout scanContainer;
     private TextView tabScan, tabPhoto, tabManual;
     private int selectedSpaceId = 0;
-    private String selectedSpaceName = "";
     private LocalDb localDb;
     private JsonArray spaceList = new JsonArray();
-    private String currentMode = "scan";
 
-    private static final int REQUEST_BARCODE_SCAN = 100;
+    private static final int REQUEST_BARCODE = 100;
     private static final int REQUEST_PHOTO = 101;
 
     @Override
@@ -42,8 +44,8 @@ public class AddItemActivity extends AppCompatActivity {
 
         localDb = new LocalDb(this);
 
-        currentMode = getIntent().getStringExtra("mode");
-        if (currentMode == null) currentMode = "scan";
+        String mode = getIntent().getStringExtra("mode");
+        if (mode == null) mode = "scan";
 
         etName = findViewById(R.id.et_name);
         etBarcode = findViewById(R.id.et_barcode);
@@ -62,29 +64,24 @@ public class AddItemActivity extends AppCompatActivity {
         tabPhoto = findViewById(R.id.tab_photo);
         tabManual = findViewById(R.id.tab_manual);
 
-        // 选项卡切换
         tabScan.setOnClickListener(v -> switchTab("scan"));
         tabPhoto.setOnClickListener(v -> switchTab("photo"));
         tabManual.setOnClickListener(v -> switchTab("manual"));
 
-        switchTab(currentMode);
+        switchTab(mode);
 
-        // 保质期
         etExpiry.setFocusable(false);
         etExpiry.setClickable(true);
         etExpiry.setOnClickListener(v -> showDatePicker());
 
-        // 空间选择
         spacePicker.setOnClickListener(v -> showSpacePickerDialog());
 
-        // 保存
         btnSave.setOnClickListener(v -> saveItem());
 
         loadSpaces();
     }
 
     private void switchTab(String mode) {
-        currentMode = mode;
         tabScan.setTextColor(Color.parseColor("#718096"));
         tabPhoto.setTextColor(Color.parseColor("#718096"));
         tabManual.setTextColor(Color.parseColor("#718096"));
@@ -115,46 +112,58 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void startBarcodeScan() {
         try {
-            // 尝试使用ZXing的SCAN intent
-            Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+            Intent intent = new Intent(this, CaptureActivity.class);
             intent.putExtra("SCAN_MODE", "PRODUCT_MODE");
-            startActivityForResult(intent, REQUEST_BARCODE_SCAN);
+            intent.putExtra("SCAN_FORMATS", "QR_CODE,DATA_MATRIX,EAN_13,EAN_8,CODE_128,CODE_39");
+            startActivityForResult(intent, REQUEST_BARCODE);
         } catch (Exception e) {
-            // 如果没有安装ZXing扫描器，使用系统相机
-            try {
-                Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                startActivityForResult(intent, REQUEST_BARCODE_SCAN);
-            } catch (Exception e2) {
-                Toast.makeText(this, "未找到扫码应用，请手动输入条码", Toast.LENGTH_SHORT).show();
-            }
+            Toast.makeText(this, "扫码启动失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void startPhotoCapture() {
         try {
-            Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-            startActivityForResult(intent, REQUEST_PHOTO);
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(intent, REQUEST_PHOTO);
+            } else {
+                Toast.makeText(this, "未找到相机应用，请使用手动录入", Toast.LENGTH_SHORT).show();
+                switchTab("manual");
+            }
         } catch (Exception e) {
-            Toast.makeText(this, "未找到相机应用", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "相机启动失败", Toast.LENGTH_SHORT).show();
+            switchTab("manual");
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode != RESULT_OK || data == null) return;
+        if (resultCode != RESULT_OK) {
+            if (requestCode == REQUEST_BARCODE) {
+                Toast.makeText(this, "已取消扫码", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
 
-        if (requestCode == REQUEST_BARCODE_SCAN) {
-            // 尝试从ZXing结果获取条码
+        if (requestCode == REQUEST_BARCODE && data != null) {
             String barcode = data.getStringExtra("SCAN_RESULT");
             if (barcode != null && !barcode.isEmpty()) {
                 etBarcode.setText(barcode);
                 lookupBarcode(barcode);
-            } else {
-                Toast.makeText(this, "未识别到条码，请手动输入", Toast.LENGTH_SHORT).show();
             }
-        } else if (requestCode == REQUEST_PHOTO) {
-            Toast.makeText(this, "拍照识别功能开发中，请手动输入物品信息", Toast.LENGTH_SHORT).show();
+        } else if (requestCode == REQUEST_PHOTO && data != null) {
+            try {
+                Bundle extras = data.getExtras();
+                if (extras != null) {
+                    Bitmap bitmap = (Bitmap) extras.get("data");
+                    if (bitmap != null) {
+                        Toast.makeText(this, "📷 已拍照，请手动输入物品信息", Toast.LENGTH_LONG).show();
+                    }
+                }
+            } catch (Exception e) {
+                Toast.makeText(this, "拍照处理失败", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -202,11 +211,11 @@ public class AddItemActivity extends AppCompatActivity {
 
     private JsonArray flattenTree(JsonArray tree) {
         JsonArray result = new JsonArray();
-        flattenTreeRecursive(tree, "", result);
+        flattenRecursive(tree, "", result);
         return result;
     }
 
-    private void flattenTreeRecursive(JsonArray items, String prefix, JsonArray result) {
+    private void flattenRecursive(JsonArray items, String prefix, JsonArray result) {
         for (int i = 0; i < items.size(); i++) {
             JsonObject item = items.get(i).getAsJsonObject();
             String name = item.has("name") ? item.get("name").getAsString() : "";
@@ -215,7 +224,7 @@ public class AddItemActivity extends AppCompatActivity {
             if (item.has("children") && !item.get("children").isJsonNull()) {
                 JsonArray children = item.getAsJsonArray("children");
                 if (children.size() > 0) {
-                    flattenTreeRecursive(children, prefix + name + " > ", result);
+                    flattenRecursive(children, prefix + name + " > ", result);
                 }
             }
         }
@@ -238,10 +247,9 @@ public class AddItemActivity extends AppCompatActivity {
             .setItems(names, (dialog, which) -> {
                 JsonObject selected = spaceList.get(which).getAsJsonObject();
                 selectedSpaceId = selected.get("id").getAsInt();
-                selectedSpaceName = selected.has("display_name") ? selected.get("display_name").getAsString() : selected.get("name").getAsString();
                 String icon = selected.has("icon") && !selected.get("icon").isJsonNull() ? selected.get("icon").getAsString() : "🏠";
                 tvSpaceName.setText(icon + " " + selected.get("name").getAsString());
-                tvSpacePath.setText(selectedSpaceName);
+                tvSpacePath.setText(selected.has("display_name") ? selected.get("display_name").getAsString() : "");
             })
             .setNegativeButton("取消", null)
             .show();
