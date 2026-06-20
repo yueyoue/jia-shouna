@@ -15,6 +15,7 @@ import com.jiashouna.app.App;
 import com.jiashouna.app.R;
 import com.jiashouna.app.api.ApiClient;
 import com.jiashouna.app.ui.AddSpaceActivity;
+import com.jiashouna.app.ui.SpaceDetailActivity;
 import java.util.HashMap;
 
 public class SpacesFragment extends Fragment {
@@ -209,11 +210,13 @@ public class SpacesFragment extends Fragment {
                 }
 
                 holder.itemView.setOnClickListener(e -> {
-                    if (isHouse) {
-                        Toast.makeText(getContext(), "查看家庭: " + item.get("name").getAsString(), Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(getContext(), "查看空间: " + item.get("name").getAsString(), Toast.LENGTH_SHORT).show();
-                    }
+                    int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
+                    String itemName = item.has("name") ? item.get("name").getAsString() : "";
+                    Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
+                    intent.putExtra("space_id", itemId);
+                    intent.putExtra("space_name", itemName);
+                    intent.putExtra("house_id", App.getInstance().getCurrentHouseId());
+                    startActivity(intent);
                 });
             } catch (Exception e) {
                 holder.tvName.setText("数据错误");

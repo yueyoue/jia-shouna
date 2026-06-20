@@ -370,14 +370,13 @@
                             android:textSize="11sp" />
 
                         <EditText
-                            android:id="@+id/et_expiry"
+                            android:id="@+id/et_expiry_days"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="4dp"
                             android:background="@drawable/bg_input_new"
-                            android:clickable="true"
-                            android:focusable="false"
-                            android:hint="点击选择"
+                            android:hint="天数"
+                            android:inputType="number"
                             android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
                             android:textSize="13sp" />
                     </LinearLayout>

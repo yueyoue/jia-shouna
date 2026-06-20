@@ -31,6 +31,7 @@
         <activity android:name=".ui.ItemDetailActivity" />
         <activity android:name=".ui.AddSpaceActivity" />
         <activity android:name=".ui.FamilyShareActivity" />
+        <activity android:name=".ui.SpaceDetailActivity" />
         <activity android:name=".ui.BarcodeScanActivity" />
 
         <provider
