@@ -22,13 +22,13 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
     private TextView tvTitle;
     private LinearLayout layoutBreadcrumb;
-    private LinearLayout layoutOverview;
     private LinearLayout layoutContainerTabs;
     private LinearLayout layoutItems;
     private TextView tvItemsTitle;
     private LinearLayout layoutLoading;
     private LinearLayout layoutEmpty;
-    private ScrollView scrollView;
+
+    private TextView tvSpaceIcon, tvSpaceName, tvSpaceDesc, tvItemCount, tvExpiringCount;
 
     private JsonArray currentChildren = new JsonArray();
     private int selectedContainerId = 0; // 0=显示全部
@@ -44,7 +44,11 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
         tvTitle = findViewById(R.id.tv_title);
         layoutBreadcrumb = findViewById(R.id.layout_breadcrumb);
-        layoutOverview = findViewById(R.id.layout_overview);
+        tvSpaceIcon = findViewById(R.id.tv_space_icon);
+        tvSpaceName = findViewById(R.id.tv_space_name);
+        tvSpaceDesc = findViewById(R.id.tv_space_desc);
+        tvItemCount = findViewById(R.id.tv_item_count);
+        tvExpiringCount = findViewById(R.id.tv_expiring_count);
         layoutContainerTabs = findViewById(R.id.layout_subspaces);
         layoutItems = findViewById(R.id.layout_items);
         tvItemsTitle = findViewById(R.id.tv_items_title);
@@ -105,18 +109,18 @@ public class SpaceDetailActivity extends AppCompatActivity {
         String name = space.has("name") ? space.get("name").getAsString() : "";
         String desc = space.has("description") && !space.get("description").isJsonNull()
                 ? space.get("description").getAsString() : "";
-        boolean shared = space.has("shared") && space.get("shared").getAsInt() == 1;
         int itemCount = space.has("item_count") ? space.get("item_count").getAsInt() : 0;
         int expiringCount = space.has("expiring_count") ? space.get("expiring_count").getAsInt() : 0;
 
         tvTitle.setText(name);
+        tvSpaceIcon.setText(icon);
         tvSpaceName.setText(name);
+        tvSpaceDesc.setText(desc.isEmpty() ? "收纳空间" : desc);
+        tvItemCount.setText(String.valueOf(itemCount));
+        tvExpiringCount.setText(String.valueOf(expiringCount));
 
         // 面包屑
         buildBreadcrumb(space);
-
-        // 概览卡片
-        buildOverviewCard(icon, name, desc, itemCount, expiringCount, shared);
 
         // 子空间(容器)
         JsonArray children = new JsonArray();
@@ -129,139 +133,6 @@ public class SpaceDetailActivity extends AppCompatActivity {
         // 默认加载当前空间物品
         selectedContainerId = 0;
         loadItemsForSpace(spaceId);
-    }
-
-    private TextView tvSpaceName; // 概览用
-
-    private void buildOverviewCard(String icon, String name, String desc, int itemCount, int expiring, boolean shared) {
-        layoutOverview.removeAllViews();
-
-        // 渐变背景卡片
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.HORIZONTAL);
-        card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setPadding(dp(16), dp(16), dp(16), dp(16));
-        android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
-        cardBg.setCornerRadius(dp(16));
-        cardBg.setColor(0xFFFFF7F0);
-        card.setBackground(cardBg);
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        cardLp.setMargins(dp(16), dp(8), dp(16), dp(12));
-        card.setLayoutParams(cardLp);
-
-        // 图标
-        TextView iconTv = new TextView(this);
-        iconTv.setText(icon);
-        iconTv.setTextSize(24);
-        iconTv.setGravity(Gravity.CENTER);
-        android.graphics.drawable.GradientDrawable iconBg = new android.graphics.drawable.GradientDrawable();
-        iconBg.setCornerRadius(dp(12));
-        iconBg.setColor(0xFFFF8C42);
-        iconTv.setBackground(iconBg);
-        iconTv.setTextColor(Color.WHITE);
-        LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(48), dp(48));
-        iconTv.setLayoutParams(iconLp);
-
-        // 信息列
-        LinearLayout info = new LinearLayout(this);
-        info.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        infoLp.setMarginStart(dp(12));
-        info.setLayoutParams(infoLp);
-
-        tvSpaceName = new TextView(this);
-        tvSpaceName.setText(name);
-        tvSpaceName.setTextSize(15);
-        tvSpaceName.setTextColor(0xFF2D3748);
-        tvSpaceName.setTypeface(null, Typeface.BOLD);
-
-        TextView descTv = new TextView(this);
-        descTv.setText(desc.isEmpty() ? "收纳空间" : desc);
-        descTv.setTextSize(11);
-        descTv.setTextColor(0xFF718096);
-        LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        descLp.topMargin = dp(2);
-        descTv.setLayoutParams(descLp);
-
-        // 统计行
-        LinearLayout statsRow = new LinearLayout(this);
-        statsRow.setOrientation(LinearLayout.HORIZONTAL);
-        statsRow.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams statsLp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        statsLp.topMargin = dp(8);
-        statsRow.setLayoutParams(statsLp);
-
-        statsRow.addView(makeStatItem("📦", String.valueOf(itemCount), "件"));
-        statsRow.addView(makeStatSep());
-        statsRow.addView(makeStatItem("⏰", String.valueOf(expiring), "临期"));
-        if (shared) {
-            statsRow.addView(makeStatSep());
-            statsRow.addView(makeStatText("👨‍👩‍👧 全家共享"));
-        }
-
-        info.addView(tvSpaceName);
-        info.addView(descTv);
-        info.addView(statsRow);
-
-        card.addView(iconTv);
-        card.addView(info);
-        layoutOverview.addView(card);
-    }
-
-    private TextView makeStatItem(String emoji, String val, String label) {
-        TextView tv = new TextView(this);
-        tv.setText(emoji + " ");
-        tv.setTextSize(11);
-        tv.setTextColor(0xFF718096);
-
-        TextView valTv = new TextView(this);
-        valTv.setText(val);
-        valTv.setTextSize(11);
-        valTv.setTextColor(0xFFFF8C42);
-        valTv.setTypeface(null, Typeface.BOLD);
-
-        TextView labelTv = new TextView(this);
-        labelTv.setText(" " + label);
-        labelTv.setTextSize(11);
-        labelTv.setTextColor(0xFF718096);
-
-        LinearLayout wrapper = new LinearLayout(this);
-        wrapper.setOrientation(LinearLayout.HORIZONTAL);
-        wrapper.setGravity(Gravity.CENTER_VERTICAL);
-        wrapper.addView(tv);
-        wrapper.addView(valTv);
-        wrapper.addView(labelTv);
-
-        // 返回一个TextView合并
-        TextView result = new TextView(this);
-        result.setText(emoji + " " + val + " " + label);
-        result.setTextSize(11);
-        result.setTextColor(0xFF718096);
-        return result;
-    }
-
-    private View makeStatSep() {
-        TextView tv = new TextView(this);
-        tv.setText(" · ");
-        tv.setTextSize(11);
-        tv.setTextColor(0xFFCBD5E0);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMarginStart(dp(8));
-        lp.setMarginEnd(dp(8));
-        tv.setLayoutParams(lp);
-        return tv;
-    }
-
-    private TextView makeStatText(String text) {
-        TextView tv = new TextView(this);
-        tv.setText(text);
-        tv.setTextSize(11);
-        tv.setTextColor(0xFF718096);
-        return tv;
     }
 
     // ==================== 横向容器标签 ====================
