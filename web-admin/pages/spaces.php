@@ -103,7 +103,7 @@ $tree = buildTree($spaces);
 .tree-search input:focus{background:#fff;border-color:#FF8C42}
 .tree-search::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px}
 .tree-item{position:relative}
-.tree-node{display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;position:relative}
+.tree-node{display:flex;align-items:center;gap:8px;padding:3px 10px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;position:relative;min-height:28px}
 .tree-node:hover{background:#FFF7F0}
 .tree-node.active{background:linear-gradient(90deg,#FFF1E0 0%,transparent 100%);color:#FF8C42;font-weight:600}
 .tree-node.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:#FF8C42;border-radius:0 3px 3px 0}

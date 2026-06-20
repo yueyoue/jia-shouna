@@ -370,13 +370,14 @@
                             android:textSize="11sp" />
 
                         <EditText
-                            android:id="@+id/et_expiry_days"
+                            android:id="@+id/et_purchase_date"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="4dp"
                             android:background="@drawable/bg_input_new"
-                            android:hint="天数"
-                            android:inputType="number"
+                            android:clickable="true"
+                            android:focusable="false"
+                            android:hint="点击选择日期"
                             android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -394,19 +395,18 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="保质期"
+                            android:text="保质期(天)"
                             android:textColor="#718096"
                             android:textSize="11sp" />
 
                         <EditText
-                            android:id="@+id/et_price"
+                            android:id="@+id/et_expiry_days"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="4dp"
                             android:background="@drawable/bg_input_new"
-                            android:clickable="true"
-                            android:focusable="false"
-                            android:hint="点击选择"
+                            android:hint="如 365"
+                            android:inputType="number"
                             android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -433,7 +433,7 @@
                             android:textSize="11sp" />
 
                         <EditText
-                            android:id="@+id/et_threshold"
+                            android:id="@+id/et_price"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="4dp"
@@ -462,6 +462,7 @@
                             android:textSize="11sp" />
 
                         <EditText
+                            android:id="@+id/et_threshold"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="4dp"

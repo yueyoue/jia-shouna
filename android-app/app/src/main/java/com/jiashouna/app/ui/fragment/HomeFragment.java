@@ -128,6 +128,7 @@ public class HomeFragment extends Fragment {
         tvHouseInfo.setText(app.getCurrentHouseName());
 
         HashMap<String, String> params = new HashMap<>();
+        params.put("action", "list");
         params.put("house_id", String.valueOf(houseId));
 
         // 获取物品统计
@@ -222,6 +223,7 @@ public class HomeFragment extends Fragment {
 
         // 获取最近添加的物品
         HashMap<String, String> recentParams = new HashMap<>();
+        recentParams.put("action", "list");
         recentParams.put("house_id", String.valueOf(houseId));
         recentParams.put("page_size", "4");
         ApiClient.get("goods.php", recentParams, new ApiClient.ApiCallback() {

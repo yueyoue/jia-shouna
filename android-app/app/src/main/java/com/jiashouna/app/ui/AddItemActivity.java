@@ -26,6 +26,8 @@ import java.util.*;
 
 public class AddItemActivity extends AppCompatActivity {
     private EditText etName, etBarcode, etQuantity, etUnit, etExpiryDays, etPrice, etNote, etThreshold;
+    private EditText etPurchaseDate;
+    private String selectedPurchaseDate = "";
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
     private Switch swPrivate;
@@ -59,7 +61,9 @@ public class AddItemActivity extends AppCompatActivity {
         etQuantity = findViewById(R.id.et_quantity);
         etUnit = findViewById(R.id.et_unit);
         etExpiryDays = findViewById(R.id.et_expiry_days);
-        etPrice = findViewById(R.id.et_threshold);
+        etPrice = findViewById(R.id.et_price);
+        etThreshold = findViewById(R.id.et_threshold);
+        etPurchaseDate = findViewById(R.id.et_purchase_date);
         etNote = findViewById(R.id.et_note);
         spacePicker = findViewById(R.id.space_picker);
         tvSpaceName = findViewById(R.id.tv_space_name);
@@ -97,6 +101,15 @@ public class AddItemActivity extends AppCompatActivity {
 
         // 保存
         btnSave.setOnClickListener(v -> saveItem());
+
+        // 购买日期 - 弹窗日期选择
+        etPurchaseDate.setOnClickListener(v -> {
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            new DatePickerDialog(this, (view, year, month, day) -> {
+                selectedPurchaseDate = String.format("%04d-%02d-%02d", year, month + 1, day);
+                etPurchaseDate.setText(selectedPurchaseDate);
+            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+        });
 
         loadSpaces();
         loadTags();
@@ -565,6 +578,8 @@ public class AddItemActivity extends AppCompatActivity {
         }
         goods.note = etNote.getText().toString().trim();
         goods.isPrivate = swPrivate.isChecked() ? 1 : 0;
+        String priceStr = etPrice.getText().toString().trim();
+        goods.purchasePrice = priceStr.isEmpty() ? 0 : Double.parseDouble(priceStr);
 
         btnSave.setEnabled(false);
         btnSave.setText("保存中...");
@@ -578,7 +593,9 @@ public class AddItemActivity extends AppCompatActivity {
             body.addProperty("category", goods.category);
             body.addProperty("quantity", goods.quantity);
             body.addProperty("unit", goods.unit);
+            body.addProperty("purchase_date", selectedPurchaseDate);
             body.addProperty("expiry_date", goods.expiryDate);
+            body.addProperty("purchase_price", goods.purchasePrice);
             body.addProperty("note", goods.note);
             body.addProperty("is_private", goods.isPrivate);
 
