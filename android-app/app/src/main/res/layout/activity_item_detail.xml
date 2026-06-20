@@ -172,7 +172,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_tag_purple"
-                        android:padding="4dp 8dp"
+                        android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingLeft="8dp" android:paddingRight="8dp"
                         android:text="🔒 私密"
                         android:textColor="#553C9A"
                         android:textSize="11sp"
