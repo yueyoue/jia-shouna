@@ -236,7 +236,7 @@ public class AddItemActivity extends AppCompatActivity {
             .addFormDataPart("image", "photo.jpg",
                 okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
 
-        String url = App.BASE_URL + "image-recognize.php?action=recognize";
+        String url = App.BASE_URL + "image-recognize/recognize";
         okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
             .url(url)
             .post(builder.build());
@@ -321,7 +321,7 @@ public class AddItemActivity extends AppCompatActivity {
         HashMap<String, String> params = new HashMap<>();
         params.put("action", "lookup");
         params.put("barcode", barcode);
-        ApiClient.get("barcode.php", params, new ApiClient.ApiCallback() {
+        ApiClient.get("barcode/lookup", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -354,7 +354,7 @@ public class AddItemActivity extends AppCompatActivity {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
+        ApiClient.get("space/tree", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -374,7 +374,7 @@ public class AddItemActivity extends AppCompatActivity {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("tag.php?action=list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("tag/list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -443,7 +443,7 @@ public class AddItemActivity extends AppCompatActivity {
         JsonObject body = new JsonObject();
         body.addProperty("house_id", App.getInstance().getCurrentHouseId());
         body.addProperty("name", name);
-        ApiClient.post("tag.php?action=create", body, new ApiClient.ApiCallback() {
+        ApiClient.post("tag/create", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     Toast.makeText(AddItemActivity.this, "标签已创建", Toast.LENGTH_SHORT).show();
@@ -574,7 +574,7 @@ public class AddItemActivity extends AppCompatActivity {
             body.addProperty("note", goods.note);
             body.addProperty("is_private", goods.isPrivate);
 
-            ApiClient.post("goods.php?action=create", body, new ApiClient.ApiCallback() {
+            ApiClient.post("goods/create", body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
                         // 上传照片

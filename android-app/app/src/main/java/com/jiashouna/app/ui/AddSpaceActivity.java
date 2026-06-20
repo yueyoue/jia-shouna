@@ -29,6 +29,8 @@ public class AddSpaceActivity extends AppCompatActivity {
     private String selectedColor = "#FF8C42";
     private int selectedLevel = 1; // 1=房间, 2=容器, 3=区域
     private int selectedHouseId = 0;
+    private int parentSpaceId = 0; // 父级空间ID，0=顶级
+    private String parentSpaceName = "";
     private LocalDb localDb;
     private JsonArray houseList = new JsonArray();
 
@@ -43,6 +45,12 @@ public class AddSpaceActivity extends AppCompatActivity {
 
         localDb = new LocalDb(this);
 
+        // 接收父级空间信息
+        parentSpaceId = getIntent().getIntExtra("parent_id", 0);
+        parentSpaceName = getIntent().getStringExtra("parent_space_name") ?? "";
+        int intentHouseId = getIntent().getIntExtra("house_id", 0);
+        if (intentHouseId > 0) selectedHouseId = intentHouseId;
+
         etName = findViewById(R.id.et_name);
         levelRoom = findViewById(R.id.level_room);
         levelContainer = findViewById(R.id.level_container);
@@ -52,6 +60,18 @@ public class AddSpaceActivity extends AppCompatActivity {
         rgHouses = findViewById(R.id.rg_houses);
         tvNoHouseHint = findViewById(R.id.tv_no_house_hint);
         btnCreateHouse = findViewById(R.id.btn_create_house);
+
+        // 如果有父级空间，显示提示并自动选择子级
+        if (parentSpaceId > 0) {
+            String hint = parentSpaceName.isEmpty() ? "创建子空间" : "在「" + parentSpaceName + "」中创建子空间";
+            tvNoHouseHint.setText(hint);
+            tvNoHouseHint.setVisibility(View.VISIBLE);
+            // 自动选择下一级
+            int parentLevel = getIntent().getIntExtra("parent_level", 1);
+            if (parentLevel < 3) {
+                selectedLevel = parentLevel + 1;
+            }
+        }
 
         // 层级选择 - 房间/容器/区域
         View.OnClickListener levelClick = v -> {
@@ -89,7 +109,7 @@ public class AddSpaceActivity extends AppCompatActivity {
     }
 
     private void loadHouses() {
-        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
+        ApiClient.get("house/list", null, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -170,7 +190,7 @@ public class AddSpaceActivity extends AppCompatActivity {
         JsonObject body = new JsonObject();
         body.addProperty("name", name);
 
-        ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
+        ApiClient.post("house/create", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -251,8 +271,11 @@ public class AddSpaceActivity extends AppCompatActivity {
             body.addProperty("icon", selectedIcon);
             body.addProperty("color", selectedColor);
             body.addProperty("shared", swShared.isChecked() ? 1 : 0);
+            if (parentSpaceId > 0) {
+                body.addProperty("parent_id", parentSpaceId);
+            }
 
-            ApiClient.post("space.php?action=create", body, new ApiClient.ApiCallback() {
+            ApiClient.post("space/create", body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
                         Toast.makeText(AddSpaceActivity.this, "✅ 创建成功", Toast.LENGTH_SHORT).show();

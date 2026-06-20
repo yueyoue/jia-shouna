@@ -28,6 +28,7 @@ $routes = [
     
     // 房屋管理
     'GET  /house/list'          => 'house.php?action=list',
+    'GET  /house/invite_code'   => 'house.php?action=invite_code',
     'POST /house/create'        => 'house.php?action=create',
     'POST /house/join'          => 'house.php?action=join',
     'POST /house/switch'        => 'house.php?action=switch',

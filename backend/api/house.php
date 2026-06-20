@@ -168,6 +168,24 @@ switch ($action) {
         }
         break;
 
+    case 'invite_code':
+        $houseId = intval($_GET['house_id'] ?? 0);
+        if (!$houseId) {
+            // 使用当前用户的第一个家
+            $stmt = $db->prepare("SELECT h.id FROM house h JOIN house_member hm ON h.id = hm.house_id WHERE hm.user_id = ? AND h.status = 1 LIMIT 1");
+            $stmt->execute([$user['id']]);
+            $h = $stmt->fetch();
+            if ($h) $houseId = $h['id'];
+        }
+        if (!$houseId) error('暂无家庭');
+
+        $stmt = $db->prepare("SELECT invite_code FROM house WHERE id = ? AND status = 1");
+        $stmt->execute([$houseId]);
+        $house = $stmt->fetch();
+        if (!$house) error('家庭不存在');
+        success(['code' => $house['invite_code']]);
+        break;
+
     default:
         error('未知操作');
 }

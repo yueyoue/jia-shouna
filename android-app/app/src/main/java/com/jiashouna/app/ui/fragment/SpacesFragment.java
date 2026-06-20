@@ -22,6 +22,8 @@ public class SpacesFragment extends Fragment {
     private RecyclerView recyclerView;
     private LinearLayout emptyView;
     private LinearLayout loadingView;
+    private JsonArray houseList = new JsonArray();
+    private int currentViewingHouseId = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -30,8 +32,12 @@ public class SpacesFragment extends Fragment {
         emptyView = v.findViewById(R.id.empty_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        v.findViewById(R.id.btn_add_space).setOnClickListener(e -> 
-            startActivity(new Intent(getActivity(), AddSpaceActivity.class)));
+        v.findViewById(R.id.btn_add_space).setOnClickListener(e -> {
+            Intent intent = new Intent(getActivity(), AddSpaceActivity.class);
+            intent.putExtra("parent_id", 0);
+            intent.putExtra("house_id", currentViewingHouseId > 0 ? currentViewingHouseId : App.getInstance().getCurrentHouseId());
+            startActivity(intent);
+        });
 
         loadData();
         return v;
@@ -45,38 +51,36 @@ public class SpacesFragment extends Fragment {
 
     private void loadData() {
         int houseId = App.getInstance().getCurrentHouseId();
+        if (currentViewingHouseId > 0) {
+            houseId = currentViewingHouseId;
+        }
 
         // 先加载家列表
-        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
+        ApiClient.get("house/list", null, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
-                JsonArray houses = new JsonArray();
                 try {
                     if (data.has("list") && !data.get("list").isJsonNull()) {
-                        houses = data.getAsJsonArray("list");
+                        houseList = data.getAsJsonArray("list");
                     }
                 } catch (Exception ignored) {}
-                final JsonArray houseList = houses;
 
                 if (houseId > 0) {
-                    // 有当前家，加载空间
-                    loadSpaces(houseId, houseList);
+                    loadSpaces(houseId);
                 } else if (houseList.size() > 0) {
-                    // 没有当前家但有家列表，使用第一个
                     JsonObject firstHouse = houseList.get(0).getAsJsonObject();
                     int newHouseId = firstHouse.get("id").getAsInt();
                     String houseName = firstHouse.has("name") ? firstHouse.get("name").getAsString() : "我的家";
                     App.getInstance().setCurrentHouseId(newHouseId);
                     App.getInstance().setCurrentHouseName(houseName);
-                    loadSpaces(newHouseId, houseList);
+                    currentViewingHouseId = newHouseId;
+                    loadSpaces(newHouseId);
                 } else {
-                    // 完全没有家
                     if (getActivity() != null) getActivity().runOnUiThread(() -> showEmpty("暂无家庭\n点击下方按钮创建一个家"));
                 }
             }
             @Override public void onError(String msg) {
-                // 即使加载家失败，也尝试加载空间
                 if (houseId > 0) {
-                    loadSpaces(houseId, new JsonArray());
+                    loadSpaces(houseId);
                 } else {
                     if (getActivity() != null) getActivity().runOnUiThread(() -> showEmpty("暂无家庭\n点击下方按钮创建一个家"));
                 }
@@ -84,11 +88,11 @@ public class SpacesFragment extends Fragment {
         });
     }
 
-    private void loadSpaces(int houseId, JsonArray houseList) {
+    private void loadSpaces(int houseId) {
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
 
-        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
+        ApiClient.get("space/tree", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -98,25 +102,31 @@ public class SpacesFragment extends Fragment {
                         // 添加"家"条目
                         for (int i = 0; i < houseList.size(); i++) {
                             JsonObject house = houseList.get(i).getAsJsonObject();
+                            int hid = house.get("id").getAsInt();
                             JsonObject houseItem = new JsonObject();
-                            houseItem.addProperty("id", house.get("id").getAsInt());
+                            houseItem.addProperty("id", hid);
                             houseItem.addProperty("name", house.has("name") ? house.get("name").getAsString() : "我的家");
                             houseItem.addProperty("icon", "🏠");
                             houseItem.addProperty("is_house", true);
                             houseItem.addProperty("item_count", house.has("item_count") ? house.get("item_count").getAsInt() : 0);
                             houseItem.addProperty("expiring_count", 0);
+                            houseItem.addProperty("is_current", hid == houseId);
                             allItems.add(houseItem);
-                        }
 
-                        // 添加空间条目
-                        JsonArray spaces = new JsonArray();
-                        if (data.has("tree") && !data.get("tree").isJsonNull()) {
-                            spaces = data.getAsJsonArray("tree");
-                        } else if (data.has("list") && !data.get("list").isJsonNull()) {
-                            spaces = data.getAsJsonArray("list");
-                        }
-                        for (int i = 0; i < spaces.size(); i++) {
-                            allItems.add(spaces.get(i));
+                            // 如果是当前查看的家，展开显示其子空间(房间)
+                            if (hid == houseId) {
+                                JsonArray tree = new JsonArray();
+                                if (data.has("tree") && !data.get("tree").isJsonNull()) {
+                                    tree = data.getAsJsonArray("tree");
+                                } else if (data.has("list") && !data.get("list").isJsonNull()) {
+                                    tree = data.getAsJsonArray("list");
+                                }
+                                for (int j = 0; j < tree.size(); j++) {
+                                    JsonObject space = tree.get(j).getAsJsonObject();
+                                    space.addProperty("is_child_of_current_house", true);
+                                    allItems.add(space);
+                                }
+                            }
                         }
 
                         if (allItems.size() > 0) {
@@ -134,7 +144,6 @@ public class SpacesFragment extends Fragment {
             @Override public void onError(String msg) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
-                    // 即使空间加载失败，也显示家列表
                     if (houseList.size() > 0) {
                         JsonArray allItems = new JsonArray();
                         for (int i = 0; i < houseList.size(); i++) {
@@ -188,24 +197,27 @@ public class SpacesFragment extends Fragment {
                 holder.tvCount.setText("📦 " + itemCount + " 件");
                 holder.tvExpiring.setText("⏰ " + expiringCount + " 临期");
 
-                // 如果是"家"条目，显示特殊样式
                 boolean isHouse = item.has("is_house") && item.get("is_house").getAsBoolean();
+                boolean isCurrentHouse = item.has("is_current") && item.get("is_current").getAsBoolean();
+
                 if (isHouse) {
-                    holder.tvCount.setText("🏠 家庭");
+                    holder.tvCount.setText(isCurrentHouse ? "🏠 当前家庭" : "🏠 家庭");
                     holder.tvExpiring.setText("");
+                    // 当前查看的家高亮
+                    holder.itemView.setBackgroundColor(isCurrentHouse ? 0x0AFF8C42 : Color.WHITE);
                 }
 
-                // 显示子空间
-                if (!isHouse && item.has("children") && !item.get("children").isJsonNull()) {
-                    JsonArray children = item.getAsJsonArray("children");
-                    if (children.size() > 0) {
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 0; i < Math.min(children.size(), 3); i++) {
-                            JsonObject child = children.get(i).getAsJsonObject();
-                            if (sb.length() > 0) sb.append(" · ");
-                            sb.append(child.has("name") ? child.get("name").getAsString() : "");
-                        }
-                        holder.tvExpiring.setText(holder.tvExpiring.getText() + "\n" + sb.toString());
+                // 子空间(房间)显示缩进
+                boolean isChild = item.has("is_child_of_current_house") && item.get("is_child_of_current_house").getAsBoolean();
+                if (isChild) {
+                    holder.tvIcon.setText(item.has("icon") ? item.get("icon").getAsString() : "🛋");
+                    // 显示子空间信息
+                    int childCount = 0;
+                    if (item.has("children") && !item.get("children").isJsonNull()) {
+                        childCount = item.getAsJsonArray("children").size();
+                    }
+                    if (childCount > 0) {
+                        holder.tvExpiring.setText("📂 " + childCount + " 个子空间");
                     }
                 }
 
@@ -214,14 +226,17 @@ public class SpacesFragment extends Fragment {
                     String itemName = item.has("name") ? item.get("name").getAsString() : "";
                     if (isHouse) {
                         // 切换到该家并刷新空间列表
+                        currentViewingHouseId = itemId;
                         App.getInstance().setCurrentHouseId(itemId);
                         App.getInstance().setCurrentHouseName(itemName);
                         loadData();
                     } else {
+                        // 打开空间详情
                         Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
                         intent.putExtra("space_id", itemId);
                         intent.putExtra("space_name", itemName);
-                        intent.putExtra("house_id", App.getInstance().getCurrentHouseId());
+                        intent.putExtra("house_id", currentViewingHouseId > 0 ? currentViewingHouseId : App.getInstance().getCurrentHouseId());
+                        intent.putExtra("space_level", item.has("level") ? item.get("level").getAsInt() : 1);
                         startActivity(intent);
                     }
                 });

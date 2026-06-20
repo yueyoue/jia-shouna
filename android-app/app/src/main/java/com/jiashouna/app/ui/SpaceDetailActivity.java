@@ -104,7 +104,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
         HashMap<String, String> params = new HashMap<>();
         params.put("id", String.valueOf(spaceId));
 
-        ApiClient.get("space.php?action=detail", params, new ApiClient.ApiCallback() {
+        ApiClient.get("space/detail", params, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
@@ -371,6 +371,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
             intent.putExtra("space_id", childId);
             intent.putExtra("space_name", childName);
             intent.putExtra("house_id", houseId);
+            intent.putExtra("space_level", child.has("level") ? child.get("level").getAsInt() : 1);
             startActivity(intent);
         });
 
@@ -421,6 +422,15 @@ public class SpaceDetailActivity extends AppCompatActivity {
             Intent intent = new Intent(this, AddSpaceActivity.class);
             intent.putExtra("house_id", houseId);
             intent.putExtra("parent_id", spaceId);
+            intent.putExtra("parent_space_name", spaceName);
+            // 获取当前空间层级
+            int currentLevel = 1;
+            try {
+                HashMap<String, String> p = new HashMap<>();
+                p.put("id", String.valueOf(spaceId));
+                // 从intent或已加载的数据获取level
+            } catch (Exception ignored) {}
+            intent.putExtra("parent_level", getIntent().getIntExtra("space_level", 1));
             startActivity(intent);
         });
 

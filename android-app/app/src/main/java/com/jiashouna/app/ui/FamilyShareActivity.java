@@ -42,7 +42,7 @@ public class FamilyShareActivity extends AppCompatActivity {
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(App.getInstance().getCurrentHouseId()));
 
-        ApiClient.get("house.php?action=members", params, new ApiClient.ApiCallback() {
+        ApiClient.get("house/members", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     if (data.has("list")) {
@@ -77,7 +77,7 @@ public class FamilyShareActivity extends AppCompatActivity {
                 if (code.isEmpty()) return;
                 JsonObject body = new JsonObject();
                 body.addProperty("invite_code", code);
-                ApiClient.post("house.php?action=join", body, new ApiClient.ApiCallback() {
+                ApiClient.post("house/join", body, new ApiClient.ApiCallback() {
                     @Override public void onSuccess(JsonObject data) {
                         runOnUiThread(() -> {
                             Toast.makeText(FamilyShareActivity.this, "加入成功", Toast.LENGTH_SHORT).show();
