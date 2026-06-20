@@ -18,17 +18,16 @@ import com.jiashouna.app.db.LocalDb;
 import com.jiashouna.app.model.Goods;
 import com.jiashouna.app.utils.NetworkUtils;
 import com.journeyapps.barcodescanner.CaptureActivity;
-import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 
 import java.util.*;
 
 public class AddItemActivity extends AppCompatActivity {
     private EditText etName, etBarcode, etQuantity, etUnit, etExpiry, etPrice, etNote;
     private View spacePicker;
-    private TextView tvSpaceName, tvSpacePath;
+    private TextView tvSpaceName, tvSpacePath, tvScanHint;
     private Switch swPrivate;
-    private Button btnSave;
-    private FrameLayout scanContainer;
+    private Button btnSave, btnStartScan;
+    private LinearLayout scanContainer;
     private TextView tabScan, tabPhoto, tabManual;
     private int selectedSpaceId = 0;
     private LocalDb localDb;
@@ -63,19 +62,29 @@ public class AddItemActivity extends AppCompatActivity {
         tabScan = findViewById(R.id.tab_scan);
         tabPhoto = findViewById(R.id.tab_photo);
         tabManual = findViewById(R.id.tab_manual);
+        tvScanHint = findViewById(R.id.tv_scan_hint);
+        btnStartScan = findViewById(R.id.btn_start_scan);
 
+        // 选项卡
         tabScan.setOnClickListener(v -> switchTab("scan"));
         tabPhoto.setOnClickListener(v -> switchTab("photo"));
         tabManual.setOnClickListener(v -> switchTab("manual"));
 
+        // 扫码按钮
+        btnStartScan.setOnClickListener(v -> startBarcodeScan());
+
         switchTab(mode);
 
+        // 保质期 - 强制弹出日期选择器
         etExpiry.setFocusable(false);
         etExpiry.setClickable(true);
+        etExpiry.setFocusableInTouchMode(false);
         etExpiry.setOnClickListener(v -> showDatePicker());
 
+        // 空间选择
         spacePicker.setOnClickListener(v -> showSpacePickerDialog());
 
+        // 保存
         btnSave.setOnClickListener(v -> saveItem());
 
         loadSpaces();
@@ -94,13 +103,17 @@ public class AddItemActivity extends AppCompatActivity {
                 tabScan.setTextColor(Color.parseColor("#FF8C42"));
                 tabScan.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
-                startBarcodeScan();
+                tvScanHint.setText("点击下方按钮开始扫码识别条形码");
+                btnStartScan.setText("📷 开始扫码");
+                btnStartScan.setOnClickListener(v -> startBarcodeScan());
                 break;
             case "photo":
                 tabPhoto.setTextColor(Color.parseColor("#FF8C42"));
                 tabPhoto.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
-                startPhotoCapture();
+                tvScanHint.setText("拍照识别物品，自动填充信息");
+                btnStartScan.setText("📸 拍照识别");
+                btnStartScan.setOnClickListener(v -> startPhotoCapture());
                 break;
             case "manual":
                 tabManual.setTextColor(Color.parseColor("#FF8C42"));
@@ -117,7 +130,7 @@ public class AddItemActivity extends AppCompatActivity {
             intent.putExtra("SCAN_FORMATS", "QR_CODE,DATA_MATRIX,EAN_13,EAN_8,CODE_128,CODE_39");
             startActivityForResult(intent, REQUEST_BARCODE);
         } catch (Exception e) {
-            Toast.makeText(this, "扫码启动失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "扫码启动失败，请使用手动录入", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -127,7 +140,7 @@ public class AddItemActivity extends AppCompatActivity {
             if (intent.resolveActivity(getPackageManager()) != null) {
                 startActivityForResult(intent, REQUEST_PHOTO);
             } else {
-                Toast.makeText(this, "未找到相机应用，请使用手动录入", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "未找到相机，请使用手动录入", Toast.LENGTH_SHORT).show();
                 switchTab("manual");
             }
         } catch (Exception e) {
@@ -139,12 +152,7 @@ public class AddItemActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode != RESULT_OK) {
-            if (requestCode == REQUEST_BARCODE) {
-                Toast.makeText(this, "已取消扫码", Toast.LENGTH_SHORT).show();
-            }
-            return;
-        }
+        if (resultCode != RESULT_OK) return;
 
         if (requestCode == REQUEST_BARCODE && data != null) {
             String barcode = data.getStringExtra("SCAN_RESULT");
@@ -158,7 +166,9 @@ public class AddItemActivity extends AppCompatActivity {
                 if (extras != null) {
                     Bitmap bitmap = (Bitmap) extras.get("data");
                     if (bitmap != null) {
-                        Toast.makeText(this, "📷 已拍照，请手动输入物品信息", Toast.LENGTH_LONG).show();
+                        // 拍照成功，提示用户手动填写或等待AI识别接口对接
+                        Toast.makeText(this, "📷 已拍照，请手动填写物品信息", Toast.LENGTH_LONG).show();
+                        switchTab("manual");
                     }
                 }
             } catch (Exception e) {
@@ -169,20 +179,33 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void lookupBarcode(String barcode) {
         HashMap<String, String> params = new HashMap<>();
+        params.put("action", "lookup");
         params.put("barcode", barcode);
         ApiClient.get("barcode.php", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
-                        if (data.has("name") && !data.get("name").isJsonNull()) {
-                            etName.setText(data.get("name").getAsString());
+                        if (data.has("found") && data.get("found").getAsBoolean()) {
+                            // 条码查询成功
+                            if (data.has("data") && !data.get("data").isJsonNull()) {
+                                JsonObject info = data.getAsJsonObject("data");
+                                if (info.has("name") && !info.get("name").isJsonNull()) {
+                                    etName.setText(info.get("name").getAsString());
+                                }
+                            }
+                            String apiName = data.has("api") ? data.get("api").getAsString() : "";
+                            Toast.makeText(AddItemActivity.this, "✅ 已识别: " + apiName, Toast.LENGTH_SHORT).show();
+                        } else {
+                            String msg = data.has("msg") ? data.get("msg").getAsString() : "未找到该条码对应的商品";
+                            Toast.makeText(AddItemActivity.this, msg, Toast.LENGTH_SHORT).show();
                         }
-                        Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) {
+                        Toast.makeText(AddItemActivity.this, "查询结果解析失败", Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
             @Override public void onError(String msg) {
-                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "未找到该条码对应的商品", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "条码查询失败: " + msg, Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -242,7 +265,7 @@ public class AddItemActivity extends AppCompatActivity {
             names[i] = item.has("display_name") ? item.get("display_name").getAsString() : item.get("name").getAsString();
         }
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new AlertDialog.Builder(this)
             .setTitle("选择存放位置")
             .setItems(names, (dialog, which) -> {
                 JsonObject selected = spaceList.get(which).getAsJsonObject();
@@ -257,9 +280,10 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void showDatePicker() {
         Calendar cal = Calendar.getInstance();
-        new DatePickerDialog(this, (view, year, month, day) -> {
+        DatePickerDialog dialog = new DatePickerDialog(this, (view, year, month, day) -> {
             etExpiry.setText(year + "-" + String.format("%02d", month + 1) + "-" + String.format("%02d", day));
-        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
+        dialog.show();
     }
 
     private void saveItem() {

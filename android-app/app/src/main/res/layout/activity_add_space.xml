@@ -152,6 +152,62 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- House Selector -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/bg_card_16"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🏠 选择家庭"
+                        android:textColor="#2D3748"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_create_house"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_tag_orange"
+                        android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingLeft="10dp" android:paddingRight="10dp"
+                        android:text="+ 新建家"
+                        android:textColor="#C25A1E"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <RadioGroup
+                    android:id="@+id/rg_houses"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tv_no_house_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:text="还没有家庭，请先创建一个家"
+                    android:textColor="#A0AEC0"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
             <!-- Level Selector -->
             <LinearLayout
                 android:layout_width="match_parent"

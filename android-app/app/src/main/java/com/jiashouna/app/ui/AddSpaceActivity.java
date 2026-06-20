@@ -18,17 +18,19 @@ import java.util.HashMap;
 
 public class AddSpaceActivity extends AppCompatActivity {
     private EditText etName;
-    private View levelHome, levelRoom, levelContainer, levelArea;
+    private View levelRoom, levelContainer, levelArea;
     private Switch swShared;
     private Button btnSave;
+    private RadioGroup rgHouses;
+    private TextView tvNoHouseHint;
+    private TextView btnCreateHouse;
     private String selectedIcon = "🏠";
     private String selectedColor = "#FF8C42";
-    private int selectedLevel = 0; // 0=家, 1=房间, 2=容器, 3=区域
-    private int selectedParentId = 0;
+    private int selectedLevel = 1; // 1=房间, 2=容器, 3=区域
+    private int selectedHouseId = 0;
     private LocalDb localDb;
-    private JsonArray existingSpaces = new JsonArray();
+    private JsonArray houseList = new JsonArray();
 
-    private final String[] homeIcons = {"🏠", "🏡", "🏢", "🏘"};
     private final String[] roomIcons = {"🛋", "🍳", "🛏", "🚿", "📖", "📺", "❄", "🚪"};
     private final String[] containerIcons = {"📦", "🗄", "🧳", "🎒", "💼", "🪣"};
     private final String[] areaIcons = {"📂", "🗂", "🔖", "📌"};
@@ -41,119 +43,163 @@ public class AddSpaceActivity extends AppCompatActivity {
         localDb = new LocalDb(this);
 
         etName = findViewById(R.id.et_name);
-        levelHome = findViewById(R.id.level_room);   // 复用第一个位置给"家"
-        levelRoom = findViewById(R.id.level_container); // 复用第二个位置给"房间"
-        levelContainer = findViewById(R.id.level_area);  // 复用第三个位置给"容器"
+        levelRoom = findViewById(R.id.level_room);
+        levelContainer = findViewById(R.id.level_container);
+        levelArea = findViewById(R.id.level_area);
         swShared = findViewById(R.id.sw_shared);
         btnSave = findViewById(R.id.btn_save);
+        rgHouses = findViewById(R.id.rg_houses);
+        tvNoHouseHint = findViewById(R.id.tv_no_house_hint);
+        btnCreateHouse = findViewById(R.id.btn_create_house);
 
-        // 修改层级选项的显示文本
-        setupLevelLabels();
-
-        // 层级选择
+        // 层级选择 - 房间/容器/区域
         View.OnClickListener levelClick = v -> {
             resetLevelSelection();
             v.setSelected(true);
+            v.setBackgroundResource(R.drawable.bg_button_primary);
             if (v.getId() == R.id.level_room) {
-                selectedLevel = 0; // 家
-                selectedIcon = homeIcons[0];
-            } else if (v.getId() == R.id.level_container) {
-                selectedLevel = 1; // 房间
+                selectedLevel = 1;
                 selectedIcon = roomIcons[0];
-            } else if (v.getId() == R.id.level_area) {
-                selectedLevel = 2; // 容器
+            } else if (v.getId() == R.id.level_container) {
+                selectedLevel = 2;
                 selectedIcon = containerIcons[0];
+            } else if (v.getId() == R.id.level_area) {
+                selectedLevel = 3;
+                selectedIcon = areaIcons[0];
             }
             updateIconGrid();
         };
-        levelHome.setOnClickListener(levelClick);
         levelRoom.setOnClickListener(levelClick);
         levelContainer.setOnClickListener(levelClick);
-        levelHome.setSelected(true);
-        selectedLevel = 0;
-        selectedIcon = homeIcons[0];
+        levelArea.setOnClickListener(levelClick);
+        levelRoom.setSelected(true);
+        selectedLevel = 1;
+        selectedIcon = roomIcons[0];
 
-        // 图标选择
         updateIconGrid();
 
         btnSave.setOnClickListener(v -> saveSpace());
+        btnCreateHouse.setOnClickListener(v -> showCreateHouseDialog());
 
-        // 加载已有空间（用于选择父级）
-        loadExistingSpaces();
+        // 返回
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
+        loadHouses();
     }
 
-    private void setupLevelLabels() {
-        // 修改三个层级选项的文本
-        try {
-            // level_room (第一个) → 家
-            TextView tv1 = ((LinearLayout) levelHome).findViewWithTag("level_label");
-            if (tv1 != null) tv1.setText("家");
-            // 手动查找并修改子TextView
-            for (int i = 0; i < ((LinearLayout) levelHome).getChildCount(); i++) {
-                View child = ((LinearLayout) levelHome).getChildAt(i);
-                if (child instanceof TextView) {
-                    TextView tv = (TextView) child;
-                    String text = tv.getText().toString();
-                    if (text.equals("🏠") || text.equals("房间")) {
-                        if (text.equals("房间")) tv.setText("家");
-                    }
-                    if (text.startsWith("如主卧")) tv.setText("如爷爷家、奶奶家");
-                }
-            }
-            // level_container (第二个) → 房间
-            for (int i = 0; i < ((LinearLayout) levelRoom).getChildCount(); i++) {
-                View child = ((LinearLayout) levelRoom).getChildAt(i);
-                if (child instanceof TextView) {
-                    TextView tv = (TextView) child;
-                    String text = tv.getText().toString();
-                    if (text.equals("📦") || text.equals("容器")) {
-                        if (text.equals("容器")) tv.setText("房间");
-                    }
-                    if (text.startsWith("如衣柜")) tv.setText("如主卧、厨房");
-                }
-            }
-            // level_area (第三个) → 容器
-            for (int i = 0; i < ((LinearLayout) levelContainer).getChildCount(); i++) {
-                View child = ((LinearLayout) levelContainer).getChildAt(i);
-                if (child instanceof TextView) {
-                    TextView tv = (TextView) child;
-                    String text = tv.getText().toString();
-                    if (text.equals("📂") || text.equals("区域")) {
-                        if (text.equals("区域")) tv.setText("容器");
-                    }
-                    if (text.startsWith("如上层")) tv.setText("如衣柜、冰箱");
-                }
-            }
-        } catch (Exception ignored) {}
-    }
-
-    private void loadExistingSpaces() {
-        int houseId = App.getInstance().getCurrentHouseId();
-        if (houseId <= 0) return;
-
-        HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
+    private void loadHouses() {
+        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
-                        if (data.has("tree") && !data.get("tree").isJsonNull()) {
-                            existingSpaces = data.getAsJsonArray("tree");
+                        if (data.has("list") && !data.get("list").isJsonNull()) {
+                            houseList = data.getAsJsonArray("list");
                         }
                     } catch (Exception ignored) {}
+                    updateHouseSelector();
                 });
             }
-            @Override public void onError(String msg) {}
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> updateHouseSelector());
+            }
+        });
+    }
+
+    private void updateHouseSelector() {
+        rgHouses.removeAllViews();
+
+        if (houseList.size() == 0) {
+            tvNoHouseHint.setVisibility(View.VISIBLE);
+            rgHouses.setVisibility(View.GONE);
+            return;
+        }
+
+        tvNoHouseHint.setVisibility(View.GONE);
+        rgHouses.setVisibility(View.VISIBLE);
+
+        int currentHouseId = App.getInstance().getCurrentHouseId();
+
+        for (int i = 0; i < houseList.size(); i++) {
+            JsonObject house = houseList.get(i).getAsJsonObject();
+            int id = house.get("id").getAsInt();
+            String name = house.has("name") ? house.get("name").getAsString() : "我的家";
+
+            RadioButton rb = new RadioButton(this);
+            rb.setText("🏠 " + name);
+            rb.setTextSize(14);
+            rb.setTextColor(Color.parseColor("#2D3748"));
+            rb.setPadding(16, 12, 16, 12);
+            rb.setId(id);
+
+            // 默认选中当前家或第一个
+            if (id == currentHouseId || (currentHouseId <= 0 && i == 0)) {
+                rb.setChecked(true);
+                selectedHouseId = id;
+            }
+
+            rgHouses.addView(rb);
+        }
+
+        rgHouses.setOnCheckedChangeListener((group, checkedId) -> {
+            selectedHouseId = checkedId;
+        });
+    }
+
+    private void showCreateHouseDialog() {
+        EditText input = new EditText(this);
+        input.setHint("例如：奶奶家、爷爷家");
+        input.setPadding(48, 32, 48, 32);
+
+        new AlertDialog.Builder(this)
+            .setTitle("创建新家")
+            .setView(input)
+            .setPositiveButton("创建", (d, w) -> {
+                String name = input.getText().toString().trim();
+                if (name.isEmpty()) {
+                    Toast.makeText(this, "请输入家的名称", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                createHouse(name);
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private void createHouse(String name) {
+        JsonObject body = new JsonObject();
+        body.addProperty("name", name);
+
+        ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        if (data.has("id")) {
+                            int houseId = data.get("id").getAsInt();
+                            App app = App.getInstance();
+                            app.setCurrentHouseId(houseId);
+                            app.setCurrentHouseName(name);
+                            // 刷新家列表
+                            loadHouses();
+                        }
+                        Toast.makeText(AddSpaceActivity.this, "✅ 家庭创建成功", Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Toast.makeText(AddSpaceActivity.this, "创建成功", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddSpaceActivity.this, "创建失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
         });
     }
 
     private void resetLevelSelection() {
-        levelHome.setSelected(false);
         levelRoom.setSelected(false);
         levelContainer.setSelected(false);
-        levelHome.setBackgroundResource(R.drawable.bg_level_option);
+        levelArea.setSelected(false);
         levelRoom.setBackgroundResource(R.drawable.bg_level_option);
         levelContainer.setBackgroundResource(R.drawable.bg_level_option);
+        levelArea.setBackgroundResource(R.drawable.bg_level_option);
     }
 
     private void updateIconGrid() {
@@ -162,10 +208,10 @@ public class AddSpaceActivity extends AppCompatActivity {
 
         String[] icons;
         switch (selectedLevel) {
-            case 0: icons = homeIcons; break;
             case 1: icons = roomIcons; break;
             case 2: icons = containerIcons; break;
-            default: icons = homeIcons; break;
+            case 3: icons = areaIcons; break;
+            default: icons = roomIcons; break;
         }
 
         for (String icon : icons) {
@@ -189,30 +235,22 @@ public class AddSpaceActivity extends AppCompatActivity {
             return;
         }
 
-        int houseId = App.getInstance().getCurrentHouseId();
-        if (houseId <= 0) {
-            Toast.makeText(this, "请先创建或加入一个家庭", Toast.LENGTH_SHORT).show();
+        if (selectedHouseId <= 0) {
+            Toast.makeText(this, "请先选择或创建一个家庭", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // 如果是"家"级别，先创建房屋
-        if (selectedLevel == 0) {
-            createHouse(name);
-            return;
-        }
+        btnSave.setEnabled(false);
 
-        // 其他级别，创建空间
         if (NetworkUtils.isNetworkAvailable(this)) {
             JsonObject body = new JsonObject();
-            body.addProperty("house_id", houseId);
+            body.addProperty("house_id", selectedHouseId);
             body.addProperty("name", name);
             body.addProperty("level", selectedLevel);
-            body.addProperty("parent_id", selectedParentId);
             body.addProperty("icon", selectedIcon);
             body.addProperty("color", selectedColor);
             body.addProperty("shared", swShared.isChecked() ? 1 : 0);
 
-            btnSave.setEnabled(false);
             ApiClient.post("space.php?action=create", body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
@@ -229,7 +267,7 @@ public class AddSpaceActivity extends AppCompatActivity {
             });
         } else {
             Space space = new Space();
-            space.houseId = houseId;
+            space.houseId = selectedHouseId;
             space.name = name;
             space.level = selectedLevel;
             space.icon = selectedIcon;
@@ -239,38 +277,5 @@ public class AddSpaceActivity extends AppCompatActivity {
             Toast.makeText(this, "已保存到本地，联网后自动同步", Toast.LENGTH_SHORT).show();
             finish();
         }
-    }
-
-    private void createHouse(String name) {
-        JsonObject body = new JsonObject();
-        body.addProperty("name", name);
-
-        btnSave.setEnabled(false);
-        ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
-                runOnUiThread(() -> {
-                    try {
-                        // 设为当前家
-                        if (data.has("id")) {
-                            int houseId = data.get("id").getAsInt();
-                            App app = App.getInstance();
-                            app.setCurrentHouseId(houseId);
-                            app.setCurrentHouseName(name);
-                        }
-                        Toast.makeText(AddSpaceActivity.this, "✅ 家庭创建成功", Toast.LENGTH_SHORT).show();
-                        finish();
-                    } catch (Exception e) {
-                        Toast.makeText(AddSpaceActivity.this, "创建成功", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-                });
-            }
-            @Override public void onError(String msg) {
-                runOnUiThread(() -> {
-                    btnSave.setEnabled(true);
-                    Toast.makeText(AddSpaceActivity.this, "创建失败: " + msg, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
     }
 }
