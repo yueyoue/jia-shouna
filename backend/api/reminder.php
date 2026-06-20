@@ -15,21 +15,95 @@ switch ($action) {
         $page = max(1, intval($_GET['page'] ?? 1));
         $pageSize = 20;
 
+        $reminders = [];
+
+        // 1. 获取手动创建的提醒
         $where = ["r.user_id = ?"];
         $params = [$user['id']];
         if ($houseId) { $where[] = "r.house_id = ?"; $params[] = $houseId; }
         if ($type) { $where[] = "r.type = ?"; $params[] = $type; }
-
         $whereStr = implode(' AND ', $where);
         $offset = ($page - 1) * $pageSize;
-        $stmt = $db->prepare("SELECT r.*, g.name as goods_name, s.name as space_name 
+        $stmt = $db->prepare("SELECT r.*, g.name as goods_name, s.name as space_name, 'manual' as source
             FROM reminder r 
             LEFT JOIN goods g ON r.goods_id = g.id 
             LEFT JOIN storage_space s ON r.space_id = s.id 
-            WHERE $whereStr ORDER BY r.is_read ASC, r.remind_time ASC 
-            LIMIT $pageSize OFFSET $offset");
+            WHERE $whereStr AND r.is_handled = 0");
         $stmt->execute($params);
-        success(['list' => $stmt->fetchAll()]);
+        $reminders = $stmt->fetchAll();
+
+        // 2. 自动生成：临期物品提醒
+        if (!$type || $type === 'expiry') {
+            $expWhere = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)"];
+            $expParams = [];
+            if ($houseId) { $expWhere[] = "g.house_id = ?"; $expParams[] = $houseId; }
+            $expWhere[] = "(g.is_private = 0 OR g.creator_id = ?)";
+            $expParams[] = $user['id'];
+            $expWhereStr = implode(' AND ', $expWhere);
+            $stmt = $db->prepare("SELECT g.id as goods_id, g.name as goods_name, g.expiry_date, g.icon, s.name as space_name,
+                DATEDIFF(g.expiry_date, CURDATE()) as days_left
+                FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id
+                WHERE $expWhereStr ORDER BY g.expiry_date ASC LIMIT 10");
+            $stmt->execute($expParams);
+            foreach ($stmt->fetchAll() as $item) {
+                $daysLeft = intval($item['days_left']);
+                $title = $daysLeft < 0 ? $item['goods_name'] . ' 已过期' : $item['goods_name'] . ' 将在' . $daysLeft . '天后过期';
+                $reminders[] = [
+                    'id' => 'exp_' . $item['goods_id'],
+                    'type' => 'expiry',
+                    'title' => $title,
+                    'content' => '存放于: ' . ($item['space_name'] ?? '未分类'),
+                    'goods_name' => $item['goods_name'],
+                    'space_name' => $item['space_name'] ?? '',
+                    'remind_time' => time(),
+                    'is_read' => 0,
+                    'is_handled' => 0,
+                    'source' => 'auto',
+                    'goods_id' => $item['goods_id'],
+                    'days_left' => $daysLeft
+                ];
+            }
+        }
+
+        // 3. 自动生成：库存不足提醒
+        if (!$type || $type === 'low_stock') {
+            $lsWhere = ["g.status = 1", "g.stock_threshold > 0", "g.quantity <= g.stock_threshold"];
+            $lsParams = [];
+            if ($houseId) { $lsWhere[] = "g.house_id = ?"; $lsParams[] = $houseId; }
+            $lsWhere[] = "(g.is_private = 0 OR g.creator_id = ?)";
+            $lsParams[] = $user['id'];
+            $lsWhereStr = implode(' AND ', $lsWhere);
+            $stmt = $db->prepare("SELECT g.id as goods_id, g.name as goods_name, g.quantity, g.unit, g.stock_threshold, s.name as space_name
+                FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id
+                WHERE $lsWhereStr LIMIT 10");
+            $stmt->execute($lsParams);
+            foreach ($stmt->fetchAll() as $item) {
+                $reminders[] = [
+                    'id' => 'ls_' . $item['goods_id'],
+                    'type' => 'low_stock',
+                    'title' => $item['goods_name'] . ' 库存不足',
+                    'content' => '当前: ' . $item['quantity'] . ($item['unit'] ?: '件') . ' / 阈值: ' . $item['stock_threshold'],
+                    'goods_name' => $item['goods_name'],
+                    'space_name' => $item['space_name'] ?? '',
+                    'remind_time' => time(),
+                    'is_read' => 0,
+                    'is_handled' => 0,
+                    'source' => 'auto',
+                    'goods_id' => $item['goods_id']
+                ];
+            }
+        }
+
+        // 按类型排序：未读优先，然后按时间
+        usort($reminders, function($a, $b) {
+            if ($a['is_read'] != $b['is_read']) return $a['is_read'] - $b['is_read'];
+            $typeOrder = ['expiry' => 0, 'low_stock' => 1, 'custom' => 2];
+            $oa = $typeOrder[$a['type']] ?? 3;
+            $ob = $typeOrder[$b['type']] ?? 3;
+            return $oa - $ob;
+        });
+
+        success(['list' => array_slice($reminders, $offset, $pageSize)]);
         break;
 
     case 'create':

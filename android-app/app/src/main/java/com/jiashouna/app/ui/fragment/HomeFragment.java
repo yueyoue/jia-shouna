@@ -128,11 +128,36 @@ public class HomeFragment extends Fragment {
         tvHouseInfo.setText(app.getCurrentHouseName());
 
         HashMap<String, String> params = new HashMap<>();
-        params.put("action", "list");
         params.put("house_id", String.valueOf(houseId));
 
+        // 获取家庭成员数
+        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        if (data.has("list") && !data.get("list").isJsonNull()) {
+                            JsonArray houses = data.getAsJsonArray("list");
+                            for (int i = 0; i < houses.size(); i++) {
+                                JsonObject house = houses.get(i).getAsJsonObject();
+                                if (house.has("id") && house.get("id").getAsInt() == houseId) {
+                                    int members = house.has("member_count") ? house.get("member_count").getAsInt() : 1;
+                                    tvMemberCount.setText(members + " 人");
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
+
         // 获取物品统计
-        ApiClient.get("goods.php", params, new ApiClient.ApiCallback() {
+        HashMap<String, String> params2 = new HashMap<>();
+        params2.put("action", "list");
+        params2.put("house_id", String.valueOf(houseId));
+        ApiClient.get("goods.php", params2, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -146,7 +171,10 @@ public class HomeFragment extends Fragment {
         });
 
         // 获取空间统计
-        ApiClient.get("space.php", params, new ApiClient.ApiCallback() {
+        HashMap<String, String> spaceParams = new HashMap<>();
+        spaceParams.put("action", "list");
+        spaceParams.put("house_id", String.valueOf(houseId));
+        ApiClient.get("space.php", spaceParams, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -161,7 +189,9 @@ public class HomeFragment extends Fragment {
         });
 
         // 获取提醒统计
-        ApiClient.get("reminder.php?action=stats", params, new ApiClient.ApiCallback() {
+        HashMap<String, String> statsParams = new HashMap<>();
+        statsParams.put("house_id", String.valueOf(houseId));
+        ApiClient.get("reminder.php?action=stats", statsParams, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -359,6 +389,17 @@ public class HomeFragment extends Fragment {
         info.addView(space);
 
         card.addView(info);
+        // 点击打开物品详情
+        int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
+        if (itemId > 0) {
+            card.setClickable(true);
+            card.setFocusable(true);
+            card.setOnClickListener(e -> {
+                Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
+                intent.putExtra("item_id", itemId);
+                startActivity(intent);
+            });
+        }
         parent.addView(card);
     }
 

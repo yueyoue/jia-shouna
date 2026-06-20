@@ -233,8 +233,16 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("action", "list");
-        params.put("space_id", String.valueOf(targetSpaceId));
         params.put("house_id", String.valueOf(houseId));
+
+        if (selectedContainerId == 0) {
+            // "全部"模式：加载当前空间及所有子空间的物品
+            params.put("space_id", String.valueOf(targetSpaceId));
+            params.put("include_children", "1");
+        } else {
+            // 指定容器：只加载该容器的物品
+            params.put("space_id", String.valueOf(targetSpaceId));
+        }
 
         ApiClient.get("goods.php", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {

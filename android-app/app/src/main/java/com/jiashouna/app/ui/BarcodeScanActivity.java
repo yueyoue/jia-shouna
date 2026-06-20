@@ -21,7 +21,7 @@ public class BarcodeScanActivity extends AppCompatActivity {
             integrator.setCameraId(0);
             integrator.setBeepEnabled(true);
             integrator.setBarcodeImageEnabled(true);
-            integrator.setOrientationLocked(false);
+            integrator.setOrientationLocked(true);
             integrator.initiateScan();
         } catch (Exception e) {
             Toast.makeText(this, "扫码启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show();

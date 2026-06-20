@@ -29,7 +29,18 @@ switch ($action) {
             $params[] = $houseId;
         }
         if ($spaceId) {
-            $where[] = "g.space_id = ?";
+            $includeChildren = intval($_GET['include_children'] ?? 0);
+            if ($includeChildren) {
+                // 包含子空间的物品
+                $childIds = getDescendantSpaceIds($db, $spaceId, $houseId);
+                $childIds[] = $spaceId;
+                $placeholders = implode(',', array_fill(0, count($childIds), '?'));
+                $where[] = "g.space_id IN ($placeholders)";
+                $params = array_merge($params, $childIds);
+            } else {
+                $where[] = "g.space_id = ?";
+                $params[] = $spaceId;
+            }
             $params[] = $spaceId;
         }
         if ($category) {
@@ -541,4 +552,19 @@ switch ($action) {
 
     default:
         error('未知操作');
+}
+
+/**
+ * 递归获取所有子孙空间ID
+ */
+function getDescendantSpaceIds($db, $spaceId, $houseId) {
+    $ids = [];
+    $stmt = $db->prepare('SELECT id FROM storage_space WHERE parent_id = ? AND house_id = ?');
+    $stmt->execute([$spaceId, $houseId]);
+    $children = $stmt->fetchAll();
+    foreach ($children as $child) {
+        $ids[] = $child['id'];
+        $ids = array_merge($ids, getDescendantSpaceIds($db, $child['id'], $houseId));
+    }
+    return $ids;
 }
