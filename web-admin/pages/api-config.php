@@ -216,7 +216,10 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
                         <input type="text" name="api_key" class="form-control" value="<?= htmlspecialchars($api['api_key']) ?>" placeholder="请输入API Key">
                     </div>
                 </div>
-                <input type="hidden" name="api_secret" value="<?= htmlspecialchars($api['api_secret']) ?>">
+                <div class="form-group" style="margin-top:12px;margin-bottom:0">
+                    <label class="form-label">Secret Key</label>
+                    <input type="text" name="api_secret" class="form-control" value="<?= htmlspecialchars($api['api_secret']) ?>" placeholder="百度AI需要填写Secret Key，其他接口可留空">
+                </div>
                 <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
                     <label class="switch">
                         <input type="checkbox" name="is_active" <?= $api['is_active'] ? 'checked' : '' ?>>
