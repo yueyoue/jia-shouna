@@ -33,6 +33,8 @@ public class AddSpaceActivity extends AppCompatActivity {
     private String parentSpaceName = "";
     private LocalDb localDb;
     private JsonArray houseList = new JsonArray();
+    private JsonArray spaceListForParent = new JsonArray(); // 可选的父级空间列表
+    private TextView tvParentHint;
 
     private final String[] roomIcons = {"🛋", "🍳", "🛏", "🚿", "📖", "📺", "❄", "🚪"};
     private final String[] containerIcons = {"📦", "🗄", "🧳", "🎒", "💼", "🪣"};
@@ -262,6 +264,130 @@ public class AddSpaceActivity extends AppCompatActivity {
             return;
         }
 
+        // 如果还没选择父级空间，先让用户选择
+        if (parentSpaceId == 0 && selectedLevel > 1) {
+            showParentSpaceSelector(name);
+            return;
+        }
+
+        doSaveSpace(name);
+    }
+
+    private void showParentSpaceSelector(String spaceName) {
+        // 加载当前家的空间列表让用户选择父级
+        HashMap<String, String> params = new HashMap<>();
+        params.put("action", "tree");
+        params.put("house_id", String.valueOf(selectedHouseId));
+
+        ApiClient.get("space.php", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonArray tree = new JsonArray();
+                        if (data.has("tree") && !data.get("tree").isJsonNull()) {
+                            tree = data.getAsJsonArray("tree");
+                        } else if (data.has("list") && !data.get("list").isJsonNull()) {
+                            tree = data.getAsJsonArray("list");
+                        }
+                        if (tree.size() == 0) {
+                            // 没有已有空间，直接创建在顶级
+                            doSaveSpace(spaceName);
+                        } else {
+                            showParentPicker(tree, spaceName);
+                        }
+                    } catch (Exception e) {
+                        doSaveSpace(spaceName);
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> doSaveSpace(spaceName));
+            }
+        });
+    }
+
+    private void showParentPicker(JsonArray spaces, String spaceName) {
+        // 构建可选的父级空间列表（只显示房间级别，即level=1）
+        java.util.List<String> names = new java.util.ArrayList<>();
+        java.util.List<Integer> ids = new java.util.ArrayList<>();
+        java.util.List<Integer> levels = new java.util.ArrayList<>();
+
+        // 添加“顶级”选项
+        names.add("🏠 顶级（直接在家下面）");
+        ids.add(0);
+        levels.add(0);
+
+        // 添加房间
+        for (int i = 0; i < spaces.size(); i++) {
+            JsonObject space = spaces.get(i).getAsJsonObject();
+            int id = space.has("id") ? space.get("id").getAsInt() : 0;
+            String sName = space.has("name") ? space.get("name").getAsString() : "";
+            String icon = space.has("icon") ? space.get("icon").getAsString() : "🛋";
+            int level = space.has("level") ? space.get("level").getAsInt() : 1;
+            names.add(icon + " " + sName + " (房间)");
+            ids.add(id);
+            levels.add(level);
+
+            // 添加容器
+            if (space.has("children") && !space.get("children").isJsonNull()) {
+                JsonArray children = space.getAsJsonArray("children");
+                for (int j = 0; j < children.size(); j++) {
+                    JsonObject child = children.get(j).getAsJsonObject();
+                    int cId = child.has("id") ? child.get("id").getAsInt() : 0;
+                    String cName = child.has("name") ? child.get("name").getAsString() : "";
+                    String cIcon = child.has("icon") ? child.get("icon").getAsString() : "📦";
+                    int cLevel = child.has("level") ? child.get("level").getAsInt() : 2;
+                    names.add("  " + cIcon + " " + cName + " (容器)");
+                    ids.add(cId);
+                    levels.add(cLevel);
+                }
+            }
+        }
+
+        String[] nameArr = names.toArray(new String[0]);
+
+        new AlertDialog.Builder(this)
+            .setTitle("「" + spaceName + "」放在哪里？")
+            .setItems(nameArr, (d, which) -> {
+                int chosenId = ids.get(which);
+                int chosenLevel = levels.get(which);
+                if (chosenId > 0) {
+                    parentSpaceId = chosenId;
+                    // 自动设置子级层级
+                    if (chosenLevel == 1) selectedLevel = 2; // 房间下→容器
+                    else if (chosenLevel == 2) selectedLevel = 3; // 容器下→区域
+                    updateLevelSelection();
+                } else {
+                    parentSpaceId = 0;
+                    selectedLevel = 1;
+                    updateLevelSelection();
+                }
+                doSaveSpace(spaceName);
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private void updateLevelSelection() {
+        resetLevelSelection();
+        switch (selectedLevel) {
+            case 1:
+                levelRoom.setSelected(true);
+                levelRoom.setBackgroundResource(R.drawable.bg_button_primary);
+                break;
+            case 2:
+                levelContainer.setSelected(true);
+                levelContainer.setBackgroundResource(R.drawable.bg_button_primary);
+                break;
+            case 3:
+                levelArea.setSelected(true);
+                levelArea.setBackgroundResource(R.drawable.bg_button_primary);
+                break;
+        }
+        updateIconGrid();
+    }
+
+    private void doSaveSpace(String name) {
         btnSave.setEnabled(false);
 
         if (NetworkUtils.isNetworkAvailable(this)) {

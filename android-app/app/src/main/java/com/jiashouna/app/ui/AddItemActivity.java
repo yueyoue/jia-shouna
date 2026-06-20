@@ -335,7 +335,15 @@ public class AddItemActivity extends AppCompatActivity {
                             Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
                         } else {
                             String msg = data.has("msg") ? data.get("msg").getAsString() : "未找到该条码对应的商品";
-                            Toast.makeText(AddItemActivity.this, msg, Toast.LENGTH_SHORT).show();
+                            // 友好化处理原始错误信息
+                            if (msg.contains("HTTP 404") || msg.contains("未找到")) {
+                                msg = "该条码在数据库中未找到，可手动输入物品信息";
+                            } else if (msg.contains("HTTP 500") || msg.contains("服务")) {
+                                msg = "条码查询服务暂时不可用，请稍后再试";
+                            } else if (msg.contains("连接失败") || msg.contains("timeout")) {
+                                msg = "网络连接超时，请检查网络后重试";
+                            }
+                            Toast.makeText(AddItemActivity.this, msg, Toast.LENGTH_LONG).show();
                         }
                     } catch (Exception e) {
                         Toast.makeText(AddItemActivity.this, "查询成功但解析失败", Toast.LENGTH_SHORT).show();

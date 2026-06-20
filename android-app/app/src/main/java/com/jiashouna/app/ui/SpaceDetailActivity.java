@@ -444,6 +444,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
         }
 
         HashMap<String, String> params = new HashMap<>();
+        params.put("action", "list");
         params.put("space_id", String.valueOf(spaceId));
         params.put("house_id", String.valueOf(houseId));
 
