@@ -25,7 +25,7 @@ import java.io.*;
 import java.util.*;
 
 public class AddItemActivity extends AppCompatActivity {
-    private EditText etName, etBarcode, etQuantity, etUnit, etExpiryDays, etPrice, etNote;
+    private EditText etName, etBarcode, etQuantity, etUnit, etExpiryDays, etPrice, etNote, etThreshold;
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
     private Switch swPrivate;
@@ -58,7 +58,7 @@ public class AddItemActivity extends AppCompatActivity {
         etQuantity = findViewById(R.id.et_quantity);
         etUnit = findViewById(R.id.et_unit);
         etExpiryDays = findViewById(R.id.et_expiry_days);
-        etPrice = findViewById(R.id.et_price);
+        etPrice = findViewById(R.id.et_threshold);
         etNote = findViewById(R.id.et_note);
         spacePicker = findViewById(R.id.space_picker);
         tvSpaceName = findViewById(R.id.tv_space_name);

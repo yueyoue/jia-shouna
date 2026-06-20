@@ -33,6 +33,9 @@
         <activity android:name=".ui.FamilyShareActivity" />
         <activity android:name=".ui.SpaceDetailActivity" />
         <activity android:name=".ui.BarcodeScanActivity" />
+        <activity android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:exported="false" />
 
         <provider
             android:name=".utils.FileProvider"
