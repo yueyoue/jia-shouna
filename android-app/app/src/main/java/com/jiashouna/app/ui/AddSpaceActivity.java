@@ -110,7 +110,7 @@ public class AddSpaceActivity extends AppCompatActivity {
     }
 
     private void loadHouses() {
-        ApiClient.get("house/list", null, new ApiClient.ApiCallback() {
+        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -191,7 +191,7 @@ public class AddSpaceActivity extends AppCompatActivity {
         JsonObject body = new JsonObject();
         body.addProperty("name", name);
 
-        ApiClient.post("house/create", body, new ApiClient.ApiCallback() {
+        ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -276,7 +276,7 @@ public class AddSpaceActivity extends AppCompatActivity {
                 body.addProperty("parent_id", parentSpaceId);
             }
 
-            ApiClient.post("space/create", body, new ApiClient.ApiCallback() {
+            ApiClient.post("space.php?action=create", body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
                         Toast.makeText(AddSpaceActivity.this, "✅ 创建成功", Toast.LENGTH_SHORT).show();

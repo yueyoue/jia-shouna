@@ -34,7 +34,7 @@ public class ApiClient {
     public static void get(String path, Map<String, String> params, ApiCallback callback) {
         StringBuilder url = new StringBuilder(App.BASE_URL + path);
         if (params != null && !params.isEmpty()) {
-            url.append("?");
+            url.append(url.toString().contains("?") ? "&" : "?");
             for (Map.Entry<String, String> e : params.entrySet()) {
                 url.append(e.getKey()).append("=").append(e.getValue()).append("&");
             }
@@ -77,7 +77,7 @@ public class ApiClient {
     public static JsonObject syncGet(String path, Map<String, String> params) throws IOException {
         StringBuilder url = new StringBuilder(App.BASE_URL + path);
         if (params != null && !params.isEmpty()) {
-            url.append("?");
+            url.append(url.toString().contains("?") ? "&" : "?");
             for (Map.Entry<String, String> e : params.entrySet()) {
                 url.append(e.getKey()).append("=").append(e.getValue()).append("&");
             }

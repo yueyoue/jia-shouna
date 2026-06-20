@@ -104,7 +104,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
         HashMap<String, String> params = new HashMap<>();
         params.put("id", String.valueOf(spaceId));
 
-        ApiClient.get("space/detail", params, new ApiClient.ApiCallback() {
+        ApiClient.get("space.php?action=detail", params, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {

@@ -36,14 +36,23 @@ switch ($action) {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
             curl_close($ch);
 
             $duration = round((microtime(true) - $startTime) * 1000);
+
+            // curl错误处理
+            if ($curlErrno) {
+                success(['found' => false, 'barcode' => $barcode, 'msg' => '条码查询服务连接失败: ' . $curlError]);
+            }
 
             // 记录日志
             $logStmt = $db->prepare("INSERT INTO api_log (api_config_id, type, request_url, response_body, status, duration, user_id, created_at) VALUES (?, 'barcode', ?, ?, ?, ?, ?, ?)");
@@ -59,7 +68,15 @@ switch ($action) {
                 // 根据不同接口解析返回数据(这里做通用处理)
                 success(['found' => true, 'barcode' => $barcode, 'data' => $data, 'api' => $api['name']]);
             } else {
-                success(['found' => false, 'barcode' => $barcode, 'msg' => '查询失败(HTTP ' . $httpCode . ')']);
+                $errMsg = '查询失败';
+                if ($httpCode == 404) {
+                    $errMsg = '该条码在数据库中未找到';
+                } elseif ($httpCode >= 500) {
+                    $errMsg = '条码查询服务暂时不可用';
+                } elseif ($httpCode == 0) {
+                    $errMsg = '无法连接到条码查询服务';
+                }
+                success(['found' => false, 'barcode' => $barcode, 'msg' => $errMsg]);
             }
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000);

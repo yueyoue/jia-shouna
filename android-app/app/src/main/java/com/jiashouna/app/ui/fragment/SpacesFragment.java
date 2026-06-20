@@ -57,7 +57,7 @@ public class SpacesFragment extends Fragment {
         final int finalHouseId = houseId;
 
         // 先加载家列表
-        ApiClient.get("house/list", null, new ApiClient.ApiCallback() {
+        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 try {
                     if (data.has("list") && !data.get("list").isJsonNull()) {
@@ -93,7 +93,7 @@ public class SpacesFragment extends Fragment {
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
 
-        ApiClient.get("space/tree", params, new ApiClient.ApiCallback() {
+        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {

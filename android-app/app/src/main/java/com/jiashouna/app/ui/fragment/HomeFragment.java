@@ -160,7 +160,7 @@ public class HomeFragment extends Fragment {
         });
 
         // 获取提醒统计
-        ApiClient.get("reminder/stats", params, new ApiClient.ApiCallback() {
+        ApiClient.get("reminder.php?action=stats", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {

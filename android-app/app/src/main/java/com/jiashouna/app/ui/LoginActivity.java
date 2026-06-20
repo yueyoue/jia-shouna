@@ -47,7 +47,7 @@ public class LoginActivity extends AppCompatActivity {
         body.addProperty("username", username);
         body.addProperty("password", password);
 
-        ApiClient.post("auth/login", body, new ApiClient.ApiCallback() {
+        ApiClient.post("auth.php?action=login", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     btnLogin.setEnabled(true);
@@ -84,7 +84,7 @@ public class LoginActivity extends AppCompatActivity {
         body.addProperty("password", password);
         body.addProperty("house_name", "我的家");
 
-        ApiClient.post("auth/register", body, new ApiClient.ApiCallback() {
+        ApiClient.post("auth.php?action=register", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     btnLogin.setEnabled(true);
@@ -129,7 +129,7 @@ public class LoginActivity extends AppCompatActivity {
     private void autoCreateHouse() {
         JsonObject body = new JsonObject();
         body.addProperty("name", "我的家");
-        ApiClient.post("house/create", body, new ApiClient.ApiCallback() {
+        ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {

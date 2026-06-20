@@ -153,7 +153,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadProfile() {
-        ApiClient.get("user/profile", null, new ApiClient.ApiCallback() {
+        ApiClient.get("user.php?action=profile", null, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
@@ -436,7 +436,7 @@ public class ProfileFragment extends Fragment {
             // Try to get invite code from API
             java.util.HashMap<String, String> params = new java.util.HashMap<>();
             params.put("house_id", String.valueOf(houseId));
-            ApiClient.get("house/invite_code", params, new ApiClient.ApiCallback() {
+            ApiClient.get("house.php?action=invite_code", params, new ApiClient.ApiCallback() {
                 @Override
                 public void onSuccess(JsonObject data) {
                     if (getActivity() == null) return;
@@ -529,7 +529,7 @@ public class ProfileFragment extends Fragment {
             params.put("action", "check");
             params.put("version_code", String.valueOf(currentCode));
 
-            ApiClient.get("version/check", params, new ApiClient.ApiCallback() {
+            ApiClient.get("version.php?action=check", params, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     if (getActivity() == null) return;
                     getActivity().runOnUiThread(() -> {

@@ -67,12 +67,11 @@ switch ($action) {
                     $result = recognizeTencent($apiConfig, $base64Image);
                     break;
                 default:
-                    // 通用HTTP接口调用
                     $result = recognizeGeneric($apiConfig, $base64Image);
                     break;
             }
         } catch (Exception $e) {
-            $result = ['success' => false, 'error' => $e->getMessage()];
+            $result = ['success' => false, 'error' => '识别服务异常: ' . $e->getMessage()];
         }
 
         $duration = intval((microtime(true) - $startTime) * 1000);
@@ -136,11 +135,12 @@ function recognizeBaiduAI($config, $base64Image) {
     }
 
     // 获取access_token
-    $tokenUrl = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id={$apiKey}&client_secret={$secretKey}";
+    $tokenUrl = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=" . urlencode($apiKey) . "&client_secret=" . urlencode($secretKey);
     $tokenResp = httpPost($tokenUrl, '', ['Content-Type: application/x-www-form-urlencoded']);
     $tokenData = json_decode($tokenResp, true);
-    if (!isset($tokenData['access_token'])) {
-        return ['success' => false, 'error' => '获取百度AI Token失败'];
+    if (!$tokenData || !isset($tokenData['access_token'])) {
+        $errDetail = isset($tokenData['error_description']) ? $tokenData['error_description'] : ($tokenResp ?: '无响应');
+        return ['success' => false, 'error' => '获取百度AI Token失败: ' . $errDetail];
     }
     $accessToken = $tokenData['access_token'];
 
@@ -233,22 +233,29 @@ function recognizeGeneric($config, $base64Image) {
  * HTTP POST请求
  */
 function httpPost($url, $postData, $headers = []) {
+    if (!function_exists('curl_init')) {
+        throw new Exception('curl扩展未安装');
+    }
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     if (!empty($headers)) {
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     }
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
+    $errno = curl_errno($ch);
     curl_close($ch);
 
-    if ($error) {
-        throw new Exception("HTTP请求失败: $error");
+    if ($errno) {
+        throw new Exception("HTTP请求失败[curl {$errno}]: {$error}");
     }
     return $response;
 }

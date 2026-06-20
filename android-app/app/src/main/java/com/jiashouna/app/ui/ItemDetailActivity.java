@@ -74,7 +74,7 @@ public class ItemDetailActivity extends AppCompatActivity {
             .setPositiveButton("删除", (d, w) -> {
                 JsonObject body = new JsonObject();
                 body.addProperty("id", goodsId);
-                ApiClient.post("goods/delete", body, new ApiClient.ApiCallback() {
+                ApiClient.post("goods.php?action=delete", body, new ApiClient.ApiCallback() {
                     @Override public void onSuccess(JsonObject data) {
                         runOnUiThread(() -> {
                             Toast.makeText(ItemDetailActivity.this, "删除成功", Toast.LENGTH_SHORT).show();

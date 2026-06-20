@@ -50,7 +50,7 @@ public class SplashActivity extends AppCompatActivity {
             java.util.HashMap<String, String> params = new java.util.HashMap<>();
             params.put("action", "check");
             params.put("version_code", String.valueOf(currentCode));
-            ApiClient.get("version/check", params, new ApiClient.ApiCallback() {
+            ApiClient.get("version.php?action=check", params, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
                         if (data.has("has_update") && data.get("has_update").getAsBoolean()) {
