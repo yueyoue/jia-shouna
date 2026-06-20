@@ -476,45 +476,22 @@
                     android:textColor="#718096"
                     android:textSize="12sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:id="@+id/ll_contributions"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_tag_orange"
-                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
-                    android:text="妈 86"
-                    android:textColor="#C25A1E"
-                    android:textSize="11sp" />
+                    android:orientation="horizontal" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_tag_orange"
-                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
-                    android:text="爸 42"
-                    android:textColor="#C25A1E"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_tag_blue"
-                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
-                    android:text="女 28"
-                    android:textColor="#2C5282"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_tag_green"
-                    android:paddingTop="3dp" android:paddingBottom="3dp" android:paddingLeft="8dp" android:paddingRight="8dp"
-                    android:text="儿 12"
-                    android:textColor="#22543D"
-                    android:textSize="11sp" />
+                    android:text="加载中..."
+                    android:textColor="#A0AEC0"
+                    android:textSize="11sp"
+                    android:id="@+id/tv_contrib_loading" />
             </LinearLayout>
 
             <!-- ===== Expiring Reminders Card ===== -->

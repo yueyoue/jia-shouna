@@ -186,6 +186,26 @@ switch ($action) {
         success(['code' => $house['invite_code']]);
         break;
 
+    case 'contribution':
+        $houseId = intval($_GET['house_id'] ?? 0);
+        if (!$houseId) error('缺少参数house_id');
+
+        $role = getUserHouseRole($user['id'], $houseId);
+        if (!$role) error('你不是该房屋成员', 403);
+
+        // 统计每个成员录入的物品数量
+        $stmt = $db->prepare("SELECT u.id, u.nickname, COUNT(g.id) as item_count 
+            FROM house_member hm 
+            LEFT JOIN sys_user u ON hm.user_id = u.id 
+            LEFT JOIN goods g ON g.creator_id = u.id AND g.house_id = ? AND g.status = 1
+            WHERE hm.house_id = ? 
+            GROUP BY u.id, u.nickname 
+            ORDER BY item_count DESC");
+        $stmt->execute([$houseId, $houseId]);
+        $members = $stmt->fetchAll();
+        success(['members' => $members]);
+        break;
+
     default:
         error('未知操作');
 }

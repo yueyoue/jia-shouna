@@ -81,11 +81,24 @@ public class AllItemsActivity extends AppCompatActivity {
         layoutItems.removeAllViews();
         layoutEmpty.setVisibility(View.GONE);
 
+        if (houseId <= 0) {
+            houseId = App.getInstance().getCurrentHouseId();
+        }
+        if (houseId <= 0) {
+            progress.setVisibility(View.GONE);
+            layoutEmpty.setVisibility(View.VISIBLE);
+            return;
+        }
+
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
         params.put("page_size", "100");
-        if (!keyword.isEmpty()) {
-            params.put("keyword", keyword);
+        if (keyword != null && !keyword.isEmpty()) {
+            try {
+                params.put("keyword", java.net.URLEncoder.encode(keyword, "UTF-8"));
+            } catch (Exception e) {
+                params.put("keyword", keyword);
+            }
         }
 
         String endpoint = "goods.php?action=list";

@@ -14,13 +14,19 @@ import java.util.HashMap;
 
 public class RemindersFragment extends Fragment {
     private LinearLayout llList;
-    private TextView tvStats;
+    private TextView tvStats, tvExpiryWarning, tvWeekRange;
+    private TextView tvStatExpiry, tvStatLowstock, tvStatHandled;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_reminders, container, false);
         llList = v.findViewById(R.id.ll_reminder_list);
         tvStats = v.findViewById(R.id.tv_stats);
+        tvExpiryWarning = v.findViewById(R.id.tv_expiry_warning);
+        tvWeekRange = v.findViewById(R.id.tv_week_range);
+        tvStatExpiry = v.findViewById(R.id.tv_stat_expiry);
+        tvStatLowstock = v.findViewById(R.id.tv_stat_lowstock);
+        tvStatHandled = v.findViewById(R.id.tv_stat_handled);
         loadReminders();
         return v;
     }
@@ -51,16 +57,31 @@ public class RemindersFragment extends Fragment {
                     try {
                         int expiry = 0;
                         int lowStock = 0;
+                        int handled = 0;
                         if (data.has("stats") && !data.get("stats").isJsonNull()) {
                             JsonObject stats = data.getAsJsonObject("stats");
                             expiry = stats.has("expiring_7days") ? stats.get("expiring_7days").getAsInt() : 0;
                             lowStock = stats.has("low_stock") ? stats.get("low_stock").getAsInt() : 0;
                         }
-                        // 也检查直接字段
                         if (data.has("expiring_count")) {
                             expiry = data.get("expiring_count").getAsInt();
                         }
                         tvStats.setText(expiry + " 件临期 · " + lowStock + " 件库存不足");
+                        // 更新概览卡片
+                        if (tvExpiryWarning != null) tvExpiryWarning.setText(expiry + " 件物品 7 天内过期");
+                        if (tvStatExpiry != null) tvStatExpiry.setText(String.valueOf(expiry));
+                        if (tvStatLowstock != null) tvStatLowstock.setText(String.valueOf(lowStock));
+                        if (tvStatHandled != null) tvStatHandled.setText(String.valueOf(handled));
+                        // 设置本周日期范围
+                        if (tvWeekRange != null) {
+                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM.dd", java.util.Locale.getDefault());
+                            java.util.Calendar cal = java.util.Calendar.getInstance();
+                            cal.set(java.util.Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
+                            String start = sdf.format(cal.getTime());
+                            cal.add(java.util.Calendar.DAY_OF_WEEK, 6);
+                            String end = sdf.format(cal.getTime());
+                            tvWeekRange.setText(start + " - " + end);
+                        }
                     } catch (Exception e) {
                         tvStats.setText("0 件临期 · 0 件库存不足");
                     }

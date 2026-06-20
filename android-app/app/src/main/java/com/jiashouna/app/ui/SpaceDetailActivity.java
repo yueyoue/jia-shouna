@@ -41,6 +41,9 @@ public class SpaceDetailActivity extends AppCompatActivity {
         spaceId = getIntent().getIntExtra("space_id", 0);
         spaceName = getIntent().getStringExtra("space_name");
         houseId = getIntent().getIntExtra("house_id", 0);
+        if (houseId <= 0) {
+            houseId = App.getInstance().getCurrentHouseId();
+        }
 
         tvTitle = findViewById(R.id.tv_title);
         layoutBreadcrumb = findViewById(R.id.layout_breadcrumb);

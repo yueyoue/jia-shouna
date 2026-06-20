@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $versions = $db->query("SELECT * FROM app_version ORDER BY version_code DESC")->fetchAll();
 ?>
 
-<div style="padding: 0 8px;">
+<div style="padding: 0 16px;">
 <div class="card-header" style="margin-bottom: 16px;">
     <div>
         <h2 style="font-size: 18px;">📱 APP版本更新管理</h2>
@@ -121,7 +121,7 @@ $versions = $db->query("SELECT * FROM app_version ORDER BY version_code DESC")->
     <!-- API接口说明 -->
     <div class="card">
         <div class="card-title" style="margin-bottom: 16px;">📡 接口说明</div>
-        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; font-size: 13px; line-height: 1.8;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; font-size: 13px; line-height: 1.8;">
             <p><strong>APP检查更新接口：</strong></p>
             <code style="display: block; background: #fff; padding: 8px; border-radius: 4px; margin: 8px 0;">GET /backend/api/version.php?action=check&version_code={当前版本号}</code>
             <p><strong>返回字段：</strong></p>

@@ -103,7 +103,7 @@ $tree = buildTree($spaces);
 .tree-search input:focus{background:#fff;border-color:#FF8C42}
 .tree-search::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px}
 .tree-item{position:relative}
-.tree-node{display:flex;align-items:center;gap:8px;padding:3px 10px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;position:relative;min-height:28px}
+.tree-node{display:flex;align-items:center;gap:8px;padding:3px 10px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;position:relative;height:28px}
 .tree-node:hover{background:#FFF7F0}
 .tree-node.active{background:linear-gradient(90deg,#FFF1E0 0%,transparent 100%);color:#FF8C42;font-weight:600}
 .tree-node.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:#FF8C42;border-radius:0 3px 3px 0}
@@ -301,7 +301,45 @@ async function selectSpace(id) {
         html += `</div>`;
     }
     
+    // 加载物品列表
+    html += `<div id="space-items" style="padding:20px 24px"><div style="color:#A0AEC0;font-size:13px">加载物品中...</div></div>`;
+    
     document.getElementById('space-detail').innerHTML = html;
+    
+    // 异步加载物品
+    loadSpaceItems(id);
+}
+
+async function loadSpaceItems(spaceId) {
+    const container = document.getElementById('space-items');
+    if (!container) return;
+    
+    const data = await api(`../backend/api/goods.php?action=list&space_id=${spaceId}&include_children=1&page_size=50`);
+    if (!data || !data.list) {
+        container.innerHTML = '<div style="color:#A0AEC0;font-size:13px">暂无物品</div>';
+        return;
+    }
+    
+    if (data.list.length === 0) {
+        container.innerHTML = '<div style="color:#A0AEC0;font-size:13px">该空间暂无物品</div>';
+        return;
+    }
+    
+    let html = `<div style="font-size:13px;font-weight:600;color:#2D3748;margin-bottom:12px">📦 物品列表 (${data.list.length})</div>`;
+    html += `<div style="display:grid;gap:8px">`;
+    data.list.forEach(item => {
+        const img = item.cover_image ? `<img src="${item.cover_image}" style="width:36px;height:36px;border-radius:8px;object-fit:cover" onerror="this.outerHTML='📦'">` : '📦';
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7FAFC;border-radius:8px;cursor:pointer" onclick="window.location.href='?p=items&keyword=${encodeURIComponent(item.name)}'">
+            <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#FFE8D6,#FFD3B0);display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden">${img}</div>
+            <div style="flex:1">
+                <div style="font-weight:600;font-size:13px">${item.name}</div>
+                <div style="font-size:11px;color:#718096">× ${item.quantity}${item.unit || '件'}</div>
+            </div>
+            <div style="font-size:16px;color:#CBD5E0">›</div>
+        </div>`;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
 }
 
 async function editSpace(id) {

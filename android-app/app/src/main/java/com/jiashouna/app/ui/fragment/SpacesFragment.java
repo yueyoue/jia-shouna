@@ -322,6 +322,7 @@ public class SpacesFragment extends Fragment {
             Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
             intent.putExtra("space_id", id);
             intent.putExtra("space_name", name);
+            intent.putExtra("house_id", houseId);
             startActivity(intent);
         });
 

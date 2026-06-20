@@ -23,7 +23,7 @@ import java.util.*;
 public class HomeFragment extends Fragment {
     private TextView tvGreeting, tvHouseInfo, tvItemCount, tvSpaceCount, tvExpiringCount, tvMemberCount;
     private TextView tvExpiringTag;
-    private LinearLayout llExpiringList, llRecentList;
+    private LinearLayout llExpiringList, llRecentList, llContributions;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -39,6 +39,7 @@ public class HomeFragment extends Fragment {
         tvExpiringTag = v.findViewById(R.id.tv_expiring_tag);
         llExpiringList = v.findViewById(R.id.ll_expiring_list);
         llRecentList = v.findViewById(R.id.ll_recent_list);
+        llContributions = v.findViewById(R.id.ll_contributions);
 
         // 快捷入口
         v.findViewById(R.id.btn_scan).setOnClickListener(e -> {
@@ -156,6 +157,9 @@ public class HomeFragment extends Fragment {
             }
             @Override public void onError(String msg) {}
         });
+
+        // 加载家庭贡献
+        loadContributions(houseId);
 
         // 获取物品统计
         HashMap<String, String> params2 = new HashMap<>();
@@ -400,11 +404,70 @@ public class HomeFragment extends Fragment {
             card.setFocusable(true);
             card.setOnClickListener(e -> {
                 Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
-                intent.putExtra("item_id", itemId);
+                intent.putExtra("goods_id", itemId);
                 startActivity(intent);
             });
         }
         parent.addView(card);
+    }
+
+    private void loadContributions(int houseId) {
+        if (llContributions == null || houseId <= 0) return;
+        llContributions.removeAllViews();
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+        ApiClient.get("house.php?action=contribution", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        llContributions.removeAllViews();
+                        JsonArray members = data.has("members") ? data.getAsJsonArray("members") : new JsonArray();
+                        if (members.size() == 0) {
+                            TextView tv = new TextView(getActivity());
+                            tv.setText("暂无数据");
+                            tv.setTextSize(11);
+                            tv.setTextColor(0xFFA0AEC0);
+                            llContributions.addView(tv);
+                            return;
+                        }
+                        int[] colors = {0xFFFFF0E6, 0xFFE6F0FF, 0xFFE6FFE6, 0xFFFFE6E6, 0xFFF0E6FF};
+                        int[] textColors = {0xFFC25A1E, 0xFF2C5282, 0xFF22543D, 0xFF9B2C2C, 0xFF553C9A};
+                        for (int i = 0; i < members.size(); i++) {
+                            JsonObject m = members.get(i).getAsJsonObject();
+                            String name = m.has("nickname") && !m.get("nickname").isJsonNull() ? m.get("nickname").getAsString() : "用户";
+                            int count = m.has("item_count") ? m.get("item_count").getAsInt() : 0;
+
+                            TextView tag = new TextView(getActivity());
+                            tag.setText(name + " " + count);
+                            tag.setTextSize(11);
+                            tag.setTextColor(textColors[i % textColors.length]);
+                            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                            bg.setColor(colors[i % colors.length]);
+                            bg.setCornerRadius(dp(4));
+                            tag.setBackground(bg);
+                            tag.setPadding(dp(8), dp(3), dp(8), dp(3));
+                            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                            lp.setMarginEnd(dp(4));
+                            tag.setLayoutParams(lp);
+                            llContributions.addView(tag);
+                        }
+                    } catch (Exception e) {}
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() -> {
+                    llContributions.removeAllViews();
+                    TextView tv = new TextView(getActivity());
+                    tv.setText("暂无数据");
+                    tv.setTextSize(11);
+                    tv.setTextColor(0xFFA0AEC0);
+                    llContributions.addView(tv);
+                });
+            }
+        });
     }
 
     private void addEmptyHint(LinearLayout container, String text) {

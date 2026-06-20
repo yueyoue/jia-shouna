@@ -96,7 +96,14 @@ public class ApiClient {
         try {
             if (response.body() != null) {
                 String body = response.body().string();
-                JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+                // 尝试提取JSON部分（跳过可能的PHP警告输出）
+                int jsonStart = body.indexOf('{');
+                if (jsonStart > 0) {
+                    body = body.substring(jsonStart);
+                }
+                com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(new java.io.StringReader(body));
+                reader.setLenient(true);
+                JsonObject json = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
                 int code = json.get("code").getAsInt();
                 if (code == 0) {
                     callback.onSuccess(json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject());

@@ -39,7 +39,8 @@ public class AddItemActivity extends AppCompatActivity {
     private LocalDb localDb;
     private JsonArray spaceList = new JsonArray();
     private JsonArray tagList = new JsonArray();
-    private List<String> selectedTags = new ArrayList<>();
+    private List<Integer> selectedTagIds = new ArrayList<>();
+    private List<String> selectedTagNames = new ArrayList<>();
     private List<Bitmap> photos = new ArrayList<>();
 
     private static final int REQUEST_BARCODE = 100;
@@ -447,16 +448,24 @@ public class AddItemActivity extends AppCompatActivity {
         for (int i = 0; i < tagList.size(); i++) {
             JsonObject tag = tagList.get(i).getAsJsonObject();
             names[i] = tag.has("name") ? tag.get("name").getAsString() : "";
-            checked[i] = selectedTags.contains(names[i]);
+            int tagId = tag.has("id") ? tag.get("id").getAsInt() : 0;
+            checked[i] = selectedTagIds.contains(tagId);
         }
 
         new AlertDialog.Builder(this)
             .setTitle("选择标签")
             .setMultiChoiceItems(names, checked, (d, which, isChecked) -> {
+                JsonObject tag = tagList.get(which).getAsJsonObject();
+                int tagId = tag.has("id") ? tag.get("id").getAsInt() : 0;
+                String tagName = tag.has("name") ? tag.get("name").getAsString() : "";
                 if (isChecked) {
-                    selectedTags.add(names[which]);
+                    if (!selectedTagIds.contains(tagId)) {
+                        selectedTagIds.add(tagId);
+                        selectedTagNames.add(tagName);
+                    }
                 } else {
-                    selectedTags.remove(names[which]);
+                    selectedTagIds.remove(Integer.valueOf(tagId));
+                    selectedTagNames.remove(tagName);
                 }
             })
             .setPositiveButton("确定", (d, w) -> updateTagDisplay())
@@ -484,8 +493,12 @@ public class AddItemActivity extends AppCompatActivity {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     Toast.makeText(AddItemActivity.this, "标签已创建", Toast.LENGTH_SHORT).show();
+                    int newTagId = data.has("id") ? data.get("id").getAsInt() : 0;
+                    if (newTagId > 0 && !selectedTagIds.contains(newTagId)) {
+                        selectedTagIds.add(newTagId);
+                        selectedTagNames.add(name);
+                    }
                     loadTags();
-                    selectedTags.add(name);
                     updateTagDisplay();
                 });
             }
@@ -497,7 +510,7 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void updateTagDisplay() {
         llTags.removeAllViews();
-        for (String tag : selectedTags) {
+        for (String tag : selectedTagNames) {
             TextView tv = new TextView(this);
             tv.setText(tag);
             tv.setTextSize(12);
@@ -623,6 +636,15 @@ public class AddItemActivity extends AppCompatActivity {
             body.addProperty("purchase_price", goods.purchasePrice);
             body.addProperty("note", goods.note);
             body.addProperty("is_private", goods.isPrivate);
+
+            // 添加标签
+            if (!selectedTagIds.isEmpty()) {
+                com.google.gson.JsonArray tagsArray = new com.google.gson.JsonArray();
+                for (int tagId : selectedTagIds) {
+                    tagsArray.add(tagId);
+                }
+                body.add("tags", tagsArray);
+            }
 
             ApiClient.post("goods.php?action=create", body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {

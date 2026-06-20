@@ -3,6 +3,13 @@
  * 数据库配置
  */
 
+// 抑制PHP警告，防止破坏JSON响应
+error_reporting(E_ERROR | E_PARSE);
+ini_set('display_errors', '0');
+
+// 输出缓冲
+if (!ob_start()) ob_start();
+
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
 define('DB_NAME', 'jia_shouna');

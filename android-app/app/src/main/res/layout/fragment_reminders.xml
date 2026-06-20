@@ -152,9 +152,10 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_expiry_warning"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="5 件物品 7 天内过期"
+                        android:text=""
                         android:textColor="#9B2C2C"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -195,9 +196,10 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tv_week_range"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="06.12 - 06.18"
+                        android:text=""
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
                 </LinearLayout>
@@ -218,9 +220,10 @@
                         android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
+                            android:id="@+id/tv_stat_expiry"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="5"
+                            android:text="0"
                             android:textColor="#FF8C42"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -247,9 +250,10 @@
                         android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
+                            android:id="@+id/tv_stat_lowstock"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="2"
+                            android:text="0"
                             android:textColor="#5B9FED"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -276,9 +280,10 @@
                         android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="4dp" android:paddingRight="4dp">
 
                         <TextView
+                            android:id="@+id/tv_stat_handled"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="12"
+                            android:text="0"
                             android:textColor="#48BB78"
                             android:textSize="18sp"
                             android:textStyle="bold" />

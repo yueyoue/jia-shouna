@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <style>
-.settings-layout{display:grid;grid-template-columns:220px 1fr;gap:16px}
+.settings-layout{display:grid;grid-template-columns:1fr;gap:16px}
 @media(max-width:1024px){.settings-layout{grid-template-columns:1fr}}
 .settings-nav{background:#fff;border-radius:var(--radius);border:1px solid var(--border-2);box-shadow:var(--shadow);padding:12px;height:fit-content;position:sticky;top:84px}
 .settings-nav .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#4A5568;font-size:13px;cursor:pointer;margin-bottom:2px;transition:all .2s}
