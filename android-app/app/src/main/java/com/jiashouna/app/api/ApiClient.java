@@ -94,13 +94,17 @@ public class ApiClient {
 
     private static void handleResponse(Response response, ApiCallback callback) {
         try {
+            int httpCode = response.code();
+            android.util.Log.d("ApiClient", "HTTP " + httpCode + " " + response.request().url());
             if (response.body() == null) {
-                callback.onError("服务器无响应 (HTTP " + response.code() + ")");
+                android.util.Log.e("ApiClient", "Null body for " + response.request().url());
+                callback.onError("服务器无响应 (HTTP " + httpCode + ")");
                 return;
             }
             String body = response.body().string();
+            android.util.Log.d("ApiClient", "Response body (first 300): " + (body != null ? body.substring(0, Math.min(300, body.length())) : "null"));
             if (body == null || body.trim().isEmpty()) {
-                callback.onError("服务器返回空内容 (HTTP " + response.code() + ")");
+                callback.onError("服务器返回空内容 (HTTP " + httpCode + ")");
                 return;
             }
             body = body.trim();
@@ -137,9 +141,13 @@ public class ApiClient {
             }
             int code = json.get("code").getAsInt();
             if (code == 0) {
-                callback.onSuccess(json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject());
+                JsonObject data = json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject();
+                android.util.Log.d("ApiClient", "Success, data keys: " + data.keySet());
+                callback.onSuccess(data);
             } else {
-                callback.onError(json.has("msg") ? json.get("msg").getAsString() : "请求失败");
+                String msg = json.has("msg") ? json.get("msg").getAsString() : "请求失败";
+                android.util.Log.e("ApiClient", "API error " + code + ": " + msg);
+                callback.onError(msg);
             }
         } catch (Exception e) {
             callback.onError("解析错误: " + e.getMessage());

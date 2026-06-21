@@ -235,18 +235,19 @@ public class SpaceDetailActivity extends AppCompatActivity {
         layoutEmpty.setVisibility(View.GONE);
 
         HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(houseId));
+        params.put("house_id", String.valueOf(houseId > 0 ? houseId : 0));
         params.put("space_id", String.valueOf(targetSpaceId));
 
         if (selectedContainerId == 0) {
-            // "全部"模式：加载当前空间及所有子空间的物品
             params.put("include_children", "1");
         }
-        // 指定容器时：只加载该容器的物品（不传include_children，默认0）
+
+        android.util.Log.d("SpaceDetail", "Loading items: houseId=" + houseId + " spaceId=" + targetSpaceId + " includeChildren=" + (selectedContainerId == 0));
 
         ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (isFinishing()) return;
+                android.util.Log.d("SpaceDetail", "Items response: " + (data != null ? data.toString().substring(0, Math.min(300, data.toString().length())) : "null"));
                 runOnUiThread(() -> {
                     layoutLoading.setVisibility(View.GONE);
                     try {
@@ -254,15 +255,22 @@ public class SpaceDetailActivity extends AppCompatActivity {
                         if (data != null && data.has("list") && !data.get("list").isJsonNull()) {
                             list = data.getAsJsonArray("list");
                         }
-                        buildItemsList(list);
+                        if (list.size() == 0 && selectedContainerId == 0) {
+                            // Fallback: try loading by house_id only (without space_id filter)
+                            android.util.Log.d("SpaceDetail", "Empty result, trying fallback with house_id only");
+                            loadItemsFallback(houseId);
+                        } else {
+                            buildItemsList(list);
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
-                        buildItemsList(new JsonArray());
+                        loadItemsFallback(houseId);
                     }
                 });
             }
             @Override public void onError(String msg) {
                 if (isFinishing()) return;
+                android.util.Log.e("SpaceDetail", "Items error: " + msg);
                 runOnUiThread(() -> {
                     layoutLoading.setVisibility(View.GONE);
                     layoutEmpty.setVisibility(View.VISIBLE);
@@ -487,6 +495,63 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
     private void showEmpty() {
         layoutEmpty.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Fallback: 当空间内物品查询为空时，尝试按house_id查询所有物品
+     */
+    private void loadItemsFallback(int targetHouseId) {
+        android.util.Log.d("SpaceDetail", "Fallback: loading all items for house " + targetHouseId);
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(targetHouseId > 0 ? targetHouseId : 0));
+        params.put("page_size", "200");
+
+        ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (isFinishing()) return;
+                android.util.Log.d("SpaceDetail", "Fallback response: " + (data != null ? data.toString().substring(0, Math.min(300, data.toString().length())) : "null"));
+                runOnUiThread(() -> {
+                    layoutLoading.setVisibility(View.GONE);
+                    try {
+                        JsonArray list = new JsonArray();
+                        if (data != null && data.has("list") && !data.get("list").isJsonNull()) {
+                            list = data.getAsJsonArray("list");
+                        }
+                        android.util.Log.d("SpaceDetail", "Fallback items count: " + list.size());
+                        if (list.size() == 0) {
+                            tvItemsTitle.setText("📦 物品列表（0）");
+                            layoutEmpty.setVisibility(View.VISIBLE);
+                        } else {
+                            // Filter items for this space
+                            JsonArray filtered = new JsonArray();
+                            for (int i = 0; i < list.size(); i++) {
+                                JsonObject item = list.get(i).getAsJsonObject();
+                                int itemSpaceId = item.has("space_id") ? item.get("space_id").getAsInt() : 0;
+                                if (itemSpaceId == spaceId) {
+                                    filtered.add(item);
+                                }
+                            }
+                            if (filtered.size() > 0) {
+                                buildItemsList(filtered);
+                            } else {
+                                // Show all items if no match for this space
+                                buildItemsList(list);
+                            }
+                        }
+                    } catch (Exception e) {
+                        layoutEmpty.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                if (isFinishing()) return;
+                runOnUiThread(() -> {
+                    layoutLoading.setVisibility(View.GONE);
+                    layoutEmpty.setVisibility(View.VISIBLE);
+                    tvItemsTitle.setText("📦 物品列表（0）");
+                });
+            }
+        });
     }
 
     private int dp(int dp) {

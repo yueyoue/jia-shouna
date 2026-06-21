@@ -6,6 +6,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,12 +18,13 @@ import com.jiashouna.app.api.ApiClient;
 import java.util.*;
 
 public class AllItemsActivity extends AppCompatActivity {
+    private static final String TAG = "AllItemsActivity";
     private EditText etSearch;
     private LinearLayout layoutItems, layoutEmpty;
     private ProgressBar progress;
-    private TextView tvCount, tvTitle;
+    private TextView tvCount, tvTitle, tvDebugHint;
     private int houseId = 0;
-    private String filterType = ""; // "expiring", "low_stock", etc.
+    private String filterType = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +40,13 @@ public class AllItemsActivity extends AppCompatActivity {
         progress = findViewById(R.id.progress);
         tvCount = findViewById(R.id.tv_count);
         tvTitle = findViewById(R.id.tv_title);
+
+        // Debug hint (hidden by default)
+        tvDebugHint = new TextView(this);
+        tvDebugHint.setTextSize(11);
+        tvDebugHint.setTextColor(0xFFA0AEC0);
+        tvDebugHint.setPadding(dp(16), dp(4), dp(16), dp(4));
+        tvDebugHint.setVisibility(View.GONE);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
@@ -55,9 +64,7 @@ public class AllItemsActivity extends AppCompatActivity {
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
                 String kw = s.toString().trim();
-                if (kw.length() >= 1 || kw.isEmpty()) {
-                    loadItems(kw);
-                }
+                loadItems(kw);
             }
         });
 
@@ -69,17 +76,13 @@ public class AllItemsActivity extends AppCompatActivity {
             }, 200);
         }
 
-        if (initKeyword != null && !initKeyword.isEmpty()) {
-            loadItems(initKeyword);
-        } else {
-            loadItems("");
-        }
+        String initKw = (initKeyword != null && !initKeyword.isEmpty()) ? initKeyword : "";
+        loadItems(initKw);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Refresh list when coming back (e.g. after adding items)
         String kw = etSearch.getText().toString().trim();
         loadItems(kw);
     }
@@ -88,21 +91,18 @@ public class AllItemsActivity extends AppCompatActivity {
         progress.setVisibility(View.VISIBLE);
         layoutItems.removeAllViews();
         layoutEmpty.setVisibility(View.GONE);
+        tvDebugHint.setVisibility(View.GONE);
 
         if (houseId <= 0) {
             houseId = App.getInstance().getCurrentHouseId();
         }
-        if (houseId <= 0) {
-            progress.setVisibility(View.GONE);
-            layoutEmpty.setVisibility(View.VISIBLE);
-            return;
-        }
+        Log.d(TAG, "loadItems: houseId=" + houseId + ", keyword=" + keyword + ", filter=" + filterType);
 
+        // Strategy: always pass house_id, use goods.php?action=list
         HashMap<String, String> params = new HashMap<>();
-        if (houseId > 0) {
-            params.put("house_id", String.valueOf(houseId));
-        }
-        params.put("page_size", "100");
+        params.put("house_id", String.valueOf(houseId > 0 ? houseId : 0));
+        params.put("page_size", "200");
+
         if (keyword != null && !keyword.isEmpty()) {
             params.put("keyword", keyword);
         }
@@ -113,29 +113,93 @@ public class AllItemsActivity extends AppCompatActivity {
             params.put("days", "7");
         }
 
+        Log.d(TAG, "Requesting: " + endpoint + " params=" + params);
+
         ApiClient.get(endpoint, params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
+                Log.d(TAG, "API success: " + data.toString().substring(0, Math.min(200, data.toString().length())));
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     try {
                         JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
+                        int total = data.has("total") ? data.get("total").getAsInt() : list.size();
+                        Log.d(TAG, "Items loaded: list.size=" + list.size() + ", total=" + total);
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
-                            layoutEmpty.setVisibility(View.VISIBLE);
+                            // Fallback: try without house_id filter
+                            Log.d(TAG, "Empty result with house_id, trying without filter...");
+                            loadItemsFallback(keyword);
                         } else {
                             for (int i = 0; i < list.size(); i++) {
                                 layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
                             }
                         }
                     } catch (Exception e) {
+                        Log.e(TAG, "Parse error: " + e.getMessage());
+                        loadItemsFallback(keyword);
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                Log.e(TAG, "API error: " + msg);
+                runOnUiThread(() -> {
+                    progress.setVisibility(View.GONE);
+                    // Show error hint
+                    tvDebugHint.setText("⚠ 加载失败: " + msg);
+                    tvDebugHint.setVisibility(View.VISIBLE);
+                    layoutEmpty.setVisibility(View.VISIBLE);
+                    // Retry button
+                    Button retryBtn = new Button(AllItemsActivity.this);
+                    retryBtn.setText("🔄 重试");
+                    retryBtn.setOnClickListener(v -> loadItems(keyword));
+                    layoutEmpty.addView(retryBtn);
+                });
+            }
+        });
+    }
+
+    /**
+     * Fallback: try loading all items without house_id filter
+     */
+    private void loadItemsFallback(String keyword) {
+        Log.d(TAG, "Fallback: loading without house_id filter");
+        HashMap<String, String> params = new HashMap<>();
+        params.put("page_size", "200");
+        if (keyword != null && !keyword.isEmpty()) {
+            params.put("keyword", keyword);
+        }
+
+        ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                Log.d(TAG, "Fallback success: " + data.toString().substring(0, Math.min(200, data.toString().length())));
+                runOnUiThread(() -> {
+                    progress.setVisibility(View.GONE);
+                    try {
+                        JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
+                        Log.d(TAG, "Fallback items: " + list.size());
+                        tvCount.setText(list.size() + " 件");
+                        if (list.size() == 0) {
+                            layoutEmpty.setVisibility(View.VISIBLE);
+                            tvDebugHint.setText("提示: 当前家庭暂无物品，请先录入");
+                            tvDebugHint.setVisibility(View.VISIBLE);
+                        } else {
+                            for (int i = 0; i < list.size(); i++) {
+                                layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Fallback parse error: " + e.getMessage());
                         layoutEmpty.setVisibility(View.VISIBLE);
                     }
                 });
             }
             @Override public void onError(String msg) {
+                Log.e(TAG, "Fallback error: " + msg);
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     layoutEmpty.setVisibility(View.VISIBLE);
+                    tvDebugHint.setText("⚠ 加载失败: " + msg + "\n请检查网络连接或重新登录");
+                    tvDebugHint.setVisibility(View.VISIBLE);
                 });
             }
         });
@@ -150,7 +214,8 @@ public class AllItemsActivity extends AppCompatActivity {
 
         // Icon
         TextView icon = new TextView(this);
-        String iconStr = item.has("icon") && !item.get("icon").isJsonNull() ? item.get("icon").getAsString() : "📦";
+        String category = item.has("category") && !item.get("category").isJsonNull() ? item.get("category").getAsString() : "";
+        String iconStr = getCategoryIcon(category);
         icon.setText(iconStr);
         icon.setTextSize(20);
         icon.setGravity(android.view.Gravity.CENTER);
@@ -220,6 +285,23 @@ public class AllItemsActivity extends AppCompatActivity {
             return wrapper;
         }
         return row;
+    }
+
+    private String getCategoryIcon(String category) {
+        if (category == null) return "📦";
+        switch (category) {
+            case "食品": return "🍪";
+            case "药品": return "💊";
+            case "衣物": return "👕";
+            case "日用品": return "🧴";
+            case "数码": return "📱";
+            case "证件": return "📄";
+            case "厨具": return "🍳";
+            case "饮品": return "🥤";
+            case "玩具": return "🧸";
+            case "文具": return "✏️";
+            default: return "📦";
+        }
     }
 
     private int dp(int dp) {
