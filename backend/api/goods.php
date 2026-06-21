@@ -101,7 +101,8 @@ switch ($action) {
         if (!$id) error('缺少参数id');
 
         $stmt = $db->prepare("SELECT g.*, s.name as space_name, s.icon as space_icon, s.color as space_color,
-            u.nickname as creator_name
+            u.nickname as creator_name,
+            (SELECT image_path FROM goods_image WHERE goods_id = g.id ORDER BY sort_order ASC LIMIT 1) as cover_image
             FROM goods g 
             LEFT JOIN storage_space s ON g.space_id = s.id 
             LEFT JOIN sys_user u ON g.creator_id = u.id 
@@ -124,6 +125,11 @@ switch ($action) {
             $img['image_path'] = IMAGE_URL_PREFIX . $img['image_path'];
             $img['thumb_path'] = $img['thumb_path'] ? IMAGE_URL_PREFIX . $img['thumb_path'] : '';
         }
+        // 处理cover_image
+        if (!empty($goods['cover_image'])) {
+            $goods['cover_image'] = IMAGE_URL_PREFIX . $goods['cover_image'];
+        }
+
         $goods['images'] = $images;
 
         // 获取标签

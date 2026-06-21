@@ -308,20 +308,29 @@ public class ItemDetailActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
-        // Photos
+        // Photos - show actual images, or cover_image as fallback, or default icon
+        List<String> imageUrls = new ArrayList<>();
         if (g.has("images") && !g.get("images").isJsonNull()) {
             JsonArray images = g.getAsJsonArray("images");
-            if (images.size() > 0) {
-                List<String> imageUrls = new ArrayList<>();
-                for (int i = 0; i < images.size(); i++) {
-                    JsonObject img = images.get(i).getAsJsonObject();
-                    String url = img.has("image_path") && !img.get("image_path").isJsonNull() ? img.get("image_path").getAsString() : "";
-                    if (!url.isEmpty()) imageUrls.add(url);
-                }
-                if (!imageUrls.isEmpty()) {
-                    setupPhotoGallery(imageUrls);
-                }
+            for (int i = 0; i < images.size(); i++) {
+                JsonObject img = images.get(i).getAsJsonObject();
+                String url = img.has("image_path") && !img.get("image_path").isJsonNull() ? img.get("image_path").getAsString() : "";
+                if (!url.isEmpty()) imageUrls.add(url);
             }
+        }
+        // Fallback: use cover_image from list API if no images array
+        if (imageUrls.isEmpty() && g.has("cover_image") && !g.get("cover_image").isJsonNull()) {
+            String coverUrl = g.get("cover_image").getAsString();
+            if (!coverUrl.isEmpty()) imageUrls.add(coverUrl);
+        }
+        if (!imageUrls.isEmpty()) {
+            setupPhotoGallery(imageUrls);
+        } else {
+            // No images: show default category-based placeholder
+            tvDefaultIcon.setText(icon);
+            tvDefaultIcon.setVisibility(View.VISIBLE);
+            viewpagerPhotos.setVisibility(View.GONE);
+            tvPhotoCounter.setVisibility(View.GONE);
         }
 
         // Borrow records
@@ -541,27 +550,113 @@ public class ItemDetailActivity extends AppCompatActivity {
     }
 
     private void borrowItem() {
+        if (currentGoods == null) return;
+        double currentQty = currentGoods.has("quantity") ? currentGoods.get("quantity").getAsDouble() : 1;
+        String unit = currentGoods.has("unit") && !currentGoods.get("unit").isJsonNull() ? currentGoods.get("unit").getAsString() : "个";
+
+        if (currentQty <= 1) {
+            // 只有1件，直接领用
+            confirmBorrow(1);
+            return;
+        }
+
+        // 多件时，显示数量选择对话框
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(24), dp(16), dp(24), dp(8));
+
+        TextView hint = new TextView(this);
+        hint.setText("当前库存: " + (int) currentQty + unit);
+        hint.setTextSize(14);
+        hint.setTextColor(0xFF718096);
+        container.addView(hint);
+
+        // 数量选择器
+        LinearLayout qtyRow = new LinearLayout(this);
+        qtyRow.setOrientation(LinearLayout.HORIZONTAL);
+        qtyRow.setGravity(Gravity.CENTER_VERTICAL);
+        qtyRow.setPadding(0, dp(16), 0, 0);
+
+        TextView btnMinus = new TextView(this);
+        btnMinus.setText("−");
+        btnMinus.setTextSize(20);
+        btnMinus.setTextColor(0xFFFF8C42);
+        btnMinus.setGravity(Gravity.CENTER);
+        btnMinus.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
+        btnMinus.setBackgroundResource(R.drawable.bg_icon_btn_rounded);
+
+        EditText etQty = new EditText(this);
+        etQty.setText("1");
+        etQty.setTextSize(18);
+        etQty.setTextColor(0xFF2D3748);
+        etQty.setGravity(Gravity.CENTER);
+        etQty.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        LinearLayout.LayoutParams etLp = new LinearLayout.LayoutParams(dp(60), LinearLayout.LayoutParams.WRAP_CONTENT);
+        etLp.setMarginStart(dp(12));
+        etLp.setMarginEnd(dp(12));
+        etQty.setLayoutParams(etLp);
+
+        TextView unitTv = new TextView(this);
+        unitTv.setText(unit);
+        unitTv.setTextSize(14);
+        unitTv.setTextColor(0xFF718096);
+
+        TextView btnPlus = new TextView(this);
+        btnPlus.setText("+");
+        btnPlus.setTextSize(20);
+        btnPlus.setTextColor(0xFFFF8C42);
+        btnPlus.setGravity(Gravity.CENTER);
+        btnPlus.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
+        btnPlus.setBackgroundResource(R.drawable.bg_icon_btn_rounded);
+
+        btnMinus.setOnClickListener(v -> {
+            int val = 1;
+            try { val = Integer.parseInt(etQty.getText().toString()); } catch (Exception ignored) {}
+            val = Math.max(1, val - 1);
+            etQty.setText(String.valueOf(val));
+        });
+        btnPlus.setOnClickListener(v -> {
+            int val = 1;
+            try { val = Integer.parseInt(etQty.getText().toString()); } catch (Exception ignored) {}
+            val = Math.min((int) currentQty, val + 1);
+            etQty.setText(String.valueOf(val));
+        });
+
+        qtyRow.addView(btnMinus);
+        qtyRow.addView(etQty);
+        qtyRow.addView(unitTv);
+        qtyRow.addView(btnPlus);
+        container.addView(qtyRow);
+
         new AlertDialog.Builder(this)
             .setTitle("领用物品")
-            .setMessage("确认领用此物品？")
-            .setPositiveButton("确认", (d, w) -> {
-                JsonObject body = new JsonObject();
-                body.addProperty("goods_id", goodsId);
-                body.addProperty("quantity", 1);
-                ApiClient.post("goods.php?action=borrow", body, new ApiClient.ApiCallback() {
-                    @Override public void onSuccess(JsonObject data) {
-                        runOnUiThread(() -> {
-                            Toast.makeText(ItemDetailActivity.this, "领用成功", Toast.LENGTH_SHORT).show();
-                            loadDetail();
-                        });
-                    }
-                    @Override public void onError(String msg) {
-                        runOnUiThread(() -> Toast.makeText(ItemDetailActivity.this, "领用失败: " + msg, Toast.LENGTH_SHORT).show());
-                    }
-                });
+            .setView(container)
+            .setPositiveButton("确认领用", (d, w) -> {
+                int qty = 1;
+                try { qty = Integer.parseInt(etQty.getText().toString()); } catch (Exception ignored) {}
+                if (qty < 1) qty = 1;
+                if (qty > (int) currentQty) qty = (int) currentQty;
+                confirmBorrow(qty);
             })
             .setNegativeButton("取消", null)
             .show();
+    }
+
+    private void confirmBorrow(int quantity) {
+        JsonObject body = new JsonObject();
+        body.addProperty("goods_id", goodsId);
+        body.addProperty("quantity", quantity);
+        ApiClient.post("goods.php?action=borrow", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    Toast.makeText(ItemDetailActivity.this, "领用成功", Toast.LENGTH_SHORT).show();
+                    loadDetail();
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(ItemDetailActivity.this, "领用失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void shareItem() {

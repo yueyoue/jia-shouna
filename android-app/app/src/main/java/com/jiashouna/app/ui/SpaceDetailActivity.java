@@ -236,15 +236,13 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
+        params.put("space_id", String.valueOf(targetSpaceId));
 
         if (selectedContainerId == 0) {
             // "全部"模式：加载当前空间及所有子空间的物品
-            params.put("space_id", String.valueOf(targetSpaceId));
             params.put("include_children", "1");
-        } else {
-            // 指定容器：只加载该容器的物品
-            params.put("space_id", String.valueOf(targetSpaceId));
         }
+        // 指定容器时：只加载该容器的物品（不传include_children，默认0）
 
         ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
@@ -253,11 +251,12 @@ public class SpaceDetailActivity extends AppCompatActivity {
                     layoutLoading.setVisibility(View.GONE);
                     try {
                         JsonArray list = new JsonArray();
-                        if (data.has("list") && !data.get("list").isJsonNull()) {
+                        if (data != null && data.has("list") && !data.get("list").isJsonNull()) {
                             list = data.getAsJsonArray("list");
                         }
                         buildItemsList(list);
                     } catch (Exception e) {
+                        e.printStackTrace();
                         buildItemsList(new JsonArray());
                     }
                 });
@@ -266,8 +265,9 @@ public class SpaceDetailActivity extends AppCompatActivity {
                 if (isFinishing()) return;
                 runOnUiThread(() -> {
                     layoutLoading.setVisibility(View.GONE);
+                    layoutEmpty.setVisibility(View.VISIBLE);
+                    tvItemsTitle.setText("📦 物品列表（0）");
                     Toast.makeText(SpaceDetailActivity.this, "物品加载失败: " + msg, Toast.LENGTH_SHORT).show();
-                    buildItemsList(new JsonArray());
                 });
             }
         });

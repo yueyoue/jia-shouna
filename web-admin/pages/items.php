@@ -1,13 +1,21 @@
 <?php
+require_once __DIR__ . '/../../backend/config/helpers.php';
 $db = getDB();
 
 // 处理编辑物品
 $editItem = null;
+$editItemImages = [];
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
     $editId = intval($_GET['id']);
     $stmt = $db->prepare('SELECT g.*, s.name as space_name FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE g.id = ? AND g.status = 1');
     $stmt->execute([$editId]);
     $editItem = $stmt->fetch();
+    // 加载物品图片
+    if ($editItem) {
+        $imgStmt = $db->prepare('SELECT * FROM goods_image WHERE goods_id = ? ORDER BY sort_order ASC');
+        $imgStmt->execute([$editId]);
+        $editItemImages = $imgStmt->fetchAll();
+    }
 }
 
 // 处理保存编辑
@@ -22,6 +30,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['post_action'] ?? '') === '
             $_POST['unit'] ?? '个', $_POST['purchase_date'] ?: null, $_POST['expiry_date'] ?: null,
             $_POST['purchase_price'] ?: null, $_POST['note'] ?? '', $now, $editId
         ]);
+
+        // 处理新上传的图片
+        if (!empty($_FILES['images']['name'][0])) {
+            $uploadDir = __DIR__ . '/../backend/uploads/images/' . date('Ym') . '/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+            $thumbDir = $uploadDir . 'thumb/';
+            if (!is_dir($thumbDir)) mkdir($thumbDir, 0755, true);
+
+            // 获取当前最大排序号
+            $maxStmt = $db->prepare('SELECT COALESCE(MAX(sort_order), -1) as max_order FROM goods_image WHERE goods_id = ?');
+            $maxStmt->execute([$editId]);
+            $maxOrder = intval($maxStmt->fetch()['max_order']);
+
+            foreach ($_FILES['images']['name'] as $idx => $name) {
+                if ($_FILES['images']['error'][$idx] !== 0) continue;
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) continue;
+
+                $filename = date('YmdHis') . '_' . substr(md5(uniqid(mt_rand(), true)), 0, 8) . '.' . $ext;
+                $destPath = $uploadDir . $filename;
+                $relativePath = 'images/' . date('Ym') . '/' . $filename;
+
+                if (move_uploaded_file($_FILES['images']['tmp_name'][$idx], $destPath)) {
+                    // 创建缩略图
+                    $thumbPath = $thumbDir . $filename;
+                    createThumbnail($destPath, $thumbPath, 200);
+                    $thumbRelative = 'images/' . date('Ym') . '/thumb/' . $filename;
+
+                    $insStmt = $db->prepare('INSERT INTO goods_image (goods_id, image_path, thumb_path, sort_order, created_at) VALUES (?, ?, ?, ?, ?)');
+                    $insStmt->execute([$editId, $relativePath, $thumbRelative, $maxOrder + 1 + $idx, $now]);
+                }
+            }
+        }
+
+        // 处理删除图片
+        if (!empty($_POST['delete_images'])) {
+            $deleteIds = $_POST['delete_images'];
+            foreach ($deleteIds as $delId) {
+                $delStmt = $db->prepare('SELECT image_path, thumb_path FROM goods_image WHERE id = ? AND goods_id = ?');
+                $delStmt->execute([intval($delId), $editId]);
+                $delImg = $delStmt->fetch();
+                if ($delImg) {
+                    // 删除文件
+                    $fullPath = __DIR__ . '/../backend/uploads/' . $delImg['image_path'];
+                    if (file_exists($fullPath)) unlink($fullPath);
+                    if (!empty($delImg['thumb_path'])) {
+                        $thumbFull = __DIR__ . '/../backend/uploads/' . $delImg['thumb_path'];
+                        if (file_exists($thumbFull)) unlink($thumbFull);
+                    }
+                    $db->prepare('DELETE FROM goods_image WHERE id = ?')->execute([intval($delId)]);
+                }
+            }
+        }
+
         $msg = '物品信息已更新';
         $editItem = null;
     }
@@ -271,8 +333,8 @@ function filterByTag(tagName) {
                 <td>
                     <div class="item-info">
                         <?php if ($item['cover_image']): ?>
-                        <div class="item-img" style="background:none;position:relative;cursor:pointer" onmouseenter="showPreview(this, '<?= htmlspecialchars($item['cover_image']) ?>')" onmouseleave="hidePreview()">
-                            <img src="<?= htmlspecialchars($item['cover_image']) ?>" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.parentNode.innerHTML='📦'">
+                        <div class="item-img" style="background:none;position:relative;cursor:pointer" onmouseenter="showPreview(this, '<?= htmlspecialchars(IMAGE_URL_PREFIX . $item['cover_image']) ?>')" onmouseleave="hidePreview()">
+                            <img src="<?= htmlspecialchars(IMAGE_URL_PREFIX . $item['cover_image']) ?>" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.parentNode.innerHTML='📦'">
                         </div>
                         <?php else: ?>
                         <div class="item-img">📦</div>
@@ -493,9 +555,28 @@ async function deleteItem(id) {
             <h3 style="font-size:16px;font-weight:600">编辑物品 - <?= htmlspecialchars($editItem['name']) ?></h3>
             <a href="?p=items" style="cursor:pointer;font-size:20px;color:#999;text-decoration:none">&times;</a>
         </div>
-        <form method="POST" style="text-align:left">
+        <form method="POST" enctype="multipart/form-data" style="text-align:left">
             <input type="hidden" name="post_action" value="edit_item">
             <input type="hidden" name="edit_id" value="<?= $editItem['id'] ?>">
+
+            <!-- 图片管理 -->
+            <div class="form-group">
+                <label class="form-label">📷 物品图片</label>
+                <div id="edit-images-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+                    <?php if (!empty($editItemImages)): foreach ($editItemImages as $img): ?>
+                    <div class="edit-img-item" data-id="<?= $img['id'] ?>" style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid #EDF2F7">
+                        <img src="<?= IMAGE_URL_PREFIX . $img['image_path'] ?>" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.style.display='none'">
+                        <label style="position:absolute;top:2px;right:2px;background:rgba(255,255,255,.9);border-radius:4px;padding:1px 4px;cursor:pointer;font-size:11px;color:#F56565">
+                            <input type="checkbox" name="delete_images[]" value="<?= $img['id'] ?>" style="display:none" onchange="this.parentNode.style.opacity=this.checked?'1':'0.6';if(this.checked)this.parentNode.parentNode.style.opacity='0.4'">
+                            ✕
+                        </label>
+                    </div>
+                    <?php endforeach; endif; ?>
+                </div>
+                <input type="file" name="images[]" accept="image/*" multiple class="form-control" style="font-size:12px">
+                <p style="font-size:11px;color:#A0AEC0;margin:4px 0 0">选择新图片追加上传，勾选 ✕ 删除已有图片</p>
+            </div>
+
             <div class="form-group"><label class="form-label">物品名称 *</label><input name="name" class="form-control" required value="<?= htmlspecialchars($editItem['name']) ?>"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group"><label class="form-label">条形码</label><input name="barcode" class="form-control" value="<?= htmlspecialchars($editItem['barcode'] ?? '') ?>"></div>
