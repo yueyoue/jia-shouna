@@ -41,7 +41,6 @@ switch ($action) {
                 $where[] = "g.space_id = ?";
                 $params[] = $spaceId;
             }
-            $params[] = $spaceId;
         }
         if ($category) {
             $where[] = "g.category = ?";
@@ -254,6 +253,19 @@ switch ($action) {
             foreach ($input['tags'] as $tagId) {
                 $stmt = $db->prepare("INSERT IGNORE INTO goods_tag (goods_id, tag_id) VALUES (?, ?)");
                 $stmt->execute([$id, $tagId]);
+            }
+        }
+
+        // 追加图片
+        if (!empty($input['images'])) {
+            $now = time();
+            // 获取当前最大排序号
+            $stmt2 = $db->prepare("SELECT COALESCE(MAX(sort_order), -1) as max_order FROM goods_image WHERE goods_id = ?");
+            $stmt2->execute([$id]);
+            $maxOrder = intval($stmt2->fetch()['max_order']);
+            foreach ($input['images'] as $idx => $imgPath) {
+                $stmt3 = $db->prepare("INSERT INTO goods_image (goods_id, image_path, sort_order, created_at) VALUES (?, ?, ?, ?)");
+                $stmt3->execute([$id, $imgPath, $maxOrder + 1 + $idx, $now]);
             }
         }
 

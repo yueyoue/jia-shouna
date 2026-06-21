@@ -16,6 +16,7 @@ public class RemindersFragment extends Fragment {
     private LinearLayout llList;
     private TextView tvStats, tvExpiryWarning, tvWeekRange;
     private TextView tvStatExpiry, tvStatLowstock, tvStatHandled;
+    private ProgressBar pbLoading;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,10 +42,28 @@ public class RemindersFragment extends Fragment {
         int houseId = App.getInstance().getCurrentHouseId();
         if (houseId <= 0) {
             tvStats.setText("暂无数据");
+            if (tvExpiryWarning != null) tvExpiryWarning.setText("请先创建或加入一个家庭");
             llList.removeAllViews();
             addEmptyHint("请先创建或加入一个家庭");
             return;
         }
+
+        // 设置本周日期范围
+        if (tvWeekRange != null) {
+            try {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM.dd", java.util.Locale.getDefault());
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.set(java.util.Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
+                String start = sdf.format(cal.getTime());
+                cal.add(java.util.Calendar.DAY_OF_WEEK, 6);
+                String end = sdf.format(cal.getTime());
+                tvWeekRange.setText(start + " - " + end);
+            } catch (Exception ignored) {}
+        }
+
+        // 显示加载状态
+        llList.removeAllViews();
+        addLoadingHint();
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
@@ -62,34 +81,39 @@ public class RemindersFragment extends Fragment {
                             JsonObject stats = data.getAsJsonObject("stats");
                             expiry = stats.has("expiring_7days") ? stats.get("expiring_7days").getAsInt() : 0;
                             lowStock = stats.has("low_stock") ? stats.get("low_stock").getAsInt() : 0;
+                            handled = stats.has("handled") ? stats.get("handled").getAsInt() : 0;
                         }
                         if (data.has("expiring_count")) {
-                            expiry = data.get("expiring_count").getAsInt();
+                            try { expiry = data.get("expiring_count").getAsInt(); } catch (Exception ignored) {}
                         }
                         tvStats.setText(expiry + " 件临期 · " + lowStock + " 件库存不足");
-                        // 更新概览卡片
-                        if (tvExpiryWarning != null) tvExpiryWarning.setText(expiry + " 件物品 7 天内过期");
+                        if (tvExpiryWarning != null) {
+                            if (expiry > 0) {
+                                tvExpiryWarning.setText(expiry + " 件物品 7 天内过期");
+                            } else {
+                                tvExpiryWarning.setText("暂无临期物品 👍");
+                            }
+                        }
                         if (tvStatExpiry != null) tvStatExpiry.setText(String.valueOf(expiry));
                         if (tvStatLowstock != null) tvStatLowstock.setText(String.valueOf(lowStock));
                         if (tvStatHandled != null) tvStatHandled.setText(String.valueOf(handled));
-                        // 设置本周日期范围
-                        if (tvWeekRange != null) {
-                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM.dd", java.util.Locale.getDefault());
-                            java.util.Calendar cal = java.util.Calendar.getInstance();
-                            cal.set(java.util.Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
-                            String start = sdf.format(cal.getTime());
-                            cal.add(java.util.Calendar.DAY_OF_WEEK, 6);
-                            String end = sdf.format(cal.getTime());
-                            tvWeekRange.setText(start + " - " + end);
-                        }
                     } catch (Exception e) {
                         tvStats.setText("0 件临期 · 0 件库存不足");
+                        if (tvExpiryWarning != null) tvExpiryWarning.setText("暂无临期物品");
+                        if (tvStatExpiry != null) tvStatExpiry.setText("0");
+                        if (tvStatLowstock != null) tvStatLowstock.setText("0");
+                        if (tvStatHandled != null) tvStatHandled.setText("0");
                     }
                 });
             }
             @Override public void onError(String msg) {
-                if (getActivity() != null) getActivity().runOnUiThread(() ->
-                    tvStats.setText("0 件临期 · 0 件库存不足"));
+                if (getActivity() != null) getActivity().runOnUiThread(() -> {
+                    tvStats.setText("0 件临期 · 0 件库存不足");
+                    if (tvExpiryWarning != null) tvExpiryWarning.setText("暂无临期物品");
+                    if (tvStatExpiry != null) tvStatExpiry.setText("0");
+                    if (tvStatLowstock != null) tvStatLowstock.setText("0");
+                    if (tvStatHandled != null) tvStatHandled.setText("0");
+                });
             }
         });
 
@@ -121,7 +145,7 @@ public class RemindersFragment extends Fragment {
             @Override public void onError(String msg) {
                 if (getActivity() != null) getActivity().runOnUiThread(() -> {
                     llList.removeAllViews();
-                    addEmptyHint("加载失败: " + msg);
+                    addEmptyHint("暂无提醒\n系统会在物品临期时自动提醒您");
                 });
             }
         });
@@ -160,7 +184,8 @@ public class RemindersFragment extends Fragment {
         content.setLayoutParams(contentLp);
 
         TextView title = new TextView(getActivity());
-        title.setText(item.has("title") ? item.get("title").getAsString() : "");
+        String titleText = item.has("title") && !item.get("title").isJsonNull() ? item.get("title").getAsString() : "";
+        title.setText(titleText);
         title.setTextSize(14);
         title.setTextColor(Color.parseColor("#2D3748"));
         title.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -177,23 +202,67 @@ public class RemindersFragment extends Fragment {
         }
 
         if (item.has("goods_name") && !item.get("goods_name").isJsonNull()) {
-            TextView goods = new TextView(getActivity());
-            goods.setText("📦 " + item.get("goods_name").getAsString());
-            goods.setTextSize(11);
-            goods.setTextColor(Color.parseColor("#A0AEC0"));
-            content.addView(goods);
+            String goodsName = item.get("goods_name").getAsString();
+            if (!goodsName.isEmpty()) {
+                TextView goods = new TextView(getActivity());
+                goods.setText("📦 " + goodsName);
+                goods.setTextSize(11);
+                goods.setTextColor(Color.parseColor("#A0AEC0"));
+                content.addView(goods);
+            }
+        }
+
+        // 显示剩余天数（临期提醒）
+        if ("expiry".equals(type) && item.has("days_left") && !item.get("days_left").isJsonNull()) {
+            try {
+                int daysLeft = item.get("days_left").getAsInt();
+                TextView daysTv = new TextView(getActivity());
+                if (daysLeft < 0) {
+                    daysTv.setText("已过期 " + Math.abs(daysLeft) + " 天");
+                    daysTv.setTextColor(Color.parseColor("#F56565"));
+                } else if (daysLeft == 0) {
+                    daysTv.setText("今天到期");
+                    daysTv.setTextColor(Color.parseColor("#F56565"));
+                } else if (daysLeft <= 3) {
+                    daysTv.setText("还剩 " + daysLeft + " 天");
+                    daysTv.setTextColor(Color.parseColor("#ED8936"));
+                } else {
+                    daysTv.setText("还剩 " + daysLeft + " 天");
+                    daysTv.setTextColor(Color.parseColor("#48BB78"));
+                }
+                daysTv.setTextSize(11);
+                daysTv.setTypeface(null, android.graphics.Typeface.BOLD);
+                content.addView(daysTv);
+            } catch (Exception ignored) {}
         }
 
         row.addView(content);
 
-        // 状态
-        boolean isRead = item.has("is_read") && item.get("is_read").getAsInt() == 1;
+        // 状态 - 未读标记
+        boolean isRead = item.has("is_read") && !item.get("is_read").isJsonNull() && item.get("is_read").getAsInt() == 1;
         if (!isRead) {
             TextView dot = new TextView(getActivity());
             dot.setText("●");
             dot.setTextSize(12);
             dot.setTextColor(Color.parseColor("#FF8C42"));
             row.addView(dot);
+        }
+
+        // 点击跳转到物品详情
+        if (item.has("goods_id") && !item.get("goods_id").isJsonNull()) {
+            try {
+                int goodsId = item.get("goods_id").getAsInt();
+                if (goodsId > 0) {
+                    row.setClickable(true);
+                    row.setFocusable(true);
+                    final int finalGoodsId = goodsId;
+                    row.setOnClickListener(v -> {
+                        Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
+                        intent.putExtra("goods_id", finalGoodsId);
+                        startActivity(intent);
+                    });
+                }
+            } catch (Exception ignored) {}
         }
 
         llList.addView(row);
@@ -208,6 +277,24 @@ public class RemindersFragment extends Fragment {
         tv.setTextSize(14);
         tv.setPadding(0, dp(60), 0, dp(60));
         llList.addView(tv);
+    }
+
+    private void addLoadingHint() {
+        if (getActivity() == null) return;
+        LinearLayout layout = new LinearLayout(getActivity());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setGravity(Gravity.CENTER);
+        layout.setPadding(0, dp(40), 0, dp(40));
+        ProgressBar pb = new ProgressBar(getActivity());
+        layout.addView(pb);
+        TextView tv = new TextView(getActivity());
+        tv.setText("加载中...");
+        tv.setGravity(Gravity.CENTER);
+        tv.setTextColor(Color.parseColor("#A0AEC0"));
+        tv.setTextSize(13);
+        tv.setPadding(0, dp(8), 0, 0);
+        layout.addView(tv);
+        llList.addView(layout);
     }
 
     private int dp(int dp) {

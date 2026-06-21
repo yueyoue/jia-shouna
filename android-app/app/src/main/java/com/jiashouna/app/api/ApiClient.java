@@ -94,24 +94,52 @@ public class ApiClient {
 
     private static void handleResponse(Response response, ApiCallback callback) {
         try {
-            if (response.body() != null) {
-                String body = response.body().string();
-                // 尝试提取JSON部分（跳过可能的PHP警告输出）
-                int jsonStart = body.indexOf('{');
-                if (jsonStart > 0) {
-                    body = body.substring(jsonStart);
-                }
+            if (response.body() == null) {
+                callback.onError("服务器无响应 (HTTP " + response.code() + ")");
+                return;
+            }
+            String body = response.body().string();
+            if (body == null || body.trim().isEmpty()) {
+                callback.onError("服务器返回空内容 (HTTP " + response.code() + ")");
+                return;
+            }
+            body = body.trim();
+            // 尝试提取JSON部分（跳过可能的PHP警告/Notice输出）
+            int jsonStart = body.indexOf('{');
+            if (jsonStart < 0) {
+                // 也可能返回的是JSON数组
+                jsonStart = body.indexOf('[');
+            }
+            if (jsonStart > 0) {
+                body = body.substring(jsonStart);
+            }
+            com.google.gson.JsonElement element;
+            try {
                 com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(new java.io.StringReader(body));
                 reader.setLenient(true);
-                JsonObject json = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
-                int code = json.get("code").getAsInt();
-                if (code == 0) {
-                    callback.onSuccess(json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject());
-                } else {
-                    callback.onError(json.has("msg") ? json.get("msg").getAsString() : "请求失败");
-                }
+                element = com.google.gson.JsonParser.parseReader(reader);
+            } catch (Exception parseErr) {
+                callback.onError("服务器返回了无效的数据格式");
+                return;
+            }
+            if (element == null || element.isJsonNull()) {
+                callback.onError("服务器返回了空数据");
+                return;
+            }
+            if (!element.isJsonObject()) {
+                callback.onError("服务器返回了非预期的数据类型");
+                return;
+            }
+            JsonObject json = element.getAsJsonObject();
+            if (!json.has("code")) {
+                callback.onError("服务器响应格式不正确");
+                return;
+            }
+            int code = json.get("code").getAsInt();
+            if (code == 0) {
+                callback.onSuccess(json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject());
             } else {
-                callback.onError("响应为空");
+                callback.onError(json.has("msg") ? json.get("msg").getAsString() : "请求失败");
             }
         } catch (Exception e) {
             callback.onError("解析错误: " + e.getMessage());

@@ -33,6 +33,7 @@
         <activity android:name=".ui.FamilyShareActivity" />
         <activity android:name=".ui.SpaceDetailActivity" />
         <activity android:name=".ui.BarcodeScanActivity" android:screenOrientation="portrait" />
+        <activity android:name=".ui.CaptureActivityPortrait" android:screenOrientation="portrait" />
         <activity android:name=".ui.AllItemsActivity" />
 
         <provider

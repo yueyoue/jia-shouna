@@ -398,13 +398,19 @@ public class HomeFragment extends Fragment {
 
         card.addView(info);
         // 点击打开物品详情
-        int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
+        int itemId = 0;
+        try {
+            if (item.has("id") && !item.get("id").isJsonNull()) {
+                itemId = item.get("id").getAsInt();
+            }
+        } catch (Exception ignored) {}
         if (itemId > 0) {
             card.setClickable(true);
             card.setFocusable(true);
+            final int finalItemId = itemId;
             card.setOnClickListener(e -> {
                 Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
-                intent.putExtra("goods_id", itemId);
+                intent.putExtra("goods_id", finalItemId);
                 startActivity(intent);
             });
         }

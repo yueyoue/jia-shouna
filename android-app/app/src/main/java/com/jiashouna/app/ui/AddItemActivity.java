@@ -676,13 +676,81 @@ public class AddItemActivity extends AppCompatActivity {
     private void uploadPhotos(int goodsId) {
         // 异步上传照片，不阻塞UI
         new Thread(() -> {
+            List<String> imagePaths = new java.util.ArrayList<>();
             for (Bitmap photo : photos) {
                 try {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     photo.compress(Bitmap.CompressFormat.JPEG, 80, baos);
                     byte[] imageBytes = baos.toByteArray();
-                    // TODO: 使用multipart上传到 upload.php?action=image
-                } catch (Exception e) {}
+
+                    // 使用multipart上传到 upload.php?action=image
+                    okhttp3.MultipartBody.Builder builder = new okhttp3.MultipartBody.Builder()
+                        .setType(okhttp3.MultipartBody.FORM)
+                        .addFormDataPart("file", "photo_" + System.currentTimeMillis() + ".jpg",
+                            okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
+
+                    String uploadUrl = App.BASE_URL + "upload.php?action=image";
+                    okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
+                        .url(uploadUrl)
+                        .post(builder.build());
+
+                    String token = App.getInstance().getToken();
+                    if (token != null && !token.isEmpty()) {
+                        reqBuilder.addHeader("Authorization", "Bearer " + token);
+                    }
+
+                    okhttp3.Response response = new okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .build()
+                        .newCall(reqBuilder.build())
+                        .execute();
+
+                    if (response.body() != null) {
+                        String body = response.body().string();
+                        // 提取JSON部分
+                        int jsonStart = body.indexOf('{');
+                        if (jsonStart >= 0) body = body.substring(jsonStart);
+                        try {
+                            com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(new java.io.StringReader(body));
+                            reader.setLenient(true);
+                            JsonObject json = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+                            if (json.has("code") && json.get("code").getAsInt() == 0) {
+                                JsonObject data = json.getAsJsonObject("data");
+                                if (data.has("image_path")) {
+                                    imagePaths.add(data.get("image_path").getAsString());
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // 将图片路径关联到物品
+            if (!imagePaths.isEmpty()) {
+                try {
+                    JsonObject body = new JsonObject();
+                    body.addProperty("id", goodsId);
+                    com.google.gson.JsonArray imagesArray = new com.google.gson.JsonArray();
+                    for (String path : imagePaths) {
+                        imagesArray.add(path);
+                    }
+                    body.add("images", imagesArray);
+                    // 同步调用更新接口，添加图片
+                    okhttp3.RequestBody reqBody = okhttp3.RequestBody.create(
+                        okhttp3.MediaType.parse("application/json"), body.toString());
+                    String updateUrl = App.BASE_URL + "goods.php?action=update";
+                    okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
+                        .url(updateUrl)
+                        .post(reqBody);
+                    String token = App.getInstance().getToken();
+                    if (token != null && !token.isEmpty()) {
+                        reqBuilder.addHeader("Authorization", "Bearer " + token);
+                    }
+                    new okhttp3.OkHttpClient()
+                        .newCall(reqBuilder.build())
+                        .execute();
+                } catch (Exception ignored) {}
             }
         }).start();
     }

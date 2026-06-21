@@ -348,20 +348,37 @@ function filterByTag(tagName) {
 // Image preview
 var previewDiv = null;
 function showPreview(el, src) {
+    if (!src || src === '') return;
     if (!previewDiv) {
         previewDiv = document.createElement('div');
-        previewDiv.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);padding:4px;display:none';
-        previewDiv.innerHTML = '<img style="max-width:300px;max-height:300px;border-radius:6px;display:block">';
+        previewDiv.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.25);padding:6px;display:none;pointer-events:none;transition:opacity .15s';
+        previewDiv.innerHTML = '<img style="max-width:320px;max-height:320px;border-radius:6px;display:block;min-width:80px;min-height:80px;background:#f7fafc" onerror="this.parentNode.style.display=\'none\'">';
         document.body.appendChild(previewDiv);
     }
-    previewDiv.querySelector('img').src = src;
+    var img = previewDiv.querySelector('img');
+    img.src = src;
     var rect = el.getBoundingClientRect();
-    previewDiv.style.left = (rect.right + 10) + 'px';
-    previewDiv.style.top = rect.top + 'px';
+    var left = rect.right + 12;
+    var top = rect.top - 10;
+    // 防止超出右边界
+    if (left + 330 > window.innerWidth) {
+        left = rect.left - 330;
+    }
+    // 防止超出底部
+    if (top + 330 > window.innerHeight) {
+        top = window.innerHeight - 340;
+    }
+    if (top < 5) top = 5;
+    previewDiv.style.left = left + 'px';
+    previewDiv.style.top = top + 'px';
     previewDiv.style.display = 'block';
+    previewDiv.style.opacity = '1';
 }
 function hidePreview() {
-    if (previewDiv) previewDiv.style.display = 'none';
+    if (previewDiv) {
+        previewDiv.style.opacity = '0';
+        setTimeout(function() { if (previewDiv) previewDiv.style.display = 'none'; }, 150);
+    }
 }
 // 获取空间列表
 var spaceCache = {};

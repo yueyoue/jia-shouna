@@ -235,7 +235,6 @@ public class SpaceDetailActivity extends AppCompatActivity {
         layoutEmpty.setVisibility(View.GONE);
 
         HashMap<String, String> params = new HashMap<>();
-        params.put("action", "list");
         params.put("house_id", String.valueOf(houseId));
 
         if (selectedContainerId == 0) {
@@ -247,7 +246,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
             params.put("space_id", String.valueOf(targetSpaceId));
         }
 
-        ApiClient.get("goods.php", params, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (isFinishing()) return;
                 runOnUiThread(() -> {
@@ -267,6 +266,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
                 if (isFinishing()) return;
                 runOnUiThread(() -> {
                     layoutLoading.setVisibility(View.GONE);
+                    Toast.makeText(SpaceDetailActivity.this, "物品加载失败: " + msg, Toast.LENGTH_SHORT).show();
                     buildItemsList(new JsonArray());
                 });
             }
@@ -404,12 +404,22 @@ public class SpaceDetailActivity extends AppCompatActivity {
         row.addView(arrow);
 
         // 点击打开详情
-        int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
-        row.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ItemDetailActivity.class);
-            intent.putExtra("goods_id", itemId);
-            startActivity(intent);
-        });
+        int itemId = 0;
+        try {
+            if (item.has("id") && !item.get("id").isJsonNull()) {
+                itemId = item.get("id").getAsInt();
+            }
+        } catch (Exception ignored) {}
+        final int finalItemId = itemId;
+        if (finalItemId > 0) {
+            row.setClickable(true);
+            row.setFocusable(true);
+            row.setOnClickListener(v -> {
+                Intent intent = new Intent(this, ItemDetailActivity.class);
+                intent.putExtra("goods_id", finalItemId);
+                startActivity(intent);
+            });
+        }
 
         // 分隔线
         if (showDivider) {
