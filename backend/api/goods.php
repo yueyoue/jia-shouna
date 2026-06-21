@@ -108,7 +108,32 @@ switch ($action) {
             });
         }
 
-        success(['list' => $list, 'total' => $total, 'page' => $page, 'page_size' => $pageSize]);
+        // 调试信息
+        $debug = [
+            'resolved_house_id' => $houseId,
+            'user_id' => $user['id'],
+            'where' => implode(' AND ', $where),
+            'params_count' => count($params),
+            'raw_total' => $total,
+            'list_count' => count($list)
+        ];
+
+        // 如果结果为空，直接查数据库看有没有任何物品
+        if ($total == 0) {
+            $checkStmt = $db->prepare("SELECT COUNT(*) as cnt FROM goods WHERE status = 1");
+            $checkStmt->execute();
+            $debug['all_goods_count'] = $checkStmt->fetch()['cnt'];
+
+            $checkStmt2 = $db->prepare("SELECT COUNT(*) as cnt FROM house_member WHERE user_id = ?");
+            $checkStmt2->execute([$user['id']]);
+            $debug['user_house_count'] = $checkStmt2->fetch()['cnt'];
+
+            $checkStmt3 = $db->prepare("SELECT COUNT(*) as cnt FROM house WHERE creator_id = ?");
+            $checkStmt3->execute([$user['id']]);
+            $debug['user_created_house_count'] = $checkStmt3->fetch()['cnt'];
+        }
+
+        success(['list' => $list, 'total' => $total, 'page' => $page, 'page_size' => $pageSize, 'debug' => $debug]);
         break;
 
     case 'detail':

@@ -128,8 +128,17 @@ public class AllItemsActivity extends AppCompatActivity {
                         Log.d(TAG, "Items loaded: list.size=" + list.size() + ", total=" + total);
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
-                            // 显示调试信息
-                            tvDebugHint.setText("API返回: list.size=0, total=" + total + "\nhouseId=" + houseId + ", keyword=" + keyword);
+                            // 显示API返回的调试信息
+                            String debugText = "list.size=0, total=" + total;
+                            if (data.has("debug") && !data.get("debug").isJsonNull()) {
+                                JsonObject dbg = data.getAsJsonObject("debug");
+                                debugText += "\nhouseId=" + (dbg.has("resolved_house_id") ? dbg.get("resolved_house_id").getAsInt() : "?");
+                                debugText += " userId=" + (dbg.has("user_id") ? dbg.get("user_id").getAsInt() : "?");
+                                if (dbg.has("all_goods_count")) debugText += "\n全库物品=" + dbg.get("all_goods_count").getAsInt();
+                                if (dbg.has("user_house_count")) debugText += " 用户房屋=" + dbg.get("user_house_count").getAsInt();
+                                if (dbg.has("user_created_house_count")) debugText += " 创建房屋=" + dbg.get("user_created_house_count").getAsInt();
+                            }
+                            tvDebugHint.setText(debugText);
                             tvDebugHint.setVisibility(View.VISIBLE);
                             loadItemsFallback(keyword);
                         } else {
