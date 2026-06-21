@@ -185,21 +185,14 @@ public class AllItemsActivity extends AppCompatActivity {
 
                         } else {
                             layoutEmpty.setVisibility(View.GONE);
-                            int rendered = 0;
                             for (int i = 0; i < list.size(); i++) {
                                 try {
                                     layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
-                                    rendered++;
                                 } catch (Exception e) {
                                     Log.e(TAG, "Fallback render error: " + e.getMessage());
                                 }
                             }
                             tvCount.setText(list.size() + " 件");
-
-                        } else {
-                            for (int i = 0; i < list.size(); i++) {
-                                layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
-                            }
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Fallback parse error: " + e.getMessage());
