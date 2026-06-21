@@ -117,7 +117,8 @@ public class AllItemsActivity extends AppCompatActivity {
 
         ApiClient.get(endpoint, params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
-                Log.d(TAG, "API success: " + data.toString().substring(0, Math.min(200, data.toString().length())));
+                String respStr = data.toString();
+                Log.d(TAG, "API success: " + respStr.substring(0, Math.min(300, respStr.length())));
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     try {
@@ -126,8 +127,9 @@ public class AllItemsActivity extends AppCompatActivity {
                         Log.d(TAG, "Items loaded: list.size=" + list.size() + ", total=" + total);
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
-                            // Fallback: try without house_id filter
-                            Log.d(TAG, "Empty result with house_id, trying without filter...");
+                            // 显示调试信息
+                            tvDebugHint.setText("API返回: list.size=0, total=" + total + "\nhouseId=" + houseId + ", keyword=" + keyword);
+                            tvDebugHint.setVisibility(View.VISIBLE);
                             loadItemsFallback(keyword);
                         } else {
                             for (int i = 0; i < list.size(); i++) {
@@ -144,15 +146,9 @@ public class AllItemsActivity extends AppCompatActivity {
                 Log.e(TAG, "API error: " + msg);
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
-                    // Show error hint
-                    tvDebugHint.setText("⚠ 加载失败: " + msg);
-                    tvDebugHint.setVisibility(View.VISIBLE);
                     layoutEmpty.setVisibility(View.VISIBLE);
-                    // Retry button
-                    Button retryBtn = new Button(AllItemsActivity.this);
-                    retryBtn.setText("🔄 重试");
-                    retryBtn.setOnClickListener(v -> loadItems(keyword));
-                    layoutEmpty.addView(retryBtn);
+                    tvDebugHint.setText("⚠ 加载失败: " + msg + "\nURL: goods.php?action=list&house_id=" + houseId);
+                    tvDebugHint.setVisibility(View.VISIBLE);
                 });
             }
         });
