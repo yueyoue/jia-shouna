@@ -1,7 +1,9 @@
 package com.jiashouna.app.ui;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AlertDialog;
@@ -17,13 +19,21 @@ import java.util.*;
 
 public class ItemDetailActivity extends AppCompatActivity {
     private int goodsId;
-    private TextView tvTitle, tvItemName, tvItemBarcode, tvItemNote, tvCategoryTag;
-    private TextView tvLocation, tvQuantity, tvBrand, tvPurchaseDate, tvExpiryDate, tvDaysLeft;
-    private TextView tvPrice, tvCreator, tvCreatedTime, tvPrivacyBadge, tvPhotoCounter;
-    private TextView btnBack, btnShare, btnDelete, btnEdit, btnMove, btnBorrow;
-    private LinearLayout layoutBrand, layoutPurchaseDate, layoutExpiry, layoutPrice;
-    private LinearLayout layoutTagsSection, layoutTags, layoutNoPhoto;
+    private TextView tvItemName, tvItemBarcode, tvExpiryBadge, tvPrivacyBadge;
+    private TextView tvLocation, tvLocationIcon, tvQuantity, tvUnit;
+    private TextView tvPurchaseDate, tvExpiryDate, tvPrice, tvBarcodeValue;
+    private TextView tvPrivacyValue, tvNote, tvCreator, tvCreatedTime;
+    private TextView tvPhotoCounter, tvBorrowCount;
+    private TextView tvDefaultIcon;
+    private TextView btnBack, btnShare, btnMore;
+    private TextView btnQtyMinus, btnQtyPlus;
+    private View btnMove, btnCopy, btnBorrow, btnEdit, btnEditBottom, btnDelete;
+    private LinearLayout layoutStatusBadges, layoutTags, layoutBorrowSection, layoutBorrowList;
+    private LinearLayout galleryDots;
+    private View rowPurchaseDate, rowExpiry, rowPrice, rowBarcode, rowTags, rowNote;
+    private View dividerPurchase, dividerExpiry, dividerPrice, dividerBarcode, dividerTags;
     private ViewPager2 viewpagerPhotos;
+    private JsonObject currentGoods;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,43 +52,67 @@ public class ItemDetailActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        tvTitle = findViewById(R.id.tv_title);
         tvItemName = findViewById(R.id.tv_item_name);
         tvItemBarcode = findViewById(R.id.tv_item_barcode);
-        tvItemNote = findViewById(R.id.tv_item_note);
-        tvCategoryTag = findViewById(R.id.tv_category_tag);
+        tvExpiryBadge = findViewById(R.id.tv_expiry_badge);
+        tvPrivacyBadge = findViewById(R.id.tv_privacy_badge);
+        layoutStatusBadges = findViewById(R.id.layout_status_badges);
+        tvLocationIcon = findViewById(R.id.tv_location_icon);
         tvLocation = findViewById(R.id.tv_location);
         tvQuantity = findViewById(R.id.tv_quantity);
-        tvBrand = findViewById(R.id.tv_brand);
+        tvUnit = findViewById(R.id.tv_unit);
         tvPurchaseDate = findViewById(R.id.tv_purchase_date);
         tvExpiryDate = findViewById(R.id.tv_expiry_date);
-        tvDaysLeft = findViewById(R.id.tv_days_left);
         tvPrice = findViewById(R.id.tv_price);
+        tvBarcodeValue = findViewById(R.id.tv_barcode_value);
+        tvPrivacyValue = findViewById(R.id.tv_privacy_value);
+        tvNote = findViewById(R.id.tv_note);
         tvCreator = findViewById(R.id.tv_creator);
         tvCreatedTime = findViewById(R.id.tv_created_time);
-        tvPrivacyBadge = findViewById(R.id.tv_privacy_badge);
         tvPhotoCounter = findViewById(R.id.tv_photo_counter);
+        tvBorrowCount = findViewById(R.id.tv_borrow_count);
+        tvDefaultIcon = findViewById(R.id.tv_default_icon);
         btnBack = findViewById(R.id.btn_back);
         btnShare = findViewById(R.id.btn_share);
-        btnDelete = findViewById(R.id.btn_delete);
-        btnEdit = findViewById(R.id.btn_edit);
+        btnMore = findViewById(R.id.btn_more);
+        btnQtyMinus = findViewById(R.id.btn_qty_minus);
+        btnQtyPlus = findViewById(R.id.btn_qty_plus);
         btnMove = findViewById(R.id.btn_move);
+        btnCopy = findViewById(R.id.btn_copy);
         btnBorrow = findViewById(R.id.btn_borrow);
-        layoutBrand = findViewById(R.id.layout_brand);
-        layoutPurchaseDate = findViewById(R.id.layout_purchase_date);
-        layoutExpiry = findViewById(R.id.layout_expiry);
-        layoutPrice = findViewById(R.id.layout_price);
-        layoutTagsSection = findViewById(R.id.layout_tags_section);
+        btnEdit = findViewById(R.id.btn_edit);
+        btnEditBottom = findViewById(R.id.btn_edit_bottom);
+        btnDelete = findViewById(R.id.btn_delete);
         layoutTags = findViewById(R.id.layout_tags);
-        layoutNoPhoto = findViewById(R.id.layout_no_photo);
+        layoutBorrowSection = findViewById(R.id.layout_borrow_section);
+        layoutBorrowList = findViewById(R.id.layout_borrow_list);
+        galleryDots = findViewById(R.id.gallery_dots);
         viewpagerPhotos = findViewById(R.id.viewpager_photos);
+
+        rowPurchaseDate = findViewById(R.id.row_purchase_date);
+        rowExpiry = findViewById(R.id.row_expiry);
+        rowPrice = findViewById(R.id.row_price);
+        rowBarcode = findViewById(R.id.row_barcode);
+        rowTags = findViewById(R.id.row_tags);
+        rowNote = findViewById(R.id.row_note);
+        dividerPurchase = findViewById(R.id.divider_purchase);
+        dividerExpiry = findViewById(R.id.divider_expiry);
+        dividerPrice = findViewById(R.id.divider_price);
+        dividerBarcode = findViewById(R.id.divider_barcode);
+        dividerTags = findViewById(R.id.divider_tags);
 
         btnBack.setOnClickListener(v -> finish());
         btnDelete.setOnClickListener(v -> deleteItem());
         btnEdit.setOnClickListener(v -> editItem());
+        btnEditBottom.setOnClickListener(v -> editItem());
         btnMove.setOnClickListener(v -> moveItem());
+        btnCopy.setOnClickListener(v -> copyItem());
         btnBorrow.setOnClickListener(v -> borrowItem());
         btnShare.setOnClickListener(v -> shareItem());
+
+        // Quantity controls
+        btnQtyMinus.setOnClickListener(v -> changeQuantity(-1));
+        btnQtyPlus.setOnClickListener(v -> changeQuantity(1));
     }
 
     private void loadDetail() {
@@ -89,6 +123,7 @@ public class ItemDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     try {
                         JsonObject goods = data.getAsJsonObject("goods");
+                        currentGoods = goods;
                         displayGoods(goods);
                     } catch (Exception e) {
                         Toast.makeText(ItemDetailActivity.this, "数据解析失败", Toast.LENGTH_SHORT).show();
@@ -106,113 +141,171 @@ public class ItemDetailActivity extends AppCompatActivity {
 
     private void displayGoods(JsonObject g) {
         // Name
-        String name = g.has("name") ? g.get("name").getAsString() : "";
+        String name = g.has("name") && !g.get("name").isJsonNull() ? g.get("name").getAsString() : "";
         tvItemName.setText(name);
-        tvTitle.setText(name);
 
-        // Category
-        String category = g.has("category") ? g.get("category").getAsString() : "";
-        if (!category.isEmpty()) {
-            tvCategoryTag.setText("📦 " + category);
-            tvCategoryTag.setVisibility(View.VISIBLE);
-        }
+        // Category icon
+        String category = g.has("category") && !g.get("category").isJsonNull() ? g.get("category").getAsString() : "";
+        String icon = getCategoryIcon(category);
+        tvDefaultIcon.setText(icon);
 
         // Barcode
-        String barcode = g.has("barcode") ? g.get("barcode").getAsString() : "";
+        String barcode = g.has("barcode") && !g.get("barcode").isJsonNull() ? g.get("barcode").getAsString() : "";
         if (!barcode.isEmpty()) {
             tvItemBarcode.setText("条码: " + barcode);
             tvItemBarcode.setVisibility(View.VISIBLE);
+            tvBarcodeValue.setText(barcode);
+            rowBarcode.setVisibility(View.VISIBLE);
+            dividerBarcode.setVisibility(View.VISIBLE);
         }
 
-        // Note
-        String note = g.has("note") ? g.get("note").getAsString() : "";
-        if (!note.isEmpty()) {
-            tvItemNote.setText(note);
-            tvItemNote.setVisibility(View.VISIBLE);
+        // Expiry status badge
+        if (g.has("expiry_date") && !g.get("expiry_date").isJsonNull()) {
+            String expiryDate = g.get("expiry_date").getAsString();
+            if (!expiryDate.isEmpty()) {
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    Date expiry = sdf.parse(expiryDate);
+                    if (expiry != null) {
+                        long diff = expiry.getTime() - System.currentTimeMillis();
+                        int days = (int) (diff / (1000 * 60 * 60 * 24));
+
+                        String statusText;
+                        int bgColor;
+                        int textColor;
+                        if (days < 0) {
+                            statusText = "⚠ 已过期" + Math.abs(days) + "天";
+                            bgColor = 0x1FF56565;
+                            textColor = 0xFF9B2C2C;
+                        } else if (days == 0) {
+                            statusText = "⚠ 今天过期";
+                            bgColor = 0x1FF56565;
+                            textColor = 0xFF9B2C2C;
+                        } else if (days <= 7) {
+                            statusText = "⚠ 还剩" + days + "天过期";
+                            bgColor = 0x1FED8936;
+                            textColor = 0xFFC25A1E;
+                        } else {
+                            statusText = "✓ " + expiryDate + " 到期";
+                            bgColor = 0x1F48BB78;
+                            textColor = 0xFF22543D;
+                        }
+                        tvExpiryBadge.setText(statusText);
+                        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                        bg.setColor(bgColor);
+                        bg.setCornerRadius(dp(8));
+                        tvExpiryBadge.setBackground(bg);
+                        tvExpiryBadge.setTextColor(textColor);
+                        tvExpiryBadge.setVisibility(View.VISIBLE);
+
+                        // Expiry info row
+                        tvExpiryDate.setText(expiryDate + (days <= 7 ? "（" + (days < 0 ? "已过期" + Math.abs(days) + "天" : days == 0 ? "今天过期" : "还剩" + days + "天") + "）" : ""));
+                        tvExpiryDate.setTextColor(days <= 7 ? 0xFFF56565 : 0xFF2D3748);
+                        rowExpiry.setVisibility(View.VISIBLE);
+                        dividerExpiry.setVisibility(View.VISIBLE);
+                    }
+                } catch (Exception ignored) {}
+            }
         }
 
-        // Location - space path
+        // Privacy badge
+        int isPrivate = g.has("is_private") ? g.get("is_private").getAsInt() : 0;
+        if (isPrivate == 1) {
+            tvPrivacyBadge.setVisibility(View.VISIBLE);
+            tvPrivacyValue.setText("仅录入者可见");
+            tvPrivacyValue.setTextColor(0xFF805AD5);
+        } else {
+            tvPrivacyValue.setText("全家可见");
+            tvPrivacyValue.setTextColor(0xFF4A5568);
+        }
+
+        // Location
+        String spaceIcon = g.has("space_icon") && !g.get("space_icon").isJsonNull() ? g.get("space_icon").getAsString() : "🏠";
+        tvLocationIcon.setText(spaceIcon);
         if (g.has("space_path") && !g.get("space_path").isJsonNull()) {
             JsonArray path = g.getAsJsonArray("space_path");
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < path.size(); i++) {
-                if (i > 0) sb.append(" > ");
+                if (i > 0) sb.append(" · ");
                 sb.append(path.get(i).getAsJsonObject().get("name").getAsString());
             }
             tvLocation.setText(sb.toString());
         } else {
-            tvLocation.setText(g.has("space_name") ? g.get("space_name").getAsString() : "未分类");
+            tvLocation.setText(g.has("space_name") && !g.get("space_name").isJsonNull() ? g.get("space_name").getAsString() : "未分类");
         }
 
         // Quantity
         double qty = g.has("quantity") ? g.get("quantity").getAsDouble() : 1;
-        String unit = g.has("unit") ? g.get("unit").getAsString() : "个";
-        tvQuantity.setText(qty + " " + unit);
+        String unit = g.has("unit") && !g.get("unit").isJsonNull() ? g.get("unit").getAsString() : "个";
+        tvQuantity.setText(String.valueOf((int) qty));
+        tvUnit.setText(unit);
 
-        // Brand
-        String brand = g.has("brand") ? g.get("brand").getAsString() : "";
-        if (!brand.isEmpty()) {
-            tvBrand.setText(brand);
-            layoutBrand.setVisibility(View.VISIBLE);
-        }
-
-        // Production/Purchase Date
+        // Purchase Date
         String purchaseDate = g.has("purchase_date") && !g.get("purchase_date").isJsonNull() ? g.get("purchase_date").getAsString() : "";
         if (!purchaseDate.isEmpty()) {
             tvPurchaseDate.setText(purchaseDate);
-            layoutPurchaseDate.setVisibility(View.VISIBLE);
-        }
-
-        // Expiry Date
-        String expiryDate = g.has("expiry_date") && !g.get("expiry_date").isJsonNull() ? g.get("expiry_date").getAsString() : "";
-        if (!expiryDate.isEmpty()) {
-            tvExpiryDate.setText(expiryDate);
-            layoutExpiry.setVisibility(View.VISIBLE);
-
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                Date expiry = sdf.parse(expiryDate);
-                if (expiry != null) {
-                    long diff = expiry.getTime() - System.currentTimeMillis();
-                    int days = (int) (diff / (1000 * 60 * 60 * 24));
-                    tvDaysLeft.setVisibility(View.VISIBLE);
-                    if (days < 0) {
-                        tvDaysLeft.setText("已过期" + Math.abs(days) + "天");
-                        tvDaysLeft.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
-                    } else if (days <= 7) {
-                        tvDaysLeft.setText("还剩" + days + "天");
-                    } else {
-                        tvDaysLeft.setText("还剩" + days + "天");
-                        tvDaysLeft.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-                    }
-                }
-            } catch (Exception ignored) {}
+            rowPurchaseDate.setVisibility(View.VISIBLE);
+            dividerPurchase.setVisibility(View.VISIBLE);
         }
 
         // Price
         if (g.has("purchase_price") && !g.get("purchase_price").isJsonNull()) {
             double price = g.get("purchase_price").getAsDouble();
             if (price > 0) {
-                tvPrice.setText("¥" + String.format("%.2f", price));
-                layoutPrice.setVisibility(View.VISIBLE);
+                tvPrice.setText("¥ " + String.format("%.2f", price));
+                rowPrice.setVisibility(View.VISIBLE);
+                dividerPrice.setVisibility(View.VISIBLE);
             }
         }
 
+        // Tags
+        if (g.has("tags") && !g.get("tags").isJsonNull()) {
+            JsonArray tags = g.getAsJsonArray("tags");
+            if (tags.size() > 0) {
+                layoutTags.removeAllViews();
+                for (int i = 0; i < tags.size(); i++) {
+                    JsonObject tag = tags.get(i).getAsJsonObject();
+                    String tagName = tag.has("name") && !tag.get("name").isJsonNull() ? tag.get("name").getAsString() : "";
+                    if (!tagName.isEmpty()) {
+                        TextView tv = new TextView(this);
+                        tv.setText(tagName);
+                        tv.setTextSize(11);
+                        tv.setTextColor(0xFFC25A1E);
+                        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                        bg.setColor(0x1FFF8C42);
+                        bg.setCornerRadius(dp(6));
+                        tv.setBackground(bg);
+                        tv.setPadding(dp(8), dp(2), dp(8), dp(2));
+                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                        lp.setMarginEnd(dp(4));
+                        tv.setLayoutParams(lp);
+                        layoutTags.addView(tv);
+                    }
+                }
+                rowTags.setVisibility(View.VISIBLE);
+                dividerTags.setVisibility(View.VISIBLE);
+            }
+        }
+
+        // Note
+        String note = g.has("note") && !g.get("note").isJsonNull() ? g.get("note").getAsString() : "";
+        if (!note.isEmpty()) {
+            tvNote.setText(note);
+            rowNote.setVisibility(View.VISIBLE);
+        }
+
         // Creator
-        String creator = g.has("creator_name") ? g.get("creator_name").getAsString() : "";
-        tvCreator.setText(creator.isEmpty() ? "未知" : creator);
+        String creator = g.has("creator_name") && !g.get("creator_name").isJsonNull() ? g.get("creator_name").getAsString() : "";
+        tvCreator.setText("录入者: " + (creator.isEmpty() ? "未知" : creator));
 
         // Created time
         if (g.has("created_at") && !g.get("created_at").isJsonNull()) {
-            long ts = g.get("created_at").getAsLong();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-            tvCreatedTime.setText(sdf.format(new Date(ts * 1000)));
-        }
-
-        // Privacy
-        int isPrivate = g.has("is_private") ? g.get("is_private").getAsInt() : 0;
-        if (isPrivate == 1) {
-            tvPrivacyBadge.setVisibility(View.VISIBLE);
+            try {
+                long ts = g.get("created_at").getAsLong();
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+                tvCreatedTime.setText(sdf.format(new Date(ts * 1000)));
+            } catch (Exception ignored) {}
         }
 
         // Photos
@@ -222,65 +315,189 @@ public class ItemDetailActivity extends AppCompatActivity {
                 List<String> imageUrls = new ArrayList<>();
                 for (int i = 0; i < images.size(); i++) {
                     JsonObject img = images.get(i).getAsJsonObject();
-                    String url = img.has("image_path") ? img.get("image_path").getAsString() : "";
+                    String url = img.has("image_path") && !img.get("image_path").isJsonNull() ? img.get("image_path").getAsString() : "";
                     if (!url.isEmpty()) imageUrls.add(url);
                 }
                 if (!imageUrls.isEmpty()) {
                     setupPhotoGallery(imageUrls);
-                } else {
-                    showNoPhoto();
                 }
-            } else {
-                showNoPhoto();
             }
-        } else {
-            showNoPhoto();
         }
 
-        // Tags
-        if (g.has("tags") && !g.get("tags").isJsonNull()) {
-            JsonArray tags = g.getAsJsonArray("tags");
-            if (tags.size() > 0) {
-                layoutTagsSection.setVisibility(View.VISIBLE);
-                layoutTags.removeAllViews();
-                for (int i = 0; i < tags.size(); i++) {
-                    JsonObject tag = tags.get(i).getAsJsonObject();
-                    String tagName = tag.has("name") ? tag.get("name").getAsString() : "";
-                    if (!tagName.isEmpty()) {
-                        TextView tv = new TextView(this);
-                        tv.setText(tagName);
-                        tv.setTextSize(12);
-                        tv.setTextColor(0xFF5B9FED);
-                        tv.setBackgroundResource(R.drawable.bg_tag_blue);
-                        tv.setPadding(dp(12), dp(4), dp(12), dp(4));
-                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                        lp.rightMargin = dp(6);
-                        lp.bottomMargin = dp(4);
-                        tv.setLayoutParams(lp);
-                        layoutTags.addView(tv);
-                    }
+        // Borrow records
+        if (g.has("borrow_records") && !g.get("borrow_records").isJsonNull()) {
+            JsonArray records = g.getAsJsonArray("borrow_records");
+            if (records.size() > 0) {
+                layoutBorrowSection.setVisibility(View.VISIBLE);
+                tvBorrowCount.setText("查看全部 (" + records.size() + ")");
+                layoutBorrowList.removeAllViews();
+                for (int i = 0; i < Math.min(records.size(), 3); i++) {
+                    addBorrowItem(records.get(i).getAsJsonObject());
                 }
             }
         }
     }
 
-    private void showNoPhoto() {
-        layoutNoPhoto.setVisibility(View.VISIBLE);
-        viewpagerPhotos.setVisibility(View.GONE);
+    private String getCategoryIcon(String category) {
+        if (category == null) return "📦";
+        switch (category) {
+            case "食品": return "🍪";
+            case "药品": return "💊";
+            case "衣物": return "👕";
+            case "日用品": return "🧴";
+            case "数码": return "📱";
+            case "证件": return "📄";
+            case "厨具": return "🍳";
+            default: return "📦";
+        }
     }
 
     private void setupPhotoGallery(List<String> urls) {
-        layoutNoPhoto.setVisibility(View.GONE);
+        tvDefaultIcon.setVisibility(View.GONE);
         viewpagerPhotos.setVisibility(View.VISIBLE);
         tvPhotoCounter.setVisibility(View.VISIBLE);
         tvPhotoCounter.setText("1/" + urls.size());
+
+        // Setup gallery dots
+        galleryDots.removeAllViews();
+        for (int i = 0; i < urls.size(); i++) {
+            View dot = new View(this);
+            int size = dp(6);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+            lp.setMarginEnd(dp(4));
+            dot.setLayoutParams(lp);
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            bg.setColor(i == 0 ? 0xFFFFFFFF : 0x80FFFFFF);
+            dot.setBackground(bg);
+            galleryDots.addView(dot);
+        }
 
         viewpagerPhotos.setAdapter(new PhotoAdapter(urls));
         viewpagerPhotos.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 tvPhotoCounter.setText((position + 1) + "/" + urls.size());
+                updateDots(position, urls.size());
+            }
+        });
+    }
+
+    private void updateDots(int selected, int total) {
+        for (int i = 0; i < galleryDots.getChildCount(); i++) {
+            View dot = galleryDots.getChildAt(i);
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            if (i == selected) {
+                bg.setColor(0xFFFFFFFF);
+                dot.setLayoutParams(new LinearLayout.LayoutParams(dp(18), dp(6)));
+            } else {
+                bg.setColor(0x80FFFFFF);
+                dot.setLayoutParams(new LinearLayout.LayoutParams(dp(6), dp(6)));
+            }
+            dot.setBackground(bg);
+        }
+    }
+
+    private void addBorrowItem(JsonObject record) {
+        String userName = record.has("user_name") && !record.get("user_name").isJsonNull() ? record.get("user_name").getAsString() : "用户";
+        double qty = record.has("quantity") ? record.get("quantity").getAsDouble() : 1;
+        int status = record.has("status") ? record.get("status").getAsInt() : 1;
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(8), dp(12), dp(8));
+
+        // Avatar
+        TextView avatar = new TextView(this);
+        avatar.setText(userName.substring(0, 1));
+        avatar.setTextSize(13);
+        avatar.setTextColor(0xFFFFFFFF);
+        avatar.setGravity(Gravity.CENTER);
+        android.graphics.drawable.GradientDrawable avatarBg = new android.graphics.drawable.GradientDrawable();
+        avatarBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        avatarBg.setColor(0xFFFF8C42);
+        avatar.setBackground(avatarBg);
+        LinearLayout.LayoutParams avatarLp = new LinearLayout.LayoutParams(dp(32), dp(32));
+        avatar.setLayoutParams(avatarLp);
+
+        // Info
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        infoLp.setMarginStart(dp(10));
+        info.setLayoutParams(infoLp);
+
+        TextView nameTv = new TextView(this);
+        nameTv.setText(userName + " 领取 " + (int) qty + " 件");
+        nameTv.setTextSize(13);
+        nameTv.setTextColor(0xFF2D3748);
+        info.addView(nameTv);
+
+        TextView metaTv = new TextView(this);
+        long borrowTime = record.has("borrow_time") ? record.get("borrow_time").getAsLong() : 0;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        String dateStr = borrowTime > 0 ? sdf.format(new Date(borrowTime * 1000)) : "";
+        metaTv.setText(dateStr);
+        metaTv.setTextSize(11);
+        metaTv.setTextColor(0xFF718096);
+        info.addView(metaTv);
+
+        // Status
+        TextView statusTv = new TextView(this);
+        statusTv.setTextSize(11);
+        if (status == 2) {
+            statusTv.setText("已归还");
+            statusTv.setTextColor(0xFF22543D);
+            android.graphics.drawable.GradientDrawable sBg = new android.graphics.drawable.GradientDrawable();
+            sBg.setColor(0x1F48BB78);
+            sBg.setCornerRadius(dp(4));
+            statusTv.setBackground(sBg);
+        } else {
+            statusTv.setText("借出中");
+            statusTv.setTextColor(0xFFC25A1E);
+            android.graphics.drawable.GradientDrawable sBg = new android.graphics.drawable.GradientDrawable();
+            sBg.setColor(0x1FFF8C42);
+            sBg.setCornerRadius(dp(4));
+            statusTv.setBackground(sBg);
+        }
+        statusTv.setPadding(dp(6), dp(2), dp(6), dp(2));
+
+        row.addView(avatar);
+        row.addView(info);
+        row.addView(statusTv);
+        layoutBorrowList.addView(row);
+
+        // Divider
+        View divider = new View(this);
+        divider.setBackgroundColor(0xFFEDF2F7);
+        LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+        divLp.setMarginStart(dp(54));
+        divider.setLayoutParams(divLp);
+        layoutBorrowList.addView(divider);
+    }
+
+    private void changeQuantity(int delta) {
+        if (currentGoods == null) return;
+        double currentQty = currentGoods.has("quantity") ? currentGoods.get("quantity").getAsDouble() : 1;
+        double newQty = Math.max(0, currentQty + delta);
+        String unit = currentGoods.has("unit") && !currentGoods.get("unit").isJsonNull() ? currentGoods.get("unit").getAsString() : "个";
+
+        JsonObject body = new JsonObject();
+        body.addProperty("id", goodsId);
+        body.addProperty("quantity", newQty);
+        ApiClient.post("goods.php?action=update", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    tvQuantity.setText(String.valueOf((int) newQty));
+                    currentGoods.addProperty("quantity", newQty);
+                    Toast.makeText(ItemDetailActivity.this, "数量已更新", Toast.LENGTH_SHORT).show();
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(ItemDetailActivity.this, "更新失败: " + msg, Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -319,6 +536,10 @@ public class ItemDetailActivity extends AppCompatActivity {
         Toast.makeText(this, "移动功能开发中", Toast.LENGTH_SHORT).show();
     }
 
+    private void copyItem() {
+        Toast.makeText(this, "复制功能开发中", Toast.LENGTH_SHORT).show();
+    }
+
     private void borrowItem() {
         new AlertDialog.Builder(this)
             .setTitle("领用物品")
@@ -351,7 +572,6 @@ public class ItemDetailActivity extends AppCompatActivity {
         return (int) (dp * getResources().getDisplayMetrics().density);
     }
 
-    // Simple photo adapter
     private static class PhotoAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<PhotoAdapter.VH> {
         private final List<String> urls;
         PhotoAdapter(List<String> urls) { this.urls = urls; }
