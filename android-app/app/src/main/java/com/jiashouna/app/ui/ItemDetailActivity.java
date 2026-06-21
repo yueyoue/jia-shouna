@@ -379,6 +379,14 @@ public class ItemDetailActivity extends AppCompatActivity {
         tvPhotoCounter.setVisibility(View.VISIBLE);
         tvPhotoCounter.setText("1/" + urls.size());
 
+        // 点击查看大图
+        viewpagerPhotos.setOnClickListener(v -> {
+            Intent intent = new Intent(ItemDetailActivity.this, ImageViewerActivity.class);
+            intent.putStringArrayListExtra("image_urls", new ArrayList<>(urls));
+            intent.putExtra("position", viewpagerPhotos.getCurrentItem());
+            startActivity(intent);
+        });
+
         // Setup gallery dots
         galleryDots.removeAllViews();
         for (int i = 0; i < urls.size(); i++) {
@@ -394,7 +402,14 @@ public class ItemDetailActivity extends AppCompatActivity {
             galleryDots.addView(dot);
         }
 
-        viewpagerPhotos.setAdapter(new PhotoAdapter(urls));
+        PhotoAdapter adapter = new PhotoAdapter(urls);
+        adapter.setOnItemClickListener(v -> {
+            Intent intent = new Intent(ItemDetailActivity.this, ImageViewerActivity.class);
+            intent.putStringArrayListExtra("image_urls", new ArrayList<>(urls));
+            intent.putExtra("position", viewpagerPhotos.getCurrentItem());
+            startActivity(intent);
+        });
+        viewpagerPhotos.setAdapter(adapter);
         viewpagerPhotos.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -681,7 +696,9 @@ public class ItemDetailActivity extends AppCompatActivity {
 
     private static class PhotoAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<PhotoAdapter.VH> {
         private final List<String> urls;
+        private android.view.View.OnClickListener clickListener;
         PhotoAdapter(List<String> urls) { this.urls = urls; }
+        void setOnItemClickListener(android.view.View.OnClickListener listener) { this.clickListener = listener; }
 
         @Override public VH onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
             ImageView iv = new ImageView(parent.getContext());
@@ -701,6 +718,9 @@ public class ItemDetailActivity extends AppCompatActivity {
             } catch (Exception e) {
                 holder.iv.setImageResource(R.drawable.bg_quick_item);
             }
+            holder.iv.setOnClickListener(v -> {
+                if (clickListener != null) clickListener.onClick(v);
+            });
         }
 
         @Override public int getItemCount() { return urls.size(); }

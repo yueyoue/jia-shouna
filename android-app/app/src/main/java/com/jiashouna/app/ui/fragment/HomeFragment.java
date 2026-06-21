@@ -363,16 +363,30 @@ public class HomeFragment extends Fragment {
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         card.setLayoutParams(cardLp);
 
-        TextView icon = new TextView(getActivity());
-        String iconStr = item.has("space_icon") && !item.get("space_icon").isJsonNull() ? item.get("space_icon").getAsString() : "📦";
-        if (iconStr.isEmpty()) iconStr = "📦";
-        icon.setText(iconStr);
-        icon.setTextSize(24);
-        icon.setGravity(Gravity.CENTER);
+        String coverImage = item.has("cover_image") && !item.get("cover_image").isJsonNull() ? item.get("cover_image").getAsString() : "";
+        android.widget.ImageView imgIcon = new android.widget.ImageView(getActivity());
+        imgIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
         LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(48), dp(48));
-        icon.setLayoutParams(iconLp);
-        icon.setBackgroundResource(R.drawable.bg_quick_orange);
-        card.addView(icon);
+        imgIcon.setLayoutParams(iconLp);
+        android.graphics.drawable.GradientDrawable imgBg = new android.graphics.drawable.GradientDrawable();
+        imgBg.setCornerRadius(dp(10));
+        imgBg.setColor(0xFFFFE8D6);
+        imgIcon.setBackground(imgBg);
+        if (!coverImage.isEmpty()) {
+            try {
+                com.bumptech.glide.Glide.with(getActivity())
+                    .load(coverImage)
+                    .placeholder(R.drawable.bg_quick_item)
+                    .error(R.drawable.bg_quick_item)
+                    .centerCrop()
+                    .into(imgIcon);
+            } catch (Exception e) {
+                imgIcon.setImageResource(R.drawable.bg_quick_item);
+            }
+        } else {
+            imgIcon.setImageResource(R.drawable.bg_quick_item);
+        }
+        card.addView(imgIcon);
 
         LinearLayout info = new LinearLayout(getActivity());
         info.setOrientation(LinearLayout.VERTICAL);

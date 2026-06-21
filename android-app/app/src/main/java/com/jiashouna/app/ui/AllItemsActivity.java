@@ -217,19 +217,30 @@ public class AllItemsActivity extends AppCompatActivity {
         row.setPadding(dp(16), dp(12), dp(16), dp(12));
         row.setBackgroundColor(Color.WHITE);
 
-        // Icon
-        TextView icon = new TextView(this);
-        String category = item.has("category") && !item.get("category").isJsonNull() ? item.get("category").getAsString() : "";
-        String iconStr = getCategoryIcon(category);
-        icon.setText(iconStr);
-        icon.setTextSize(20);
-        icon.setGravity(android.view.Gravity.CENTER);
-        android.graphics.drawable.GradientDrawable iconBg = new android.graphics.drawable.GradientDrawable();
-        iconBg.setCornerRadius(dp(10));
-        iconBg.setColor(0xFFFFE8D6);
-        icon.setBackground(iconBg);
-        icon.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
-        row.addView(icon);
+        // 物品图片
+        String coverImage = item.has("cover_image") && !item.get("cover_image").isJsonNull() ? item.get("cover_image").getAsString() : "";
+        android.widget.ImageView imgIcon = new android.widget.ImageView(this);
+        imgIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        android.graphics.drawable.GradientDrawable imgBg = new android.graphics.drawable.GradientDrawable();
+        imgBg.setCornerRadius(dp(10));
+        imgBg.setColor(0xFFFFE8D6);
+        imgIcon.setBackground(imgBg);
+        imgIcon.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
+        if (!coverImage.isEmpty()) {
+            try {
+                com.bumptech.glide.Glide.with(this)
+                    .load(coverImage)
+                    .placeholder(R.drawable.bg_quick_item)
+                    .error(R.drawable.bg_quick_item)
+                    .centerCrop()
+                    .into(imgIcon);
+            } catch (Exception e) {
+                imgIcon.setImageResource(R.drawable.bg_quick_item);
+            }
+        } else {
+            imgIcon.setImageResource(R.drawable.bg_quick_item);
+        }
+        row.addView(imgIcon);
 
         // Info
         LinearLayout info = new LinearLayout(this);

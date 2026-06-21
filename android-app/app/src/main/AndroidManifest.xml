@@ -29,6 +29,7 @@
         <activity android:name=".ui.MainActivity" />
         <activity android:name=".ui.AddItemActivity" />
         <activity android:name=".ui.ItemDetailActivity" />
+        <activity android:name=".ui.ImageViewerActivity" android:theme="@style/Theme.AppCompat.NoActionBar" />
         <activity android:name=".ui.AddSpaceActivity" />
         <activity android:name=".ui.FamilyShareActivity" />
         <activity android:name=".ui.SpaceDetailActivity" />

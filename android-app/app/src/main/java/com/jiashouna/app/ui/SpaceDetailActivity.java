@@ -308,19 +308,30 @@ public class SpaceDetailActivity extends AppCompatActivity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(16), dp(12), dp(16), dp(12));
 
-        // 图标
-        TextView icon = new TextView(this);
-        String iconStr = item.has("icon") && !item.get("icon").isJsonNull()
-                ? item.get("icon").getAsString() : "📦";
-        icon.setText(iconStr);
-        icon.setTextSize(20);
-        icon.setGravity(Gravity.CENTER);
+        // 物品图片
+        String coverImage = item.has("cover_image") && !item.get("cover_image").isJsonNull() ? item.get("cover_image").getAsString() : "";
+        android.widget.ImageView imgIcon = new android.widget.ImageView(this);
+        imgIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
         android.graphics.drawable.GradientDrawable iconBg = new android.graphics.drawable.GradientDrawable();
         iconBg.setCornerRadius(dp(10));
         iconBg.setColor(0xFFFFE8D6);
-        icon.setBackground(iconBg);
+        imgIcon.setBackground(iconBg);
         LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(48), dp(48));
-        icon.setLayoutParams(iconLp);
+        imgIcon.setLayoutParams(iconLp);
+        if (!coverImage.isEmpty()) {
+            try {
+                com.bumptech.glide.Glide.with(this)
+                    .load(coverImage)
+                    .placeholder(R.drawable.bg_quick_item)
+                    .error(R.drawable.bg_quick_item)
+                    .centerCrop()
+                    .into(imgIcon);
+            } catch (Exception e) {
+                imgIcon.setImageResource(R.drawable.bg_quick_item);
+            }
+        } else {
+            imgIcon.setImageResource(R.drawable.bg_quick_item);
+        }
 
         // 信息列
         LinearLayout info = new LinearLayout(this);
@@ -413,7 +424,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
         arrow.setTextSize(18);
         arrow.setTextColor(0xFFCBD5E0);
 
-        row.addView(icon);
+        row.addView(imgIcon);
         row.addView(info);
         row.addView(arrow);
 
