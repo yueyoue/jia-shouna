@@ -88,6 +88,18 @@
         android:layout_weight="1"
         android:orientation="vertical" />
 
+    <!-- DEBUG INFO - always visible -->
+    <TextView
+        android:id="@+id/tv_debug_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#33FF0000"
+        android:padding="12dp"
+        android:text="DEBUG: loading..."
+        android:textColor="#FF0000"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
     <LinearLayout
         android:id="@+id/layout_empty"
         android:layout_width="match_parent"

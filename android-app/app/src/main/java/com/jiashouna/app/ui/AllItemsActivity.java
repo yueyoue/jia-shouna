@@ -41,12 +41,10 @@ public class AllItemsActivity extends AppCompatActivity {
         tvCount = findViewById(R.id.tv_count);
         tvTitle = findViewById(R.id.tv_title);
 
-        // Debug hint (hidden by default)
-        tvDebugHint = new TextView(this);
-        tvDebugHint.setTextSize(11);
-        tvDebugHint.setTextColor(0xFFA0AEC0);
-        tvDebugHint.setPadding(dp(16), dp(4), dp(16), dp(4));
-        tvDebugHint.setVisibility(View.GONE);
+        // Debug info - always visible in debug builds
+        tvDebugHint = findViewById(R.id.tv_debug_info);
+        tvDebugHint.setText("DEBUG: waiting...");
+        tvDebugHint.setVisibility(View.VISIBLE);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
@@ -91,7 +89,8 @@ public class AllItemsActivity extends AppCompatActivity {
         progress.setVisibility(View.VISIBLE);
         layoutItems.removeAllViews();
         layoutEmpty.setVisibility(View.GONE);
-        tvDebugHint.setVisibility(View.GONE);
+        tvDebugHint.setText("DEBUG: loading... hid=" + houseId + " kw=" + keyword);
+        tvDebugHint.setVisibility(View.VISIBLE);
 
         if (houseId <= 0) {
             houseId = App.getInstance().getCurrentHouseId();
@@ -125,24 +124,21 @@ public class AllItemsActivity extends AppCompatActivity {
                     try {
                         JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
                         int total = data.has("total") ? data.get("total").getAsInt() : list.size();
-                        Log.d(TAG, "Items loaded: list.size=" + list.size() + ", total=" + total);
+
+                        // 始终更新调试信息
+                        String debugMsg = "OK total=" + total + " list=" + list.size();
+                        if (data.has("debug") && !data.get("debug").isJsonNull()) {
+                            JsonObject dbg = data.getAsJsonObject("debug");
+                            debugMsg += " house=" + (dbg.has("resolved_house_id") ? dbg.get("resolved_house_id").getAsInt() : "?");
+                            debugMsg += " uid=" + (dbg.has("user_id") ? dbg.get("user_id").getAsInt() : "?");
+                            if (dbg.has("all_goods_count")) debugMsg += " 全库=" + dbg.get("all_goods_count").getAsInt();
+                            if (dbg.has("user_house_count")) debugMsg += " 房屋=" + dbg.get("user_house_count").getAsInt();
+                        }
+                        tvDebugHint.setText(debugMsg);
+                        tvDebugHint.setVisibility(View.VISIBLE);
+
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
-                            // 直接在标题栏显示调试信息
-                            String debugText = "[DEBUG] total=" + total;
-                            if (data.has("debug") && !data.get("debug").isJsonNull()) {
-                                JsonObject dbg = data.getAsJsonObject("debug");
-                                debugText += " house=" + (dbg.has("resolved_house_id") ? dbg.get("resolved_house_id").getAsInt() : "?");
-                                debugText += " uid=" + (dbg.has("user_id") ? dbg.get("user_id").getAsInt() : "?");
-                                if (dbg.has("all_goods_count")) debugText += " 全库=" + dbg.get("all_goods_count").getAsInt();
-                            }
-                            // 显示在标题和空状态区域
-                            tvTitle.setText("所有物品 " + debugText);
-                            tvCount.setText(debugText);
-                            tvCount.setTextColor(0xFFFF0000);
-                            tvCount.setTextSize(10);
-                            tvDebugHint.setText(debugText);
-                            tvDebugHint.setVisibility(View.VISIBLE);
                             layoutEmpty.setVisibility(View.VISIBLE);
                             loadItemsFallback(keyword);
                         } else {
@@ -161,11 +157,8 @@ public class AllItemsActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     layoutEmpty.setVisibility(View.VISIBLE);
-                    String errDebug = "[ERROR] " + msg + " hid=" + houseId;
-                    tvTitle.setText("所有物品 " + errDebug);
-                    tvCount.setText(errDebug);
-                    tvCount.setTextColor(0xFFFF0000);
-                    tvCount.setTextSize(10);
+                    tvDebugHint.setText("ERROR: " + msg + " hid=" + houseId);
+                    tvDebugHint.setVisibility(View.VISIBLE);
                 });
             }
         });
