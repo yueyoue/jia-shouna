@@ -250,7 +250,12 @@ public class AllItemsActivity extends AppCompatActivity {
         metaRow.setOrientation(LinearLayout.HORIZONTAL);
         metaRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
-        int qty = item.has("quantity") ? item.get("quantity").getAsInt() : 0;
+        int qty = 0;
+        try {
+            if (item.has("quantity") && !item.get("quantity").isJsonNull()) {
+                qty = (int) Double.parseDouble(item.get("quantity").getAsString());
+            }
+        } catch (Exception ignored) {}
         String unit = item.has("unit") && !item.get("unit").isJsonNull() ? item.get("unit").getAsString() : "件";
         String spaceName = item.has("space_name") && !item.get("space_name").isJsonNull() ? item.get("space_name").getAsString() : "";
 

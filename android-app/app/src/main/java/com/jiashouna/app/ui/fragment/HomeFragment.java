@@ -561,7 +561,12 @@ public class HomeFragment extends Fragment {
                 String name = item.has("name") ? item.get("name").getAsString() : "";
                 String space = item.has("space_name") && !item.get("space_name").isJsonNull()
                     ? item.get("space_name").getAsString() : "未分类";
-                int qty = item.has("quantity") ? item.get("quantity").getAsInt() : 0;
+                int qty = 0;
+                try {
+                    if (item.has("quantity") && !item.get("quantity").isJsonNull()) {
+                        qty = (int) Double.parseDouble(item.get("quantity").getAsString());
+                    }
+                } catch (Exception ignored) {}
                 String unit = item.has("unit") && !item.get("unit").isJsonNull()
                     ? item.get("unit").getAsString() : "个";
                 sb.append("• ").append(name).append("  ×").append(qty).append(unit)

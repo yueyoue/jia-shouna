@@ -344,7 +344,12 @@ public class SpaceDetailActivity extends AppCompatActivity {
         metaLp.topMargin = dp(2);
         metaRow.setLayoutParams(metaLp);
 
-        int qty = item.has("quantity") ? item.get("quantity").getAsInt() : 0;
+        int qty = 0;
+        try {
+            if (item.has("quantity") && !item.get("quantity").isJsonNull()) {
+                qty = (int) Double.parseDouble(item.get("quantity").getAsString());
+            }
+        } catch (Exception ignored) {}
         String unit = item.has("unit") && !item.get("unit").isJsonNull()
                 ? item.get("unit").getAsString() : "件";
 
@@ -384,7 +389,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
         // 检查库存阈值
         if (item.has("stock_threshold") && !item.get("stock_threshold").isJsonNull()) {
-            int threshold = item.get("stock_threshold").getAsInt();
+            int threshold = (int) Double.parseDouble(item.get("stock_threshold").getAsString());
             if (threshold > 0 && qty <= threshold) {
                 statusText = "⚠ 库存不足";
                 statusColor = 0xFFED8936;
