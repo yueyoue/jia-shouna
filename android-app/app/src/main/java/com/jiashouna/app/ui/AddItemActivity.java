@@ -47,6 +47,7 @@ public class AddItemActivity extends AppCompatActivity {
     private static final int REQUEST_BARCODE = 100;
     private static final int REQUEST_PHOTO = 101;
     private static final int REQUEST_GALLERY = 102;
+    private static final int REQUEST_CAMERA_PERMISSION = 103;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -191,6 +192,27 @@ public class AddItemActivity extends AppCompatActivity {
     private Uri cameraImageUri;
 
     private void startPhotoCapture() {
+        // 检查相机权限
+        if (checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+            return;
+        }
+        doStartPhotoCapture();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                doStartPhotoCapture();
+            } else {
+                Toast.makeText(this, "需要相机权限才能拍照", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void doStartPhotoCapture() {
         try {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             // 创建临时文件保存拍照结果
