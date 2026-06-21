@@ -119,7 +119,7 @@ public class AllItemsActivity extends AppCompatActivity {
         ApiClient.get(endpoint, params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 String respStr = data.toString();
-                Log.d(TAG, "API success: " + respStr.substring(0, Math.min(300, respStr.length())));
+                Log.d(TAG, "API success: " + respStr.substring(0, Math.min(500, respStr.length())));
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     try {
@@ -128,18 +128,22 @@ public class AllItemsActivity extends AppCompatActivity {
                         Log.d(TAG, "Items loaded: list.size=" + list.size() + ", total=" + total);
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
-                            // 显示API返回的调试信息
-                            String debugText = "list.size=0, total=" + total;
+                            // 直接在标题栏显示调试信息
+                            String debugText = "[DEBUG] total=" + total;
                             if (data.has("debug") && !data.get("debug").isJsonNull()) {
                                 JsonObject dbg = data.getAsJsonObject("debug");
-                                debugText += "\nhouseId=" + (dbg.has("resolved_house_id") ? dbg.get("resolved_house_id").getAsInt() : "?");
-                                debugText += " userId=" + (dbg.has("user_id") ? dbg.get("user_id").getAsInt() : "?");
-                                if (dbg.has("all_goods_count")) debugText += "\n全库物品=" + dbg.get("all_goods_count").getAsInt();
-                                if (dbg.has("user_house_count")) debugText += " 用户房屋=" + dbg.get("user_house_count").getAsInt();
-                                if (dbg.has("user_created_house_count")) debugText += " 创建房屋=" + dbg.get("user_created_house_count").getAsInt();
+                                debugText += " house=" + (dbg.has("resolved_house_id") ? dbg.get("resolved_house_id").getAsInt() : "?");
+                                debugText += " uid=" + (dbg.has("user_id") ? dbg.get("user_id").getAsInt() : "?");
+                                if (dbg.has("all_goods_count")) debugText += " 全库=" + dbg.get("all_goods_count").getAsInt();
                             }
+                            // 显示在标题和空状态区域
+                            tvTitle.setText("所有物品 " + debugText);
+                            tvCount.setText(debugText);
+                            tvCount.setTextColor(0xFFFF0000);
+                            tvCount.setTextSize(10);
                             tvDebugHint.setText(debugText);
                             tvDebugHint.setVisibility(View.VISIBLE);
+                            layoutEmpty.setVisibility(View.VISIBLE);
                             loadItemsFallback(keyword);
                         } else {
                             for (int i = 0; i < list.size(); i++) {
@@ -157,8 +161,11 @@ public class AllItemsActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     layoutEmpty.setVisibility(View.VISIBLE);
-                    tvDebugHint.setText("⚠ 加载失败: " + msg + "\nURL: goods.php?action=list&house_id=" + houseId);
-                    tvDebugHint.setVisibility(View.VISIBLE);
+                    String errDebug = "[ERROR] " + msg + " hid=" + houseId;
+                    tvTitle.setText("所有物品 " + errDebug);
+                    tvCount.setText(errDebug);
+                    tvCount.setTextColor(0xFFFF0000);
+                    tvCount.setTextSize(10);
                 });
             }
         });
@@ -186,8 +193,16 @@ public class AllItemsActivity extends AppCompatActivity {
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
                             layoutEmpty.setVisibility(View.VISIBLE);
-                            tvDebugHint.setText("提示: 当前家庭暂无物品，请先录入");
-                            tvDebugHint.setVisibility(View.VISIBLE);
+                            String fallbackDebug = "[FALLBACK] no house_id, total=" + (data.has("total") ? data.get("total").getAsInt() : 0);
+                            if (data.has("debug") && !data.get("debug").isJsonNull()) {
+                                JsonObject dbg = data.getAsJsonObject("debug");
+                                if (dbg.has("all_goods_count")) fallbackDebug += " 全库=" + dbg.get("all_goods_count").getAsInt();
+                                if (dbg.has("user_house_count")) fallbackDebug += " 房屋=" + dbg.get("user_house_count").getAsInt();
+                            }
+                            tvTitle.setText("所有物品 " + fallbackDebug);
+                            tvCount.setText(fallbackDebug);
+                            tvCount.setTextColor(0xFFFF0000);
+                            tvCount.setTextSize(10);
                         } else {
                             for (int i = 0; i < list.size(); i++) {
                                 layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
