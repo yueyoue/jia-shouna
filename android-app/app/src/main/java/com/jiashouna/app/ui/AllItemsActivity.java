@@ -22,7 +22,7 @@ public class AllItemsActivity extends AppCompatActivity {
     private EditText etSearch;
     private LinearLayout layoutItems, layoutEmpty;
     private ProgressBar progress;
-    private TextView tvCount, tvTitle, tvDebugHint;
+    private TextView tvCount, tvTitle;
     private int houseId = 0;
     private String filterType = "";
 
@@ -41,10 +41,7 @@ public class AllItemsActivity extends AppCompatActivity {
         tvCount = findViewById(R.id.tv_count);
         tvTitle = findViewById(R.id.tv_title);
 
-        // Debug info - always visible in debug builds
-        tvDebugHint = findViewById(R.id.tv_debug_info);
-        tvDebugHint.setText("DEBUG: waiting...");
-        tvDebugHint.setVisibility(View.VISIBLE);
+
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
@@ -89,8 +86,7 @@ public class AllItemsActivity extends AppCompatActivity {
         progress.setVisibility(View.VISIBLE);
         layoutItems.removeAllViews();
         layoutEmpty.setVisibility(View.GONE);
-        tvDebugHint.setText("DEBUG: loading... hid=" + houseId + " kw=" + keyword);
-        tvDebugHint.setVisibility(View.VISIBLE);
+
 
         if (houseId <= 0) {
             houseId = App.getInstance().getCurrentHouseId();
@@ -125,17 +121,7 @@ public class AllItemsActivity extends AppCompatActivity {
                         JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
                         int total = data.has("total") ? data.get("total").getAsInt() : list.size();
 
-                        // 始终更新调试信息
-                        String debugMsg = "OK total=" + total + " list=" + list.size();
-                        if (data.has("debug") && !data.get("debug").isJsonNull()) {
-                            JsonObject dbg = data.getAsJsonObject("debug");
-                            debugMsg += " house=" + (dbg.has("resolved_house_id") ? dbg.get("resolved_house_id").getAsInt() : "?");
-                            debugMsg += " uid=" + (dbg.has("user_id") ? dbg.get("user_id").getAsInt() : "?");
-                            if (dbg.has("all_goods_count")) debugMsg += " 全库=" + dbg.get("all_goods_count").getAsInt();
-                            if (dbg.has("user_house_count")) debugMsg += " 房屋=" + dbg.get("user_house_count").getAsInt();
-                        }
-                        tvDebugHint.setText(debugMsg);
-                        tvDebugHint.setVisibility(View.VISIBLE);
+
 
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
@@ -153,10 +139,9 @@ public class AllItemsActivity extends AppCompatActivity {
                                     rendered++;
                                 } catch (Exception e) {
                                     Log.e(TAG, "Render error at " + i + ": " + e.getMessage());
-                                    tvDebugHint.setText("RENDER ERROR: " + e.getMessage());
                                 }
                             }
-                            tvDebugHint.setText(debugMsg + " rendered=" + rendered);
+
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Parse error: " + e.getMessage());
@@ -169,8 +154,7 @@ public class AllItemsActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     layoutEmpty.setVisibility(View.VISIBLE);
-                    tvDebugHint.setText("ERROR: " + msg + " hid=" + houseId);
-                    tvDebugHint.setVisibility(View.VISIBLE);
+
                 });
             }
         });
@@ -198,12 +182,7 @@ public class AllItemsActivity extends AppCompatActivity {
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
                             layoutEmpty.setVisibility(View.VISIBLE);
-                            String fallbackDebug = "[FALLBACK] total=" + (data.has("total") ? data.get("total").getAsInt() : 0);
-                            if (data.has("debug") && !data.get("debug").isJsonNull()) {
-                                JsonObject dbg = data.getAsJsonObject("debug");
-                                if (dbg.has("all_goods_count")) fallbackDebug += " 全库=" + dbg.get("all_goods_count").getAsInt();
-                            }
-                            tvDebugHint.setText(fallbackDebug);
+
                         } else {
                             layoutEmpty.setVisibility(View.GONE);
                             int rendered = 0;
@@ -216,7 +195,7 @@ public class AllItemsActivity extends AppCompatActivity {
                                 }
                             }
                             tvCount.setText(list.size() + " 件");
-                            tvDebugHint.setText("[FALLBACK OK] rendered=" + rendered);
+
                         } else {
                             for (int i = 0; i < list.size(); i++) {
                                 layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
@@ -233,8 +212,6 @@ public class AllItemsActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     progress.setVisibility(View.GONE);
                     layoutEmpty.setVisibility(View.VISIBLE);
-                    tvDebugHint.setText("⚠ 加载失败: " + msg + "\n请检查网络连接或重新登录");
-                    tvDebugHint.setVisibility(View.VISIBLE);
                 });
             }
         });
