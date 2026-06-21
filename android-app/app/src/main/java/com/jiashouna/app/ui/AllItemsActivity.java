@@ -98,9 +98,10 @@ public class AllItemsActivity extends AppCompatActivity {
         }
         Log.d(TAG, "loadItems: houseId=" + houseId + ", keyword=" + keyword + ", filter=" + filterType);
 
-        // Strategy: always pass house_id, use goods.php?action=list
         HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(houseId > 0 ? houseId : 0));
+        if (houseId > 0) {
+            params.put("house_id", String.valueOf(houseId));
+        }
         params.put("page_size", "200");
 
         if (keyword != null && !keyword.isEmpty()) {

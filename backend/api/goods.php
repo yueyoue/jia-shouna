@@ -22,10 +22,15 @@ switch ($action) {
         $where = ["g.status = 1"];
         $params = [];
 
+        // 如果未指定house_id，自动获取用户所属的第一个房屋
+        if (!$houseId) {
+            $houseStmt = $db->prepare("SELECT house_id FROM house_member WHERE user_id = ? ORDER BY joined_at ASC LIMIT 1");
+            $houseStmt->execute([$user['id']]);
+            $houseRow = $houseStmt->fetch();
+            if ($houseRow) $houseId = intval($houseRow['house_id']);
+        }
+
         if ($houseId) {
-            // 检查是否是房屋成员
-            $role = getUserHouseRole($user['id'], $houseId);
-            if (!$role) error('你不是该房屋成员', 403);
             $where[] = "g.house_id = ?";
             $params[] = $houseId;
         }
@@ -439,6 +444,14 @@ switch ($action) {
     case 'expiring':
         $houseId = intval($_GET['house_id'] ?? 0);
         $days = intval($_GET['days'] ?? 0);
+
+        // 如果未指定house_id，自动获取用户所属的第一个房屋
+        if (!$houseId) {
+            $houseStmt = $db->prepare("SELECT house_id FROM house_member WHERE user_id = ? ORDER BY joined_at ASC LIMIT 1");
+            $houseStmt->execute([$user['id']]);
+            $houseRow = $houseStmt->fetch();
+            if ($houseRow) $houseId = intval($houseRow['house_id']);
+        }
 
         // 获取临期提醒规则
         $reminderRules = [];

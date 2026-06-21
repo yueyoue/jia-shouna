@@ -234,7 +234,9 @@ public class SpaceDetailActivity extends AppCompatActivity {
         layoutEmpty.setVisibility(View.GONE);
 
         HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(houseId > 0 ? houseId : 0));
+        if (houseId > 0) {
+            params.put("house_id", String.valueOf(houseId));
+        }
         params.put("space_id", String.valueOf(targetSpaceId));
 
         if (selectedContainerId == 0) {
