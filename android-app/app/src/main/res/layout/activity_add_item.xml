@@ -399,20 +399,34 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="保质期(天)"
+                            android:text="保质期"
                             android:textColor="#718096"
                             android:textSize="11sp" />
 
-                        <EditText
-                            android:id="@+id/et_expiry_days"
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="44dp"
+                            android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:background="@drawable/bg_input_new"
-                            android:hint="如 365"
-                            android:inputType="number"
-                            android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
-                            android:textSize="13sp" />
+                            android:orientation="horizontal">
+
+                            <EditText
+                                android:id="@+id/et_expiry_days"
+                                android:layout_width="0dp"
+                                android:layout_height="44dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_input_new"
+                                android:hint="如 365"
+                                android:inputType="number"
+                                android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                                android:textSize="13sp" />
+
+                            <Spinner
+                                android:id="@+id/sp_expiry_unit"
+                                android:layout_width="72dp"
+                                android:layout_height="44dp"
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_input_new" />
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
 

@@ -10,7 +10,7 @@ foreach ($rows as $row) { $settings[$row['skey']] = $row['svalue']; }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'save') {
-        $fields = ['site_name', 'open_register', 'default_remind_days', 'ip_whitelist', 'ip_whitelist_enabled', 'auto_backup_enabled', 'auto_backup_cycle', 'auto_backup_keep'];
+        $fields = ['site_name', 'open_register', 'default_remind_days', 'ip_whitelist', 'ip_whitelist_enabled', 'auto_backup_enabled', 'auto_backup_cycle', 'auto_backup_keep', 'rule_days_365', 'rule_days_180', 'rule_days_90', 'rule_days_30', 'rule_days_16', 'rule_days_short'];
         foreach ($fields as $field) {
             if (isset($_POST[$field])) {
                 $val = $_POST[$field];
@@ -124,6 +124,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="settings-content" style="max-width:960px">
         <form method="POST">
             <input type="hidden" name="action" value="save">
+
+            <!-- Expiry Reminder Rules -->
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-card-title">
+                        <div class="settings-card-icon sci2">⏰</div>
+                        <div>
+                            <h3>临期提醒规则</h3>
+                            <p>根据保质期时长，设置不同的临期提醒天数</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-card-body">
+                    <input type="hidden" name="expiry_rules_enabled" value="1">
+                    <div class="setting-desc" style="margin-bottom:12px">物品入库时，系统根据其保质期时长自动匹配以下规则，计算何时进入临期状态。</div>
+
+                    <div style="display:grid;gap:8px">
+                        <div class="setting-row" style="grid-template-columns:200px 1fr 60px">
+                            <div>
+                                <div class="setting-label">保质期 ≥ 1年</div>
+                                <div class="setting-desc">如罐头、饼干、调味品</div>
+                            </div>
+                            <div class="setting-control">
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span style="font-size:13px;color:#718096">到期前</span>
+                                    <input class="form-control" name="rule_days_365" type="number" value="<?= $settings['rule_days_365'] ?? 45 ?>" style="width:80px">
+                                    <span style="font-size:13px;color:#718096">天进入临期</span>
+                                </div>
+                            </div>
+                            <div></div>
+                        </div>
+
+                        <div class="setting-row" style="grid-template-columns:200px 1fr 60px">
+                            <div>
+                                <div class="setting-label">6个月 ≤ 保质期 < 1年</div>
+                                <div class="setting-desc">如部分牛奶、方便面</div>
+                            </div>
+                            <div class="setting-control">
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span style="font-size:13px;color:#718096">到期前</span>
+                                    <input class="form-control" name="rule_days_180" type="number" value="<?= $settings['rule_days_180'] ?? 20 ?>" style="width:80px">
+                                    <span style="font-size:13px;color:#718096">天进入临期</span>
+                                </div>
+                            </div>
+                            <div></div>
+                        </div>
+
+                        <div class="setting-row" style="grid-template-columns:200px 1fr 60px">
+                            <div>
+                                <div class="setting-label">90天 ≤ 保质期 < 6个月</div>
+                                <div class="setting-desc">如部分零食、饮料</div>
+                            </div>
+                            <div class="setting-control">
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span style="font-size:13px;color:#718096">到期前</span>
+                                    <input class="form-control" name="rule_days_90" type="number" value="<?= $settings['rule_days_90'] ?? 15 ?>" style="width:80px">
+                                    <span style="font-size:13px;color:#718096">天进入临期</span>
+                                </div>
+                            </div>
+                            <div></div>
+                        </div>
+
+                        <div class="setting-row" style="grid-template-columns:200px 1fr 60px">
+                            <div>
+                                <div class="setting-label">30天 ≤ 保质期 < 90天</div>
+                                <div class="setting-desc">如鲜鸡蛋、灭菌肉</div>
+                            </div>
+                            <div class="setting-control">
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span style="font-size:13px;color:#718096">到期前</span>
+                                    <input class="form-control" name="rule_days_30" type="number" value="<?= $settings['rule_days_30'] ?? 10 ?>" style="width:80px">
+                                    <span style="font-size:13px;color:#718096">天进入临期</span>
+                                </div>
+                            </div>
+                            <div></div>
+                        </div>
+
+                        <div class="setting-row" style="grid-template-columns:200px 1fr 60px">
+                            <div>
+                                <div class="setting-label">16天 ≤ 保质期 < 30天</div>
+                                <div class="setting-desc">如酸奶、短保点心</div>
+                            </div>
+                            <div class="setting-control">
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span style="font-size:13px;color:#718096">到期前</span>
+                                    <input class="form-control" name="rule_days_16" type="number" value="<?= $settings['rule_days_16'] ?? 5 ?>" style="width:80px">
+                                    <span style="font-size:13px;color:#718096">天进入临期</span>
+                                </div>
+                            </div>
+                            <div></div>
+                        </div>
+
+                        <div class="setting-row" style="grid-template-columns:200px 1fr 60px">
+                            <div>
+                                <div class="setting-label">保质期 < 15天</div>
+                                <div class="setting-desc">如鲜奶、未灭菌熟食</div>
+                            </div>
+                            <div class="setting-control">
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span style="font-size:13px;color:#718096">到期前</span>
+                                    <input class="form-control" name="rule_days_short" type="number" value="<?= $settings['rule_days_short'] ?? 2 ?>" style="width:80px">
+                                    <span style="font-size:13px;color:#718096">天进入临期</span>
+                                </div>
+                            </div>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Basic config -->
             <div class="settings-card">

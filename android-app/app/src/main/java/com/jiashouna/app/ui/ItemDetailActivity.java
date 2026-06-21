@@ -299,12 +299,24 @@ public class ItemDetailActivity extends AppCompatActivity {
         String creator = g.has("creator_name") && !g.get("creator_name").isJsonNull() ? g.get("creator_name").getAsString() : "";
         tvCreator.setText("录入者: " + (creator.isEmpty() ? "未知" : creator));
 
-        // Created time
+        // Created time + days since storage
         if (g.has("created_at") && !g.get("created_at").isJsonNull()) {
             try {
                 long ts = g.get("created_at").getAsLong();
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-                tvCreatedTime.setText(sdf.format(new Date(ts * 1000)));
+                String dateStr = sdf.format(new Date(ts * 1000));
+                // Calculate days since storage
+                long daysSince = (System.currentTimeMillis() - ts * 1000) / (24 * 60 * 60 * 1000);
+                if (daysSince < 0) daysSince = 0;
+                String daysText;
+                if (daysSince == 0) {
+                    daysText = "今天入库";
+                } else if (daysSince == 1) {
+                    daysText = "昨天入库";
+                } else {
+                    daysText = "已入库 " + daysSince + " 天";
+                }
+                tvCreatedTime.setText(dateStr + "（" + daysText + "）");
             } catch (Exception ignored) {}
         }
 

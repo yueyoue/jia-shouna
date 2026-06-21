@@ -109,6 +109,11 @@ public class ProfileFragment extends Fragment {
             shareInvite();
         });
 
+        // 标签管理
+        setupMenuClick(v, R.id.menu_tags, () -> {
+            openTagManager();
+        });
+
         // 操作日志
         setupMenuClick(v, R.id.menu_logs, () -> {
             loadOperationLogs();
@@ -512,6 +517,201 @@ public class ProfileFragment extends Fragment {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() ->
                     Toast.makeText(getContext(), "加载日志失败: " + msg, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+    private void openTagManager() {
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (houseId <= 0) {
+            Toast.makeText(getContext(), "暂无家庭", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Toast.makeText(getContext(), "正在加载标签...", Toast.LENGTH_SHORT).show();
+        java.util.HashMap<String, String> params = new java.util.HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+        ApiClient.get("tag.php?action=list", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        JsonArray tags = data.has("list") && !data.get("list").isJsonNull()
+                            ? data.getAsJsonArray("list") : new JsonArray();
+                        showTagManagerDialog(tags, houseId);
+                    } catch (Exception e) {
+                        Toast.makeText(getContext(), "加载失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() ->
+                    Toast.makeText(getContext(), "加载标签失败: " + msg, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+    private void showTagManagerDialog(JsonArray tags, int houseId) {
+        if (getActivity() == null) return;
+
+        LinearLayout container = new LinearLayout(getActivity());
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(24), dp(16), dp(24), dp(8));
+
+        // Current tags list
+        LinearLayout tagListLayout = new LinearLayout(getActivity());
+        tagListLayout.setOrientation(LinearLayout.VERTICAL);
+        tagListLayout.setId(android.R.id.content);
+
+        if (tags.size() == 0) {
+            TextView empty = new TextView(getActivity());
+            empty.setText("暂无标签，点击下方按钮添加");
+            empty.setTextColor(0xFFA0AEC0);
+            empty.setTextSize(13);
+            empty.setGravity(android.view.Gravity.CENTER);
+            empty.setPadding(0, dp(20), 0, dp(20));
+            tagListLayout.addView(empty);
+        } else {
+            for (int i = 0; i < tags.size(); i++) {
+                JsonObject tag = tags.get(i).getAsJsonObject();
+                int tagId = tag.has("id") ? tag.get("id").getAsInt() : 0;
+                String tagName = tag.has("name") ? tag.get("name").getAsString() : "";
+                int usageCount = tag.has("usage_count") ? tag.get("usage_count").getAsInt() : 0;
+
+                LinearLayout row = new LinearLayout(getActivity());
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setPadding(0, dp(8), 0, dp(8));
+
+                // Tag color dot
+                View dot = new View(getActivity());
+                android.graphics.drawable.GradientDrawable dotBg = new android.graphics.drawable.GradientDrawable();
+                dotBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                dotBg.setColor(0xFFFF8C42);
+                dot.setBackground(dotBg);
+                LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(10), dp(10));
+                dotLp.setMarginEnd(dp(10));
+                dot.setLayoutParams(dotLp);
+                row.addView(dot);
+
+                // Tag name
+                TextView name = new TextView(getActivity());
+                name.setText(tagName);
+                name.setTextSize(14);
+                name.setTextColor(0xFF2D3748);
+                LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                name.setLayoutParams(nameLp);
+                row.addView(name);
+
+                // Usage count
+                TextView count = new TextView(getActivity());
+                count.setText(usageCount + " 件");
+                count.setTextSize(11);
+                count.setTextColor(0xFFA0AEC0);
+                LinearLayout.LayoutParams countLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                countLp.setMarginEnd(dp(12));
+                count.setLayoutParams(countLp);
+                row.addView(count);
+
+                // Delete button
+                TextView deleteBtn = new TextView(getActivity());
+                deleteBtn.setText("×");
+                deleteBtn.setTextSize(18);
+                deleteBtn.setTextColor(0xFFF56565);
+                deleteBtn.setPadding(dp(8), dp(4), dp(8), dp(4));
+                final int finalTagId = tagId;
+                final String finalTagName = tagName;
+                deleteBtn.setOnClickListener(v -> {
+                    new android.app.AlertDialog.Builder(getActivity())
+                        .setTitle("删除标签")
+                        .setMessage("确定删除标签「" + finalTagName + "」？\n关联的物品不会被删除。")
+                        .setPositiveButton("删除", (d, w) -> deleteTag(finalTagId, houseId))
+                        .setNegativeButton("取消", null)
+                        .show();
+                });
+                row.addView(deleteBtn);
+
+                tagListLayout.addView(row);
+
+                // Divider
+                if (i < tags.size() - 1) {
+                    View divider = new View(getActivity());
+                    divider.setBackgroundColor(0xFFEDF2F7);
+                    divider.setLayoutParams(new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
+                    tagListLayout.addView(divider);
+                }
+            }
+        }
+        container.addView(tagListLayout);
+
+        new android.app.AlertDialog.Builder(getActivity())
+            .setTitle("🏷 标签管理")
+            .setView(container)
+            .setPositiveButton("关闭", null)
+            .setNeutralButton("+ 新建标签", (d, w) -> showCreateTagDialog(houseId))
+            .show();
+    }
+
+    private void showCreateTagDialog(int houseId) {
+        if (getActivity() == null) return;
+
+        EditText input = new EditText(getActivity());
+        input.setHint("输入标签名称，如：食品、常用、紧急");
+        input.setPadding(dp(16), dp(12), dp(16), dp(12));
+
+        new android.app.AlertDialog.Builder(getActivity())
+            .setTitle("新建标签")
+            .setView(input)
+            .setPositiveButton("创建", (d, w) -> {
+                String name = input.getText().toString().trim();
+                if (!name.isEmpty()) {
+                    createTag(name, houseId);
+                } else {
+                    Toast.makeText(getContext(), "请输入标签名称", Toast.LENGTH_SHORT).show();
+                }
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private void createTag(String name, int houseId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("house_id", houseId);
+        body.addProperty("name", name);
+        ApiClient.post("tag.php?action=create", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    Toast.makeText(getContext(), "✅ 标签已创建", Toast.LENGTH_SHORT).show();
+                    openTagManager(); // Refresh
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() ->
+                    Toast.makeText(getContext(), "创建失败: " + msg, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+    private void deleteTag(int tagId, int houseId) {
+        java.util.HashMap<String, String> params = new java.util.HashMap<>();
+        params.put("id", String.valueOf(tagId));
+        ApiClient.get("tag.php?action=delete", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    Toast.makeText(getContext(), "✅ 已删除", Toast.LENGTH_SHORT).show();
+                    openTagManager(); // Refresh
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() ->
+                    Toast.makeText(getContext(), "删除失败: " + msg, Toast.LENGTH_SHORT).show()
                 );
             }
         });

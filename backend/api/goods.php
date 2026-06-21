@@ -210,14 +210,42 @@ switch ($action) {
         $stmt = $db->prepare("UPDATE house SET item_count = item_count + 1, updated_at = ? WHERE id = ?");
         $stmt->execute([$now, $houseId]);
 
-        // 如果有保质期，创建提醒
+        // 如果有保质期，根据规则创建提醒
         if (!empty($input['expiry_date'])) {
             $expiryTs = strtotime($input['expiry_date']);
             $remindDays = 7;
-            $stmt2 = $db->prepare("SELECT svalue FROM sys_setting WHERE skey = 'default_remind_days'");
-            $stmt2->execute();
-            $s = $stmt2->fetch();
-            if ($s) $remindDays = intval($s['svalue']);
+
+            // 根据保质期时长匹配规则
+            $shelfLifeDays = 0;
+            if (!empty($input['purchase_date'])) {
+                $purchaseTs = strtotime($input['purchase_date']);
+                if ($purchaseTs && $expiryTs) {
+                    $shelfLifeDays = intval(($expiryTs - $purchaseTs) / 86400);
+                }
+            }
+
+            // 读取规则
+            try {
+                $ruleStmt = $db->prepare("SELECT skey, svalue FROM sys_setting WHERE skey IN ('rule_days_365','rule_days_180','rule_days_90','rule_days_30','rule_days_16','rule_days_short')");
+                $ruleStmt->execute();
+                $ruleSettings = [];
+                while ($row = $ruleStmt->fetch()) {
+                    $ruleSettings[$row['skey']] = intval($row['svalue']);
+                }
+
+                if ($shelfLifeDays >= 365) $remindDays = $ruleSettings['rule_days_365'] ?? 45;
+                elseif ($shelfLifeDays >= 180) $remindDays = $ruleSettings['rule_days_180'] ?? 20;
+                elseif ($shelfLifeDays >= 90) $remindDays = $ruleSettings['rule_days_90'] ?? 15;
+                elseif ($shelfLifeDays >= 30) $remindDays = $ruleSettings['rule_days_30'] ?? 10;
+                elseif ($shelfLifeDays >= 16) $remindDays = $ruleSettings['rule_days_16'] ?? 5;
+                else $remindDays = $ruleSettings['rule_days_short'] ?? 2;
+            } catch (Exception $e) {
+                // 使用默认值
+                $stmt2 = $db->prepare("SELECT svalue FROM sys_setting WHERE skey = 'default_remind_days'");
+                $stmt2->execute();
+                $s = $stmt2->fetch();
+                if ($s) $remindDays = intval($s['svalue']);
+            }
 
             $remindTime = $expiryTs - ($remindDays * 86400);
             if ($remindTime > $now) {
@@ -409,10 +437,35 @@ switch ($action) {
 
     case 'expiring':
         $houseId = intval($_GET['house_id'] ?? 0);
-        $days = intval($_GET['days'] ?? 7);
+        $days = intval($_GET['days'] ?? 0);
+
+        // 获取临期提醒规则
+        $reminderRules = [];
+        $ruleSettings = [];
+        try {
+            $ruleStmt = $db->prepare("SELECT skey, svalue FROM sys_setting WHERE skey IN ('rule_days_365','rule_days_180','rule_days_90','rule_days_30','rule_days_16','rule_days_short')");
+            $ruleStmt->execute();
+            while ($row = $ruleStmt->fetch()) {
+                $ruleSettings[$row['skey']] = intval($row['svalue']);
+            }
+        } catch (Exception $e) {}
+
+        $reminderRules[] = ['min_days' => 365, 'max_days' => 99999, 'remind_days' => $ruleSettings['rule_days_365'] ?? 45];
+        $reminderRules[] = ['min_days' => 180, 'max_days' => 364,  'remind_days' => $ruleSettings['rule_days_180'] ?? 20];
+        $reminderRules[] = ['min_days' => 90,  'max_days' => 179,  'remind_days' => $ruleSettings['rule_days_90'] ?? 15];
+        $reminderRules[] = ['min_days' => 30,  'max_days' => 89,   'remind_days' => $ruleSettings['rule_days_30'] ?? 10];
+        $reminderRules[] = ['min_days' => 16,  'max_days' => 29,   'remind_days' => $ruleSettings['rule_days_16'] ?? 5];
+        $reminderRules[] = ['min_days' => 0,   'max_days' => 15,   'remind_days' => $ruleSettings['rule_days_short'] ?? 2];
+
+        // 计算最大提醒天数
+        $maxRemindDays = 0;
+        foreach ($reminderRules as $rule) {
+            if ($rule['remind_days'] > $maxRemindDays) $maxRemindDays = $rule['remind_days'];
+        }
+        if ($days > 0) $maxRemindDays = $days;
 
         $where = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)", "g.expiry_date >= CURDATE()"];
-        $params = [$days];
+        $params = [$maxRemindDays];
 
         if ($houseId) {
             $where[] = "g.house_id = ?";
@@ -422,9 +475,27 @@ switch ($action) {
         $params[] = $user['id'];
 
         $whereStr = implode(' AND ', $where);
-        $stmt = $db->prepare("SELECT g.*, s.name as space_name FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE $whereStr ORDER BY g.expiry_date ASC");
+        $stmt = $db->prepare("SELECT g.*, s.name as space_name, DATEDIFF(g.expiry_date, CURDATE()) as days_left, DATEDIFF(g.expiry_date, g.purchase_date) as shelf_life_days FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE $whereStr ORDER BY g.expiry_date ASC");
         $stmt->execute($params);
-        $list = $stmt->fetchAll();
+        $allItems = $stmt->fetchAll();
+
+        // 根据规则过滤
+        $list = [];
+        foreach ($allItems as $item) {
+            $shelfLifeDays = intval($item['shelf_life_days'] ?? 0);
+            $daysLeft = intval($item['days_left'] ?? 0);
+            $remindDays = 7;
+            foreach ($reminderRules as $rule) {
+                if ($shelfLifeDays >= $rule['min_days'] && $shelfLifeDays <= $rule['max_days']) {
+                    $remindDays = $rule['remind_days'];
+                    break;
+                }
+            }
+            if ($daysLeft <= $remindDays) {
+                $list[] = $item;
+            }
+        }
+
         success(['list' => $list]);
         break;
 

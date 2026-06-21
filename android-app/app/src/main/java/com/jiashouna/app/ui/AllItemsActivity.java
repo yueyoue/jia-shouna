@@ -76,6 +76,14 @@ public class AllItemsActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh list when coming back (e.g. after adding items)
+        String kw = etSearch.getText().toString().trim();
+        loadItems(kw);
+    }
+
     private void loadItems(String keyword) {
         progress.setVisibility(View.VISIBLE);
         layoutItems.removeAllViews();
@@ -91,14 +99,12 @@ public class AllItemsActivity extends AppCompatActivity {
         }
 
         HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(houseId));
+        if (houseId > 0) {
+            params.put("house_id", String.valueOf(houseId));
+        }
         params.put("page_size", "100");
         if (keyword != null && !keyword.isEmpty()) {
-            try {
-                params.put("keyword", java.net.URLEncoder.encode(keyword, "UTF-8"));
-            } catch (Exception e) {
-                params.put("keyword", keyword);
-            }
+            params.put("keyword", keyword);
         }
 
         String endpoint = "goods.php?action=list";

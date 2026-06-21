@@ -28,6 +28,7 @@ public class AddItemActivity extends AppCompatActivity {
     private EditText etName, etBarcode, etQuantity, etUnit, etExpiryDays, etPrice, etNote, etThreshold;
     private EditText etPurchaseDate;
     private TextView tvExpiryDateAuto;
+    private Spinner spExpiryUnit;
     private String selectedPurchaseDate = "";
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
@@ -68,6 +69,7 @@ public class AddItemActivity extends AppCompatActivity {
         etThreshold = findViewById(R.id.et_threshold);
         etPurchaseDate = findViewById(R.id.et_purchase_date);
         etNote = findViewById(R.id.et_note);
+        spExpiryUnit = findViewById(R.id.sp_expiry_unit);
         spacePicker = findViewById(R.id.space_picker);
         tvSpaceName = findViewById(R.id.tv_space_name);
         tvSpacePath = findViewById(R.id.tv_space_path);
@@ -119,6 +121,18 @@ public class AddItemActivity extends AppCompatActivity {
                 calcExpiryDate();
             }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
         });
+
+        // 保质期单位选择器
+        if (spExpiryUnit != null) {
+            String[] units = {"天", "月", "年"};
+            android.widget.ArrayAdapter<String> unitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, units);
+            unitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spExpiryUnit.setAdapter(unitAdapter);
+            spExpiryUnit.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { calcExpiryDate(); }
+                @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+            });
+        }
 
         // 保质期天数变化时自动计算过期日期
         etExpiryDays.addTextChangedListener(new android.text.TextWatcher() {
@@ -385,12 +399,32 @@ public class AddItemActivity extends AppCompatActivity {
                     return;
                 }
 
+                // 自动填入识别到的标签
+                if (data.has("suggested_tags") && !data.get("suggested_tags").isJsonNull()) {
+                    com.google.gson.JsonArray suggestedTags = data.getAsJsonArray("suggested_tags");
+                    for (int i = 0; i < suggestedTags.size(); i++) {
+                        String tagName = suggestedTags.get(i).getAsString();
+                        if (!selectedTagNames.contains(tagName)) {
+                            selectedTagNames.add(tagName);
+                            // 标签ID会在保存时自动创建
+                        }
+                    }
+                    updateTagDisplay();
+                }
+
                 new AlertDialog.Builder(this)
                     .setTitle("✅ 识别结果")
                     .setMessage(msg.toString() + "\n是否填入表单？")
                     .setPositiveButton("确认填入", (d, w) -> {
                         if (!name.isEmpty()) etName.setText(name);
                         if (!barcode.isEmpty()) etBarcode.setText(barcode);
+                        if (!brand.isEmpty()) {
+                            // Auto-fill brand to note if not empty
+                            String existingNote = etNote.getText().toString().trim();
+                            if (existingNote.isEmpty()) {
+                                etNote.setText("品牌: " + brand);
+                            }
+                        }
                         Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
                     })
                     .setNegativeButton("重新识别", (d, w) -> {
@@ -632,6 +666,17 @@ public class AddItemActivity extends AppCompatActivity {
             .show();
     }
 
+    /**
+     * 将用户输入的保质期值和单位换算成天数
+     */
+    private int convertToDays(int value, String unit) {
+        switch (unit) {
+            case "月": return value * 30;
+            case "年": return value * 365;
+            default: return value; // 天
+        }
+    }
+
     private void calcExpiryDate() {
         String purchaseStr = etPurchaseDate.getText().toString().trim();
         String daysStr = etExpiryDays.getText().toString().trim();
@@ -643,7 +688,12 @@ public class AddItemActivity extends AppCompatActivity {
         }
 
         try {
-            int days = Integer.parseInt(daysStr);
+            int inputValue = Integer.parseInt(daysStr);
+            String unit = "天";
+            if (spExpiryUnit != null && spExpiryUnit.getSelectedItem() != null) {
+                unit = spExpiryUnit.getSelectedItem().toString();
+            }
+            int days = convertToDays(inputValue, unit);
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             java.util.Date purchaseDate = sdf.parse(purchaseStr);
             if (purchaseDate != null) {
@@ -711,11 +761,16 @@ public class AddItemActivity extends AppCompatActivity {
             // 提取日期部分（去掉可能的提示文字）
             goods.expiryDate = autoExpiry.length() >= 10 ? autoExpiry.substring(0, 10) : autoExpiry;
         } else {
-            // 回退：从保质期天数计算
+            // 回退：从保质期值和单位计算
             String daysStr = etExpiryDays.getText().toString().trim();
             if (!daysStr.isEmpty()) {
                 try {
-                    int days = Integer.parseInt(daysStr);
+                    int inputValue = Integer.parseInt(daysStr);
+                    String unit = "天";
+                    if (spExpiryUnit != null && spExpiryUnit.getSelectedItem() != null) {
+                        unit = spExpiryUnit.getSelectedItem().toString();
+                    }
+                    int days = convertToDays(inputValue, unit);
                     long expiryMillis = System.currentTimeMillis() + (long) days * 24 * 60 * 60 * 1000;
                     java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
                     goods.expiryDate = sdf.format(new java.util.Date(expiryMillis));

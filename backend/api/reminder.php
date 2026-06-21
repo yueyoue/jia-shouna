@@ -32,10 +32,19 @@ switch ($action) {
         $stmt->execute($params);
         $reminders = $stmt->fetchAll();
 
-        // 2. 自动生成：临期物品提醒
+        // 2. 自动生成：临期物品提醒（使用动态规则）
         if (!$type || $type === 'expiry') {
-            $expWhere = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)"];
-            $expParams = [];
+            // 获取临期提醒规则
+            $reminderRules = getExpiryReminderRules($db);
+            // 计算所有规则中最大的提醒天数，用于数据库查询范围
+            $maxRemindDays = 0;
+            foreach ($reminderRules as $rule) {
+                if ($rule['remind_days'] > $maxRemindDays) $maxRemindDays = $rule['remind_days'];
+            }
+            if ($maxRemindDays <= 0) $maxRemindDays = 45; // 默认最大45天
+
+            $expWhere = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)", "g.expiry_date >= CURDATE()"];
+            $expParams = [$maxRemindDays];
             if ($houseId) { $expWhere[] = "g.house_id = ?"; $expParams[] = $houseId; }
             $expWhere[] = "(g.is_private = 0 OR g.creator_id = ?)";
             $expParams[] = $user['id'];
@@ -47,6 +56,23 @@ switch ($action) {
             $stmt->execute($expParams);
             foreach ($stmt->fetchAll() as $item) {
                 $daysLeft = intval($item['days_left']);
+
+                // 计算该物品的保质期总天数
+                $shelfLifeDays = 0;
+                if (!empty($item['purchase_date']) && !empty($item['expiry_date'])) {
+                    $purchaseTs = strtotime($item['purchase_date']);
+                    $expiryTs = strtotime($item['expiry_date']);
+                    if ($purchaseTs && $expiryTs) {
+                        $shelfLifeDays = intval(($expiryTs - $purchaseTs) / 86400);
+                    }
+                }
+
+                // 根据保质期时长匹配提醒规则
+                $remindDaysForItem = getRemindDaysForShelfLife($reminderRules, $shelfLifeDays);
+
+                // 只有当剩余天数 <= 提醒天数时才加入提醒列表
+                if ($daysLeft > $remindDaysForItem) continue;
+
                 $title = $daysLeft < 0 ? $item['goods_name'] . ' 已过期' : $item['goods_name'] . ' 将在' . $daysLeft . '天后过期';
                 $reminders[] = [
                     'id' => 'exp_' . $item['goods_id'],
@@ -169,4 +195,51 @@ switch ($action) {
 
     default:
         error('未知操作');
+}
+
+/**
+ * 获取临期提醒规则配置
+ */
+function getExpiryReminderRules($db) {
+    $defaults = [
+        ['min_days' => 365, 'max_days' => 99999, 'remind_days' => 45, 'label' => '≥1年'],
+        ['min_days' => 180, 'max_days' => 364,  'remind_days' => 20, 'label' => '6个月~1年'],
+        ['min_days' => 90,  'max_days' => 179,  'remind_days' => 15, 'label' => '90天~6个月'],
+        ['min_days' => 30,  'max_days' => 89,   'remind_days' => 10, 'label' => '30天~90天'],
+        ['min_days' => 16,  'max_days' => 29,   'remind_days' => 5,  'label' => '16天~30天'],
+        ['min_days' => 0,   'max_days' => 15,   'remind_days' => 2,  'label' => '<15天'],
+    ];
+
+    // 从数据库读取配置
+    $settings = [];
+    try {
+        $stmt = $db->prepare("SELECT skey, svalue FROM sys_setting WHERE skey IN ('rule_days_365','rule_days_180','rule_days_90','rule_days_30','rule_days_16','rule_days_short')");
+        $stmt->execute();
+        while ($row = $stmt->fetch()) {
+            $settings[$row['skey']] = intval($row['svalue']);
+        }
+    } catch (Exception $e) {}
+
+    // 合并默认值和数据库值
+    $rules = [];
+    $rules[] = ['min_days' => 365, 'max_days' => 99999, 'remind_days' => $settings['rule_days_365'] ?? 45];
+    $rules[] = ['min_days' => 180, 'max_days' => 364,  'remind_days' => $settings['rule_days_180'] ?? 20];
+    $rules[] = ['min_days' => 90,  'max_days' => 179,  'remind_days' => $settings['rule_days_90'] ?? 15];
+    $rules[] = ['min_days' => 30,  'max_days' => 89,   'remind_days' => $settings['rule_days_30'] ?? 10];
+    $rules[] = ['min_days' => 16,  'max_days' => 29,   'remind_days' => $settings['rule_days_16'] ?? 5];
+    $rules[] = ['min_days' => 0,   'max_days' => 15,   'remind_days' => $settings['rule_days_short'] ?? 2];
+
+    return $rules;
+}
+
+/**
+ * 根据保质期总天数获取对应的提醒天数
+ */
+function getRemindDaysForShelfLife($rules, $shelfLifeDays) {
+    foreach ($rules as $rule) {
+        if ($shelfLifeDays >= $rule['min_days'] && $shelfLifeDays <= $rule['max_days']) {
+            return $rule['remind_days'];
+        }
+    }
+    return 7; // 默认7天
 }

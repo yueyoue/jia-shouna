@@ -98,24 +98,66 @@ switch ($action) {
                 ->execute([$apiConfig['id']]);
         }
 
+        // 同时尝试OCR识别包装上的文字（商品名、品牌等）
+        $ocrResult = null;
+        try {
+            $ocrResult = recognizeTextFromImage($apiConfig, $base64Image);
+        } catch (Exception $e) {
+            // OCR失败不影响主流程
+        }
+
         if ($result && $result['success']) {
+            // 合并OCR结果：优先使用OCR识别到的商品名
+            $suggestedName = $result['name'] ?? '';
+            $suggestedBrand = $result['brand'] ?? '';
+            $suggestedCategory = $result['category'] ?? '';
+
+            if ($ocrResult && !empty($ocrResult['product_name'])) {
+                $suggestedName = $ocrResult['product_name'];
+            }
+            if ($ocrResult && !empty($ocrResult['brand'])) {
+                $suggestedBrand = $ocrResult['brand'];
+            }
+            // 根据OCR识别的商品名自动推断标签
+            $suggestedTags = [];
+            if (!empty($suggestedName)) {
+                $suggestedTags = inferTagsFromName($suggestedName, $suggestedCategory);
+            }
+
             success([
                 'recognized' => true,
-                'suggested_name' => $result['name'] ?? '',
-                'suggested_category' => $result['category'] ?? '',
-                'suggested_brand' => $result['brand'] ?? '',
+                'suggested_name' => $suggestedName,
+                'suggested_category' => $suggestedCategory,
+                'suggested_brand' => $suggestedBrand,
+                'suggested_tags' => $suggestedTags,
                 'barcode' => $result['barcode'] ?? '',
                 'confidence' => $result['confidence'] ?? 0,
                 'image_path' => $relativePath,
                 'image_url' => IMAGE_URL_PREFIX . $relativePath
             ]);
         } else {
-            success([
-                'recognized' => false,
-                'message' => '识别失败: ' . ($result['error'] ?? '未知错误') . '，请手动输入',
-                'image_path' => $relativePath,
-                'image_url' => IMAGE_URL_PREFIX . $relativePath
-            ]);
+            // 主识别失败，尝试仅用OCR结果
+            if ($ocrResult && !empty($ocrResult['product_name'])) {
+                $suggestedTags = inferTagsFromName($ocrResult['product_name'], '');
+                success([
+                    'recognized' => true,
+                    'suggested_name' => $ocrResult['product_name'],
+                    'suggested_category' => mapCategory($ocrResult['product_name']),
+                    'suggested_brand' => $ocrResult['brand'] ?? '',
+                    'suggested_tags' => $suggestedTags,
+                    'barcode' => '',
+                    'confidence' => 0.5,
+                    'image_path' => $relativePath,
+                    'image_url' => IMAGE_URL_PREFIX . $relativePath
+                ]);
+            } else {
+                success([
+                    'recognized' => false,
+                    'message' => '识别失败: ' . ($result['error'] ?? '未知错误') . '，请手动输入',
+                    'image_path' => $relativePath,
+                    'image_url' => IMAGE_URL_PREFIX . $relativePath
+                ]);
+            }
         }
         break;
 
@@ -227,6 +269,154 @@ function recognizeGeneric($config, $base64Image) {
     }
 
     return ['success' => false, 'error' => '识别接口返回异常'];
+}
+
+/**
+ * OCR文字识别 - 识别包装上的商品名和品牌
+ */
+function recognizeTextFromImage($config, $base64Image) {
+    $apiKey = $config['api_key'];
+    $secretKey = $config['api_secret'];
+
+    if (empty($apiKey) || empty($secretKey)) {
+        return null;
+    }
+
+    // 获取access_token
+    $tokenUrl = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=" . urlencode($apiKey) . "&client_secret=" . urlencode($secretKey);
+    $tokenResp = httpPost($tokenUrl, '', ['Content-Type: application/x-www-form-urlencoded']);
+    $tokenData = json_decode($tokenResp, true);
+    if (!$tokenData || !isset($tokenData['access_token'])) {
+        return null;
+    }
+    $accessToken = $tokenData['access_token'];
+
+    // 调用通用文字识别（高精度版）
+    $ocrUrl = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token={$accessToken}";
+    $postData = http_build_query(['image' => $base64Image]);
+    $resp = httpPost($ocrUrl, $postData, ['Content-Type: application/x-www-form-urlencoded']);
+    $data = json_decode($resp, true);
+
+    if (!isset($data['words_result']) || empty($data['words_result'])) {
+        return null;
+    }
+
+    // 提取所有识别到的文字
+    $allWords = [];
+    foreach ($data['words_result'] as $item) {
+        $allWords[] = $item['words'];
+    }
+    $fullText = implode(' ', $allWords);
+
+    // 尝试从文字中提取商品名和品牌
+    $productName = '';
+    $brand = '';
+
+    // 常见品牌关键词匹配
+    $knownBrands = [
+        '蒙牛', '伊利', '光明', '完达山', '三元', '君乐宝', '旺仔',
+        '康师傅', '统一', '今麦郎', '白象', '日清',
+        '可口可乐', '百事可乐', '雪碧', '芬达', '美年达',
+        '雀巢', '星巴克', '瑞幸',
+        '奥利奥', '趣多多', '达利园', '盼盼', '徐福记',
+        '华为', '小米', '苹果', '三星', 'OPPO', 'vivo',
+        '宝洁', '联合利华', '花王', '立白', '蓝月亮',
+        '双汇', '金锣', '雨润',
+        '农夫山泉', '怡宝', '百岁山',
+        '伊利', '蒙牛', '光明', '完达山', '三元',
+        '海天', '李锦记', '太太乐', '家乐',
+    ];
+
+    foreach ($knownBrands as $b) {
+        if (mb_strpos($fullText, $b) !== false) {
+            $brand = $b;
+            break;
+        }
+    }
+
+    // 商品名通常是第一行或前几行中较长的文字
+    // 排除日期、条码、地址等干扰信息
+    $skipPatterns = ['/', '\\', '生产日期', '保质期', '配料', '成分', '地址', '电话', '传真', '邮编', 'http', 'www', '净含量', '规格', '批号', 'GB ', 'QB ', 'SB '];
+    foreach ($allWords as $word) {
+        $word = trim($word);
+        if (mb_strlen($word) < 2 || mb_strlen($word) > 30) continue;
+
+        $skip = false;
+        foreach ($skipPatterns as $pattern) {
+            if (mb_strpos($word, $pattern) !== false) {
+                $skip = true;
+                break;
+            }
+        }
+        // 跳过纯数字、纯日期
+        if (preg_match('/^\d+$/', $word) || preg_match('/^\d{4}[-\/]\d{1,2}/', $word)) {
+            $skip = true;
+        }
+        if (!$skip && empty($productName)) {
+            $productName = $word;
+        }
+    }
+
+    if (empty($productName) && empty($brand)) {
+        return null;
+    }
+
+    // 如果有品牌但没有商品名，用品牌+第一行有意义文字组合
+    if (empty($productName) && !empty($brand)) {
+        $productName = $brand;
+    }
+
+    return [
+        'product_name' => $productName,
+        'brand' => $brand,
+        'all_text' => $fullText
+    ];
+}
+
+/**
+ * 根据商品名推断标签
+ */
+function inferTagsFromName($name, $category) {
+    $tags = [];
+    $name = strtolower($name);
+
+    // 食品相关
+    $foodKeywords = ['牛奶', '酸奶', '面包', '饼干', '薯片', '巧克力', '糖果', '方便面', '火腿', '香肠', '奶酪', '果汁', '咖啡', '茶', '可乐', '雪碧', '矿泉水', '坚果', '蛋糕', '月饼'];
+    foreach ($foodKeywords as $kw) {
+        if (mb_strpos($name, $kw) !== false) {
+            $tags[] = '食品';
+            break;
+        }
+    }
+
+    // 药品相关
+    $medicineKeywords = ['药', '胶囊', '片剂', '口服液', '冲剂', '创可贴', '碘伏', '酒精'];
+    foreach ($medicineKeywords as $kw) {
+        if (mb_strpos($name, $kw) !== false) {
+            $tags[] = '药品';
+            break;
+        }
+    }
+
+    // 日用品
+    $dailyKeywords = ['洗发水', '沐浴露', '牙膏', '牙刷', '洗衣液', '洗洁精', '纸巾', '抽纸', '湿巾', '垃圾袋'];
+    foreach ($dailyKeywords as $kw) {
+        if (mb_strpos($name, $kw) !== false) {
+            $tags[] = '日用品';
+            break;
+        }
+    }
+
+    // 饮料
+    $drinkKeywords = ['水', '汁', '奶', '茶', '咖啡', '可乐', '雪碧', '啤酒'];
+    foreach ($drinkKeywords as $kw) {
+        if (mb_strpos($name, $kw) !== false) {
+            if (!in_array('食品', $tags)) $tags[] = '饮品';
+            break;
+        }
+    }
+
+    return $tags;
 }
 
 /**
