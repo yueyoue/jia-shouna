@@ -22,12 +22,21 @@ switch ($action) {
         $where = ["g.status = 1"];
         $params = [];
 
-        // 如果未指定house_id，自动获取用户所属的第一个房屋
+        // 如果未指定house_id，自动获取用户所属的房屋
         if (!$houseId) {
+            // 方式1: 从house_member表查
             $houseStmt = $db->prepare("SELECT house_id FROM house_member WHERE user_id = ? ORDER BY joined_at ASC LIMIT 1");
             $houseStmt->execute([$user['id']]);
             $houseRow = $houseStmt->fetch();
-            if ($houseRow) $houseId = intval($houseRow['house_id']);
+            if ($houseRow) {
+                $houseId = intval($houseRow['house_id']);
+            } else {
+                // 方式2: 从house表查用户创建的房屋
+                $houseStmt2 = $db->prepare("SELECT id FROM house WHERE creator_id = ? AND status = 1 ORDER BY created_at ASC LIMIT 1");
+                $houseStmt2->execute([$user['id']]);
+                $houseRow2 = $houseStmt2->fetch();
+                if ($houseRow2) $houseId = intval($houseRow2['id']);
+            }
         }
 
         if ($houseId) {
@@ -445,12 +454,21 @@ switch ($action) {
         $houseId = intval($_GET['house_id'] ?? 0);
         $days = intval($_GET['days'] ?? 0);
 
-        // 如果未指定house_id，自动获取用户所属的第一个房屋
+        // 如果未指定house_id，自动获取用户所属的房屋
         if (!$houseId) {
+            // 方式1: 从house_member表查
             $houseStmt = $db->prepare("SELECT house_id FROM house_member WHERE user_id = ? ORDER BY joined_at ASC LIMIT 1");
             $houseStmt->execute([$user['id']]);
             $houseRow = $houseStmt->fetch();
-            if ($houseRow) $houseId = intval($houseRow['house_id']);
+            if ($houseRow) {
+                $houseId = intval($houseRow['house_id']);
+            } else {
+                // 方式2: 从house表查用户创建的房屋
+                $houseStmt2 = $db->prepare("SELECT id FROM house WHERE creator_id = ? AND status = 1 ORDER BY created_at ASC LIMIT 1");
+                $houseStmt2->execute([$user['id']]);
+                $houseRow2 = $houseStmt2->fetch();
+                if ($houseRow2) $houseId = intval($houseRow2['id']);
+            }
         }
 
         // 获取临期提醒规则
