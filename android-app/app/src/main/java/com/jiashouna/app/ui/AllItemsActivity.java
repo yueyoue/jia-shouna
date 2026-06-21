@@ -142,9 +142,21 @@ public class AllItemsActivity extends AppCompatActivity {
                             layoutEmpty.setVisibility(View.VISIBLE);
                             loadItemsFallback(keyword);
                         } else {
+                            layoutEmpty.setVisibility(View.GONE);
+                            int rendered = 0;
                             for (int i = 0; i < list.size(); i++) {
-                                layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
+                                try {
+                                    JsonObject item = list.get(i).getAsJsonObject();
+                                    String itemName = item.has("name") ? item.get("name").getAsString() : "?";
+                                    Log.d(TAG, "Rendering item " + i + ": " + itemName);
+                                    layoutItems.addView(createItemRow(item, i < list.size() - 1));
+                                    rendered++;
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Render error at " + i + ": " + e.getMessage());
+                                    tvDebugHint.setText("RENDER ERROR: " + e.getMessage());
+                                }
                             }
+                            tvDebugHint.setText(debugMsg + " rendered=" + rendered);
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Parse error: " + e.getMessage());
@@ -186,16 +198,25 @@ public class AllItemsActivity extends AppCompatActivity {
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
                             layoutEmpty.setVisibility(View.VISIBLE);
-                            String fallbackDebug = "[FALLBACK] no house_id, total=" + (data.has("total") ? data.get("total").getAsInt() : 0);
+                            String fallbackDebug = "[FALLBACK] total=" + (data.has("total") ? data.get("total").getAsInt() : 0);
                             if (data.has("debug") && !data.get("debug").isJsonNull()) {
                                 JsonObject dbg = data.getAsJsonObject("debug");
                                 if (dbg.has("all_goods_count")) fallbackDebug += " 全库=" + dbg.get("all_goods_count").getAsInt();
-                                if (dbg.has("user_house_count")) fallbackDebug += " 房屋=" + dbg.get("user_house_count").getAsInt();
                             }
-                            tvTitle.setText("所有物品 " + fallbackDebug);
-                            tvCount.setText(fallbackDebug);
-                            tvCount.setTextColor(0xFFFF0000);
-                            tvCount.setTextSize(10);
+                            tvDebugHint.setText(fallbackDebug);
+                        } else {
+                            layoutEmpty.setVisibility(View.GONE);
+                            int rendered = 0;
+                            for (int i = 0; i < list.size(); i++) {
+                                try {
+                                    layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
+                                    rendered++;
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Fallback render error: " + e.getMessage());
+                                }
+                            }
+                            tvCount.setText(list.size() + " 件");
+                            tvDebugHint.setText("[FALLBACK OK] rendered=" + rendered);
                         } else {
                             for (int i = 0; i < list.size(); i++) {
                                 layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
