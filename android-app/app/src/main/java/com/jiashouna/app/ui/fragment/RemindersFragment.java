@@ -70,7 +70,7 @@ public class RemindersFragment extends Fragment {
         params.put("house_id", String.valueOf(houseId));
 
         // 获取统计
-        ApiClient.get("reminder.php?action=stats", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/reminder/stats", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -119,7 +119,7 @@ public class RemindersFragment extends Fragment {
         });
 
         // 获取提醒列表
-        ApiClient.get("reminder.php?action=list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/reminder/list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {

@@ -50,7 +50,7 @@ public class SpacesFragment extends Fragment {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("user_id", String.valueOf(userId));
-        ApiClient.get("house.php?action=list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/house/list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -183,7 +183,7 @@ public class SpacesFragment extends Fragment {
     private void loadSpaces(int houseId) {
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/space/tree", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {

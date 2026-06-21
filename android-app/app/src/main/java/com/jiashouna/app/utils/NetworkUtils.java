@@ -74,7 +74,7 @@ public class NetworkUtils {
         }
         body.add("items", itemsArr);
 
-        ApiClient.post("sync.php?action=push", body, new ApiClient.ApiCallback() {
+        ApiClient.post("/sync/push", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 localDb.markSynced();
                 int syncedItems = data.has("synced_items") ? data.get("synced_items").getAsInt() : 0;

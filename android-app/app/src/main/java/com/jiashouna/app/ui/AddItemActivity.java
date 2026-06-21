@@ -342,7 +342,7 @@ public class AddItemActivity extends AppCompatActivity {
             .addFormDataPart("image", "photo.jpg",
                 okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
 
-        String url = App.BASE_URL + "image-recognize.php?action=recognize";
+        String url = App.BASE_URL + "/image-recognize/recognize";
         okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
             .url(url)
             .post(builder.build());
@@ -447,7 +447,7 @@ public class AddItemActivity extends AppCompatActivity {
         HashMap<String, String> params = new HashMap<>();
         params.put("action", "lookup");
         params.put("barcode", barcode);
-        ApiClient.get("barcode.php?action=lookup", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/barcode/lookup", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -488,7 +488,7 @@ public class AddItemActivity extends AppCompatActivity {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/space/tree", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -508,7 +508,7 @@ public class AddItemActivity extends AppCompatActivity {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("tag.php?action=list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/tag/list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -585,7 +585,7 @@ public class AddItemActivity extends AppCompatActivity {
         JsonObject body = new JsonObject();
         body.addProperty("house_id", App.getInstance().getCurrentHouseId());
         body.addProperty("name", name);
-        ApiClient.post("tag.php?action=create", body, new ApiClient.ApiCallback() {
+        ApiClient.post("/tag/create", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     Toast.makeText(AddItemActivity.this, "标签已创建", Toast.LENGTH_SHORT).show();
@@ -746,6 +746,16 @@ public class AddItemActivity extends AppCompatActivity {
                 .apply();
         }
 
+        // 先上传照片，再创建物品
+        if (!photos.isEmpty() && NetworkUtils.isNetworkAvailable(this)) {
+            btnSave.setEnabled(false);
+            btnSave.setText("上传照片中...");
+            btnSaveContinue.setEnabled(false);
+            uploadPhotosThenCreate(continueAfterSave);
+            return;
+        }
+
+        // 没有照片，直接创建
         Goods goods = new Goods();
         goods.houseId = houseId;
         goods.spaceId = selectedSpaceId;
@@ -813,14 +823,9 @@ public class AddItemActivity extends AppCompatActivity {
                 body.add("tags", tagsArray);
             }
 
-            ApiClient.post("goods.php?action=create", body, new ApiClient.ApiCallback() {
+            ApiClient.post("/goods/create", body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
-                        // 上传照片
-                        if (photos.size() > 0 && data.has("id")) {
-                            int goodsId = data.get("id").getAsInt();
-                            uploadPhotos(goodsId);
-                        }
                         Toast.makeText(AddItemActivity.this, "✅ 保存成功", Toast.LENGTH_SHORT).show();
                         if (continueAfterSave) {
                             resetForm();
@@ -884,6 +889,153 @@ public class AddItemActivity extends AppCompatActivity {
         etName.requestFocus();
     }
 
+    /**
+     * 先上传所有照片，获取路径后创建物品
+     */
+    private void createGoodsWithImages(List<String> imagePaths, boolean continueAfterSave) {
+        int houseId = App.getInstance().getCurrentHouseId();
+
+        Goods goods = new Goods();
+        goods.houseId = houseId;
+        goods.spaceId = selectedSpaceId;
+        goods.name = etName.getText().toString().trim();
+        goods.barcode = etBarcode.getText().toString().trim();
+        goods.category = "";
+        String qtyStr = etQuantity.getText().toString().trim();
+        goods.quantity = qtyStr.isEmpty() ? 1 : Double.parseDouble(qtyStr);
+        goods.unit = etUnit.getText().toString().trim().isEmpty() ? "个" : etUnit.getText().toString().trim();
+
+        String autoExpiry = tvExpiryDateAuto.getText().toString().trim();
+        if (!autoExpiry.isEmpty() && !autoExpiry.contains("输入")) {
+            goods.expiryDate = autoExpiry.length() >= 10 ? autoExpiry.substring(0, 10) : autoExpiry;
+        } else {
+            String daysStr = etExpiryDays.getText().toString().trim();
+            if (!daysStr.isEmpty()) {
+                try {
+                    int inputValue = Integer.parseInt(daysStr);
+                    String unit = "天";
+                    if (spExpiryUnit != null && spExpiryUnit.getSelectedItem() != null) {
+                        unit = spExpiryUnit.getSelectedItem().toString();
+                    }
+                    int days = convertToDays(inputValue, unit);
+                    long expiryMillis = System.currentTimeMillis() + (long) days * 24 * 60 * 60 * 1000;
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    goods.expiryDate = sdf.format(new java.util.Date(expiryMillis));
+                } catch (Exception e) { goods.expiryDate = ""; }
+            }
+        }
+
+        goods.note = etNote.getText().toString().trim();
+        goods.isPrivate = swPrivate.isChecked() ? 1 : 0;
+        String priceStr = etPrice.getText().toString().trim();
+        goods.purchasePrice = priceStr.isEmpty() ? 0 : Double.parseDouble(priceStr);
+
+        JsonObject body = new JsonObject();
+        body.addProperty("house_id", goods.houseId);
+        body.addProperty("space_id", goods.spaceId);
+        body.addProperty("name", goods.name);
+        body.addProperty("barcode", goods.barcode);
+        body.addProperty("category", goods.category);
+        body.addProperty("quantity", goods.quantity);
+        body.addProperty("unit", goods.unit);
+        body.addProperty("purchase_date", selectedPurchaseDate);
+        body.addProperty("expiry_date", goods.expiryDate);
+        body.addProperty("purchase_price", goods.purchasePrice);
+        body.addProperty("note", goods.note);
+        body.addProperty("is_private", goods.isPrivate);
+
+        if (!selectedTagIds.isEmpty()) {
+            JsonArray tagsArray = new JsonArray();
+            for (int tagId : selectedTagIds) tagsArray.add(tagId);
+            body.add("tags", tagsArray);
+        }
+
+        // 附带已上传的图片路径
+        if (!imagePaths.isEmpty()) {
+            JsonArray imagesArray = new JsonArray();
+            for (String path : imagePaths) imagesArray.add(path);
+            body.add("images", imagesArray);
+        }
+
+        ApiClient.post("/goods/create", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    Toast.makeText(AddItemActivity.this, "✅ 保存成功", Toast.LENGTH_SHORT).show();
+                    if (continueAfterSave) {
+                        resetForm();
+                    } else {
+                        finish();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> {
+                    btnSave.setEnabled(true);
+                    btnSave.setText("保存返回");
+                    btnSaveContinue.setEnabled(true);
+                    btnSaveContinue.setText("保存继续");
+                    Toast.makeText(AddItemActivity.this, "保存失败: " + msg, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void uploadPhotosThenCreate(boolean continueAfterSave) {
+        new Thread(() -> {
+            List<String> imagePaths = new ArrayList<>();
+            for (Bitmap photo : photos) {
+                try {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    photo.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+                    byte[] imageBytes = baos.toByteArray();
+
+                    okhttp3.MultipartBody.Builder builder = new okhttp3.MultipartBody.Builder()
+                        .setType(okhttp3.MultipartBody.FORM)
+                        .addFormDataPart("file", "photo_" + System.currentTimeMillis() + ".jpg",
+                            okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
+
+                    String uploadUrl = App.BASE_URL + "/upload/image";
+                    okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
+                        .url(uploadUrl)
+                        .post(builder.build());
+
+                    String token = App.getInstance().getToken();
+                    if (token != null && !token.isEmpty()) {
+                        reqBuilder.addHeader("Authorization", "Bearer " + token);
+                    }
+
+                    okhttp3.Response response = new okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .build()
+                        .newCall(reqBuilder.build())
+                        .execute();
+
+                    if (response.body() != null) {
+                        String body = response.body().string();
+                        int jsonStart = body.indexOf('{');
+                        if (jsonStart >= 0) body = body.substring(jsonStart);
+                        com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(new java.io.StringReader(body));
+                        reader.setLenient(true);
+                        JsonObject json = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+                        if (json.has("code") && json.get("code").getAsInt() == 0) {
+                            JsonObject data = json.getAsJsonObject("data");
+                            if (data.has("image_path")) {
+                                imagePaths.add(data.get("image_path").getAsString());
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("AddItem", "Photo upload failed: " + e.getMessage());
+                }
+            }
+
+            // 所有照片上传完毕，创建物品（附带图片路径）
+            final List<String> finalPaths = imagePaths;
+            runOnUiThread(() -> createGoodsWithImages(finalPaths, continueAfterSave));
+        }).start();
+    }
+
     private void uploadPhotos(int goodsId) {
         // 异步上传照片，不阻塞UI
         new Thread(() -> {
@@ -900,7 +1052,7 @@ public class AddItemActivity extends AppCompatActivity {
                         .addFormDataPart("file", "photo_" + System.currentTimeMillis() + ".jpg",
                             okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
 
-                    String uploadUrl = App.BASE_URL + "upload.php?action=image";
+                    String uploadUrl = App.BASE_URL + "/upload/image";
                     okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
                         .url(uploadUrl)
                         .post(builder.build());
@@ -950,7 +1102,7 @@ public class AddItemActivity extends AppCompatActivity {
                     // 同步调用更新接口，添加图片
                     okhttp3.RequestBody reqBody = okhttp3.RequestBody.create(
                         okhttp3.MediaType.parse("application/json"), body.toString());
-                    String updateUrl = App.BASE_URL + "goods.php?action=update";
+                    String updateUrl = App.BASE_URL + "/goods/update";
                     okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
                         .url(updateUrl)
                         .post(reqBody);

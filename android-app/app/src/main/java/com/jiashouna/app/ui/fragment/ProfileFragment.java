@@ -158,7 +158,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadProfile() {
-        ApiClient.get("user.php?action=profile", null, new ApiClient.ApiCallback() {
+        ApiClient.get("/user/profile", null, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
@@ -342,7 +342,7 @@ public class ProfileFragment extends Fragment {
 
         java.util.HashMap<String, String> params = new java.util.HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("stats.php", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/stats", params, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
@@ -396,7 +396,7 @@ public class ProfileFragment extends Fragment {
 
         java.util.HashMap<String, String> params = new java.util.HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("export.php", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/export", params, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
@@ -441,7 +441,7 @@ public class ProfileFragment extends Fragment {
             // Try to get invite code from API
             java.util.HashMap<String, String> params = new java.util.HashMap<>();
             params.put("house_id", String.valueOf(houseId));
-            ApiClient.get("house.php?action=invite_code", params, new ApiClient.ApiCallback() {
+            ApiClient.get("/house/invite_code", params, new ApiClient.ApiCallback() {
                 @Override
                 public void onSuccess(JsonObject data) {
                     if (getActivity() == null) return;
@@ -481,7 +481,7 @@ public class ProfileFragment extends Fragment {
         java.util.HashMap<String, String> params = new java.util.HashMap<>();
         params.put("house_id", String.valueOf(houseId));
         params.put("limit", "20");
-        ApiClient.get("log.php", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/log", params, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
@@ -532,7 +532,7 @@ public class ProfileFragment extends Fragment {
         Toast.makeText(getContext(), "正在加载标签...", Toast.LENGTH_SHORT).show();
         java.util.HashMap<String, String> params = new java.util.HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("tag.php?action=list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/tag/list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -682,7 +682,7 @@ public class ProfileFragment extends Fragment {
         JsonObject body = new JsonObject();
         body.addProperty("house_id", houseId);
         body.addProperty("name", name);
-        ApiClient.post("tag.php?action=create", body, new ApiClient.ApiCallback() {
+        ApiClient.post("/tag/create", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -701,7 +701,7 @@ public class ProfileFragment extends Fragment {
     private void deleteTag(int tagId, int houseId) {
         java.util.HashMap<String, String> params = new java.util.HashMap<>();
         params.put("id", String.valueOf(tagId));
-        ApiClient.get("tag.php?action=delete", params, new ApiClient.ApiCallback() {
+        ApiClient.get("/tag/delete", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -729,7 +729,7 @@ public class ProfileFragment extends Fragment {
             params.put("action", "check");
             params.put("version_code", String.valueOf(currentCode));
 
-            ApiClient.get("version.php?action=check", params, new ApiClient.ApiCallback() {
+            ApiClient.get("/version/check", params, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     if (getActivity() == null) return;
                     getActivity().runOnUiThread(() -> {

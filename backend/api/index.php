@@ -87,10 +87,19 @@ $routes = [
     // 版本检查
     'GET  /version/check'       => 'version.php?action=check',
     'GET  /version/latest'      => 'version.php?action=latest',
-    
+
     // 用户信息
     'GET  /user/profile'        => 'user.php?action=profile',
     'POST /user/update'         => 'user.php?action=update',
+
+    // 操作日志
+    'GET  /log'                 => 'log.php?action=list',
+
+    // 数据统计
+    'GET  /stats'               => 'stats.php',
+
+    // 数据导出
+    'GET  /export'              => 'export.php',
 ];
 
 // 匹配路由
