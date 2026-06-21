@@ -1,5 +1,6 @@
 package com.jiashouna.app.ui.fragment;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.*;
