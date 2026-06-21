@@ -164,12 +164,18 @@ switch ($action) {
 
         $now = time();
         $stmt = $db->prepare("INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)");
+        // 清理空字符串为null（避免DATE/DECIMAL列插入空字符串报错）
+        $purchaseDate = !empty($input['purchase_date']) ? $input['purchase_date'] : null;
+        $expiryDate = !empty($input['expiry_date']) ? $input['expiry_date'] : null;
+        $purchasePrice = isset($input['purchase_price']) && $input['purchase_price'] !== '' ? floatval($input['purchase_price']) : null;
+        $stockThreshold = isset($input['stock_threshold']) && $input['stock_threshold'] !== '' ? floatval($input['stock_threshold']) : null;
+
         $stmt->execute([
             $houseId, $spaceId, $user['id'], $name,
             $input['barcode'] ?? '', $input['category'] ?? '', $input['brand'] ?? '',
             $input['spec'] ?? '', floatval($input['quantity'] ?? 1), $input['unit'] ?? '个',
-            $input['purchase_date'] ?? null, $input['expiry_date'] ?? null,
-            $input['purchase_price'] ?? null, $input['stock_threshold'] ?? null,
+            $purchaseDate, $expiryDate,
+            $purchasePrice, $stockThreshold,
             $input['note'] ?? '', intval($input['is_private'] ?? 0),
             $now, $now
         ]);

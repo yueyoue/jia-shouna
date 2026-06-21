@@ -27,11 +27,12 @@ import java.util.*;
 public class AddItemActivity extends AppCompatActivity {
     private EditText etName, etBarcode, etQuantity, etUnit, etExpiryDays, etPrice, etNote, etThreshold;
     private EditText etPurchaseDate;
+    private TextView tvExpiryDateAuto;
     private String selectedPurchaseDate = "";
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
     private Switch swPrivate;
-    private Button btnSave;
+    private Button btnSave, btnSaveContinue;
     private TextView btnStartScan, btnAddPhoto, btnAddTag;
     private LinearLayout scanContainer, llPhotos, llTags;
     private TextView tabScan, tabPhoto, tabManual;
@@ -71,6 +72,8 @@ public class AddItemActivity extends AppCompatActivity {
         tvSpacePath = findViewById(R.id.tv_space_path);
         swPrivate = findViewById(R.id.sw_private);
         btnSave = findViewById(R.id.btn_save);
+        btnSaveContinue = findViewById(R.id.btn_save_continue);
+        tvExpiryDateAuto = findViewById(R.id.tv_expiry_date_auto);
         scanContainer = findViewById(R.id.scan_container);
         tabScan = findViewById(R.id.tab_scan);
         tabPhoto = findViewById(R.id.tab_photo);
@@ -100,16 +103,27 @@ public class AddItemActivity extends AppCompatActivity {
         // 添加标签
         btnAddTag.setOnClickListener(v -> showTagDialog());
 
-        // 保存
-        btnSave.setOnClickListener(v -> saveItem());
+        // 保存返回
+        btnSave.setOnClickListener(v -> saveItem(false));
 
-        // 购买日期 - 弹窗日期选择
+        // 保存继续
+        btnSaveContinue.setOnClickListener(v -> saveItem(true));
+
+        // 购买日期 - 弹窗日期选择 + 自动计算过期日期
         etPurchaseDate.setOnClickListener(v -> {
             java.util.Calendar cal = java.util.Calendar.getInstance();
             new DatePickerDialog(this, (view, year, month, day) -> {
                 selectedPurchaseDate = String.format("%04d-%02d-%02d", year, month + 1, day);
                 etPurchaseDate.setText(selectedPurchaseDate);
+                calcExpiryDate();
             }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+        });
+
+        // 保质期天数变化时自动计算过期日期
+        etExpiryDays.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) { calcExpiryDate(); }
         });
 
         loadSpaces();
@@ -174,16 +188,30 @@ public class AddItemActivity extends AppCompatActivity {
         }
     }
 
+    private Uri cameraImageUri;
+
     private void startPhotoCapture() {
         try {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            if (intent.resolveActivity(getPackageManager()) != null) {
-                startActivityForResult(intent, REQUEST_PHOTO);
-            } else {
-                Toast.makeText(this, "未找到相机", Toast.LENGTH_SHORT).show();
+            // 创建临时文件保存拍照结果
+            java.io.File photoFile = null;
+            try {
+                java.io.File storageDir = getExternalCacheDir();
+                if (storageDir != null && !storageDir.exists()) storageDir.mkdirs();
+                photoFile = java.io.File.createTempFile("photo_", ".jpg", storageDir);
+            } catch (Exception ignored) {}
+
+            if (photoFile != null) {
+                cameraImageUri = androidx.core.content.FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", photoFile);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
+
+            startActivityForResult(intent, REQUEST_PHOTO);
         } catch (Exception e) {
-            Toast.makeText(this, "相机启动失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "相机启动失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -213,14 +241,26 @@ public class AddItemActivity extends AppCompatActivity {
                 etBarcode.setText(barcode);
                 lookupBarcode(barcode);
             }
-        } else if (requestCode == REQUEST_PHOTO && data != null) {
+        } else if (requestCode == REQUEST_PHOTO) {
             try {
-                Bundle extras = data.getExtras();
-                if (extras != null) {
-                    Bitmap bitmap = (Bitmap) extras.get("data");
-                    if (bitmap != null) {
-                        addPhotoToList(bitmap);
+                Bitmap bitmap = null;
+                if (cameraImageUri != null) {
+                    // 从FileProvider URI加载完整照片
+                    try {
+                        bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri);
+                    } catch (Exception ignored) {}
+                }
+                if (bitmap == null && data != null) {
+                    // 回退：尝试获取缩略图
+                    Bundle extras = data.getExtras();
+                    if (extras != null) {
+                        bitmap = (Bitmap) extras.get("data");
                     }
+                }
+                if (bitmap != null) {
+                    addPhotoToList(bitmap);
+                } else {
+                    Toast.makeText(this, "拍照获取失败", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
                 Toast.makeText(this, "拍照处理失败", Toast.LENGTH_SHORT).show();
@@ -570,7 +610,48 @@ public class AddItemActivity extends AppCompatActivity {
             .show();
     }
 
+    private void calcExpiryDate() {
+        String purchaseStr = etPurchaseDate.getText().toString().trim();
+        String daysStr = etExpiryDays.getText().toString().trim();
+
+        if (purchaseStr.isEmpty() || daysStr.isEmpty()) {
+            tvExpiryDateAuto.setText("");
+            tvExpiryDateAuto.setHint("输入生产日期和保质期后自动计算");
+            return;
+        }
+
+        try {
+            int days = Integer.parseInt(daysStr);
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            java.util.Date purchaseDate = sdf.parse(purchaseStr);
+            if (purchaseDate != null) {
+                long expiryMillis = purchaseDate.getTime() + (long) days * 24 * 60 * 60 * 1000;
+                String expiryStr = sdf.format(new java.util.Date(expiryMillis));
+                tvExpiryDateAuto.setText(expiryStr);
+
+                // 检查是否已过期或即将过期
+                long daysLeft = (expiryMillis - System.currentTimeMillis()) / (24 * 60 * 60 * 1000);
+                if (daysLeft < 0) {
+                    tvExpiryDateAuto.setTextColor(Color.parseColor("#F56565"));
+                    tvExpiryDateAuto.setText(expiryStr + " (已过期" + Math.abs(daysLeft) + "天)");
+                } else if (daysLeft <= 7) {
+                    tvExpiryDateAuto.setTextColor(Color.parseColor("#ED8936"));
+                    tvExpiryDateAuto.setText(expiryStr + " (还剩" + daysLeft + "天)");
+                } else {
+                    tvExpiryDateAuto.setTextColor(Color.parseColor("#2D3748"));
+                }
+            }
+        } catch (Exception e) {
+            tvExpiryDateAuto.setText("");
+            tvExpiryDateAuto.setHint("日期格式错误");
+        }
+    }
+
     private void saveItem() {
+        saveItem(false);
+    }
+
+    private void saveItem(boolean continueAfterSave) {
         String name = etName.getText().toString().trim();
         if (name.isEmpty()) {
             etName.setError("请输入物品名称");
@@ -602,16 +683,23 @@ public class AddItemActivity extends AppCompatActivity {
         String qtyStr = etQuantity.getText().toString().trim();
         goods.quantity = qtyStr.isEmpty() ? 1 : Double.parseDouble(qtyStr);
         goods.unit = etUnit.getText().toString().trim().isEmpty() ? "个" : etUnit.getText().toString().trim();
-        // 保质期：天数转日期
-        String daysStr = etExpiryDays.getText().toString().trim();
-        if (!daysStr.isEmpty()) {
-            try {
-                int days = Integer.parseInt(daysStr);
-                long expiryMillis = System.currentTimeMillis() + (long) days * 24 * 60 * 60 * 1000;
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                goods.expiryDate = sdf.format(new java.util.Date(expiryMillis));
-            } catch (Exception e) {
-                goods.expiryDate = "";
+        // 过期日期：使用自动计算的日期
+        String autoExpiry = tvExpiryDateAuto.getText().toString().trim();
+        if (!autoExpiry.isEmpty() && !autoExpiry.contains("输入")) {
+            // 提取日期部分（去掉可能的提示文字）
+            goods.expiryDate = autoExpiry.length() >= 10 ? autoExpiry.substring(0, 10) : autoExpiry;
+        } else {
+            // 回退：从保质期天数计算
+            String daysStr = etExpiryDays.getText().toString().trim();
+            if (!daysStr.isEmpty()) {
+                try {
+                    int days = Integer.parseInt(daysStr);
+                    long expiryMillis = System.currentTimeMillis() + (long) days * 24 * 60 * 60 * 1000;
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    goods.expiryDate = sdf.format(new java.util.Date(expiryMillis));
+                } catch (Exception e) {
+                    goods.expiryDate = "";
+                }
             }
         }
         goods.note = etNote.getText().toString().trim();
@@ -621,6 +709,8 @@ public class AddItemActivity extends AppCompatActivity {
 
         btnSave.setEnabled(false);
         btnSave.setText("保存中...");
+        btnSaveContinue.setEnabled(false);
+        btnSaveContinue.setText("保存中...");
 
         if (NetworkUtils.isNetworkAvailable(this)) {
             JsonObject body = new JsonObject();
@@ -655,13 +745,19 @@ public class AddItemActivity extends AppCompatActivity {
                             uploadPhotos(goodsId);
                         }
                         Toast.makeText(AddItemActivity.this, "✅ 保存成功", Toast.LENGTH_SHORT).show();
-                        finish();
+                        if (continueAfterSave) {
+                            resetForm();
+                        } else {
+                            finish();
+                        }
                     });
                 }
                 @Override public void onError(String msg) {
                     runOnUiThread(() -> {
                         btnSave.setEnabled(true);
-                        btnSave.setText("保存");
+                        btnSave.setText("保存返回");
+                        btnSaveContinue.setEnabled(true);
+                        btnSaveContinue.setText("保存继续");
                         Toast.makeText(AddItemActivity.this, "保存失败: " + msg, Toast.LENGTH_SHORT).show();
                     });
                 }
@@ -671,6 +767,44 @@ public class AddItemActivity extends AppCompatActivity {
             Toast.makeText(this, "已保存到本地，联网后自动同步", Toast.LENGTH_SHORT).show();
             finish();
         }
+    }
+
+    private void resetForm() {
+        // 重置表单字段，保留空间选择和模式
+        etName.setText("");
+        etBarcode.setText("");
+        etQuantity.setText("1");
+        etUnit.setText("");
+        etExpiryDays.setText("");
+        etPrice.setText("");
+        etThreshold.setText("");
+        etPurchaseDate.setText("");
+        selectedPurchaseDate = "";
+        etNote.setText("");
+        tvExpiryDateAuto.setText("");
+        tvExpiryDateAuto.setHint("输入生产日期和保质期后自动计算");
+        tvExpiryDateAuto.setTextColor(Color.parseColor("#2D3748"));
+        swPrivate.setChecked(false);
+
+        // 清空照片和标签
+        photos.clear();
+        selectedTagIds.clear();
+        selectedTagNames.clear();
+        llPhotos.removeAllViews();
+        llTags.removeAllViews();
+
+        // 恢复按钮状态
+        btnSave.setEnabled(true);
+        btnSave.setText("保存返回");
+        btnSaveContinue.setEnabled(true);
+        btnSaveContinue.setText("保存继续");
+
+        // 滚动到顶部
+        ScrollView sv = findViewById(R.id.scroll_view);
+        if (sv != null) sv.scrollTo(0, 0);
+
+        // 聚焦到名称输入框
+        etName.requestFocus();
     }
 
     private void uploadPhotos(int goodsId) {
