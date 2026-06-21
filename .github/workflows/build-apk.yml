@@ -63,9 +63,6 @@ jobs:
       - name: Build Release APK (Signed)
         working-directory: android-app
         run: ./gradlew assembleRelease --no-daemon --stacktrace
-        env:
-          KEYSTORE_PASSWORD: jiashouna2024
-          KEY_PASSWORD: jiashouna2024
 
       - name: List outputs
         run: find android-app -name "*.apk" -type f 2>/dev/null || echo "No APK found"

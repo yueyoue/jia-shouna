@@ -17,12 +17,10 @@ android {
     signingConfigs {
         release {
             def keystoreFile = file('release.keystore.p12')
-            if (keystoreFile.exists()) {
-                storeFile keystoreFile
-                storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'jiashouna2024'
-                keyAlias 'jiashouna'
-                keyPassword System.getenv('KEY_PASSWORD') ?: 'jiashouna2024'
-            }
+            storeFile keystoreFile
+            storePassword 'jiashouna2024'
+            keyAlias 'jiashouna'
+            keyPassword 'jiashouna2024'
         }
     }
 
