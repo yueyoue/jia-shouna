@@ -118,7 +118,7 @@ public class ItemDetailActivity extends AppCompatActivity {
     private void loadDetail() {
         HashMap<String, String> params = new HashMap<>();
         params.put("id", String.valueOf(goodsId));
-        ApiClient.get("/goods/detail", params, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=detail", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -509,7 +509,7 @@ public class ItemDetailActivity extends AppCompatActivity {
         JsonObject body = new JsonObject();
         body.addProperty("id", goodsId);
         body.addProperty("quantity", newQty);
-        ApiClient.post("/goods/update", body, new ApiClient.ApiCallback() {
+        ApiClient.post("goods.php?action=update", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     tvQuantity.setText(String.valueOf((int) newQty));
@@ -530,7 +530,7 @@ public class ItemDetailActivity extends AppCompatActivity {
             .setPositiveButton("删除", (d, w) -> {
                 JsonObject body = new JsonObject();
                 body.addProperty("id", goodsId);
-                ApiClient.post("/goods/delete", body, new ApiClient.ApiCallback() {
+                ApiClient.post("goods.php?action=delete", body, new ApiClient.ApiCallback() {
                     @Override public void onSuccess(JsonObject data) {
                         runOnUiThread(() -> {
                             Toast.makeText(ItemDetailActivity.this, "已删除", Toast.LENGTH_SHORT).show();
@@ -658,7 +658,7 @@ public class ItemDetailActivity extends AppCompatActivity {
         JsonObject body = new JsonObject();
         body.addProperty("goods_id", goodsId);
         body.addProperty("quantity", quantity);
-        ApiClient.post("/goods/borrow", body, new ApiClient.ApiCallback() {
+        ApiClient.post("goods.php?action=borrow", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     Toast.makeText(ItemDetailActivity.this, "领用成功", Toast.LENGTH_SHORT).show();

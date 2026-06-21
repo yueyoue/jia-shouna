@@ -86,7 +86,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
         HashMap<String, String> params = new HashMap<>();
         params.put("id", String.valueOf(spaceId));
 
-        ApiClient.get("/space/detail", params, new ApiClient.ApiCallback() {
+        ApiClient.get("space.php?action=detail", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
@@ -243,7 +243,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
         android.util.Log.d("SpaceDetail", "Loading items: houseId=" + houseId + " spaceId=" + targetSpaceId + " includeChildren=" + (selectedContainerId == 0));
 
-        ApiClient.get("/goods/list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (isFinishing()) return;
                 android.util.Log.d("SpaceDetail", "Items response: " + (data != null ? data.toString().substring(0, Math.min(300, data.toString().length())) : "null"));
@@ -505,7 +505,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
         params.put("house_id", String.valueOf(targetHouseId > 0 ? targetHouseId : 0));
         params.put("page_size", "200");
 
-        ApiClient.get("/goods/list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (isFinishing()) return;
                 android.util.Log.d("SpaceDetail", "Fallback response: " + (data != null ? data.toString().substring(0, Math.min(300, data.toString().length())) : "null"));

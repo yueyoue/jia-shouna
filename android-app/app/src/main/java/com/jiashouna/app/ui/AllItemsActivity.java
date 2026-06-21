@@ -107,9 +107,9 @@ public class AllItemsActivity extends AppCompatActivity {
             params.put("keyword", keyword);
         }
 
-        String endpoint = "/goods/list";
+        String endpoint = "goods.php?action=list";
         if ("expiring".equals(filterType)) {
-            endpoint = "/goods/expiring";
+            endpoint = "goods.php?action=expiring";
             params.put("days", "7");
         }
 
@@ -169,7 +169,7 @@ public class AllItemsActivity extends AppCompatActivity {
             params.put("keyword", keyword);
         }
 
-        ApiClient.get("/goods/list", params, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 Log.d(TAG, "Fallback success: " + data.toString().substring(0, Math.min(200, data.toString().length())));
                 runOnUiThread(() -> {

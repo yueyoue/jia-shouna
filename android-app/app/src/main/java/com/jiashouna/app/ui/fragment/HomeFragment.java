@@ -136,7 +136,7 @@ public class HomeFragment extends Fragment {
         params.put("house_id", String.valueOf(houseId));
 
         // 获取家庭成员数
-        ApiClient.get("/house/list", null, new ApiClient.ApiCallback() {
+        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -165,7 +165,7 @@ public class HomeFragment extends Fragment {
         HashMap<String, String> params2 = new HashMap<>();
         params2.put("action", "list");
         params2.put("house_id", String.valueOf(houseId));
-        ApiClient.get("/goods/list", params2, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=list", params2, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -182,7 +182,7 @@ public class HomeFragment extends Fragment {
         HashMap<String, String> spaceParams = new HashMap<>();
         spaceParams.put("action", "list");
         spaceParams.put("house_id", String.valueOf(houseId));
-        ApiClient.get("/space/list", spaceParams, new ApiClient.ApiCallback() {
+        ApiClient.get("space.php?action=list", spaceParams, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -199,7 +199,7 @@ public class HomeFragment extends Fragment {
         // 获取提醒统计
         HashMap<String, String> statsParams = new HashMap<>();
         statsParams.put("house_id", String.valueOf(houseId));
-        ApiClient.get("/reminder/stats", statsParams, new ApiClient.ApiCallback() {
+        ApiClient.get("reminder.php?action=stats", statsParams, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -227,7 +227,7 @@ public class HomeFragment extends Fragment {
         expParams.put("house_id", String.valueOf(houseId));
         expParams.put("action", "expiring");
         expParams.put("days", "7");
-        ApiClient.get("/goods/expiring", expParams, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=expiring", expParams, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -264,7 +264,7 @@ public class HomeFragment extends Fragment {
         recentParams.put("action", "list");
         recentParams.put("house_id", String.valueOf(houseId));
         recentParams.put("page_size", "4");
-        ApiClient.get("/goods/list", recentParams, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=list", recentParams, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -423,7 +423,7 @@ public class HomeFragment extends Fragment {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("/house/contribution", params, new ApiClient.ApiCallback() {
+        ApiClient.get("house.php?action=contribution", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
@@ -527,7 +527,7 @@ public class HomeFragment extends Fragment {
         params.put("keyword", keyword);
         if (houseId > 0) params.put("house_id", String.valueOf(houseId));
 
-        ApiClient.get("/goods/search", params, new ApiClient.ApiCallback() {
+        ApiClient.get("goods.php?action=search", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
