@@ -143,9 +143,9 @@ public class AddItemActivity extends AppCompatActivity {
         // 保质期单位选择器
         if (spExpiryUnit != null) {
             String[] units = {"天", "月", "年"};
-            android.widget.ArrayAdapter<String> unitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, units);
-            unitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spExpiryUnit.setAdapter(unitAdapter);
+            android.widget.ArrayAdapter<String> expiryUnitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, units);
+            expiryUnitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spExpiryUnit.setAdapter(expiryUnitAdapter);
             spExpiryUnit.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { calcExpiryDate(); }
                 @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
