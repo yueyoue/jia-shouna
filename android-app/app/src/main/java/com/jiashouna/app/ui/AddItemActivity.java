@@ -237,7 +237,7 @@ public class AddItemActivity extends AppCompatActivity {
         if (selectedSpaceId > 0) builder.addFormDataPart("space_id", String.valueOf(selectedSpaceId));
         if (houseId > 0) builder.addFormDataPart("house_id", String.valueOf(houseId));
         okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
-            .url(App.BASE_URL + "ai/recognize")
+            .url(App.BASE_URL + "ai/recognize.php?action=recognize")
             .post(builder.build());
         String token = App.getInstance().getToken();
         if (token != null && !token.isEmpty()) reqBuilder.addHeader("Authorization", "Bearer " + token);
