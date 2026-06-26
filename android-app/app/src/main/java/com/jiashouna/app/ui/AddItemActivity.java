@@ -222,7 +222,7 @@ public class AddItemActivity extends AppCompatActivity {
             cameraImageUri = androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
             aiIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
             aiIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            aiIntent.addFlags(Intent.FLAG_READ_URI_PERMISSION);
+            aiIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (Exception ignored) {}
         startActivityForResult(aiIntent, REQUEST_AI_PHOTO);
     }
