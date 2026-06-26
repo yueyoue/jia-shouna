@@ -23,13 +23,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['post_action'] ?? '') === '
     $editId = intval($_POST['edit_id'] ?? 0);
     if ($editId) {
         $now = time();
-        $stmt = $db->prepare('UPDATE goods SET name=?, barcode=?, category=?, brand=?, spec=?, quantity=?, unit=?, purchase_date=?, expiry_date=?, purchase_price=?, note=?, updated_at=? WHERE id=?');
+        $spaceId = intval($_POST['space_id'] ?? 0);
+        $stmt = $db->prepare('UPDATE goods SET name=?, barcode=?, category=?, brand=?, spec=?, quantity=?, unit=?, purchase_date=?, expiry_date=?, purchase_price=?, note=?, space_id=?, updated_at=? WHERE id=?');
         $stmt->execute([
             trim($_POST['name'] ?? ''), $_POST['barcode'] ?? '', $_POST['category'] ?? '',
             $_POST['brand'] ?? '', $_POST['spec'] ?? '', floatval($_POST['quantity'] ?? 1),
             $_POST['unit'] ?? '个', $_POST['purchase_date'] ?: null, $_POST['expiry_date'] ?: null,
-            $_POST['purchase_price'] ?: null, $_POST['note'] ?? '', $now, $editId
+            $_POST['purchase_price'] ?: null, $_POST['note'] ?? '', $spaceId ?: null, $now, $editId
         ]);
+
+        // 更新标签
+        $db->prepare('DELETE FROM goods_tag WHERE goods_id = ?')->execute([$editId]);
+        $tagIds = $_POST['tag_ids'] ?? [];
+        foreach ($tagIds as $tagId) {
+            $tagId = intval($tagId);
+            if ($tagId > 0) {
+                $db->prepare('INSERT INTO goods_tag (goods_id, tag_id) VALUES (?, ?)')->execute([$editId, $tagId]);
+            }
+        }
 
         // 处理新上传的图片
         if (!empty($_FILES['images']['name'][0])) {
@@ -192,9 +203,9 @@ $countStmt->execute($params);
 $total = $countStmt->fetch()['cnt'];
 
 $offset = ($page - 1) * $pageSize;
-$stmt = $db->prepare("SELECT g.*, s.name as space_name,
+$stmt = $db->prepare("SELECT g.*, s.name as space_name, h.name as house_name,
         (SELECT image_path FROM goods_image WHERE goods_id = g.id ORDER BY sort_order ASC LIMIT 1) as cover_image
-        FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE $whereStr ORDER BY g.updated_at DESC LIMIT $pageSize OFFSET $offset");
+        FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id LEFT JOIN house h ON g.house_id = h.id WHERE $whereStr ORDER BY g.updated_at DESC LIMIT $pageSize OFFSET $offset");
 $stmt->execute($params);
 $items = $stmt->fetchAll();
 
@@ -318,6 +329,7 @@ function filterByTag(tagName) {
             <tr>
                 <th>物品信息</th>
                 <th>分类</th>
+                <th>家庭</th>
                 <th>存放位置</th>
                 <th>数量</th>
                 <th>保质期</th>
@@ -346,6 +358,7 @@ function filterByTag(tagName) {
                     </div>
                 </td>
                 <td><span class="tag tag-orange"><?= $item['category'] ?: '-' ?></span></td>
+                <td><div class="path-cell"><?= htmlspecialchars($item['house_name'] ?? '-') ?></div></td>
                 <td><div class="path-cell"><?= htmlspecialchars($item['space_name'] ?? '-') ?></div></td>
                 <td><strong><?= $item['quantity'] ?></strong> <?= $item['unit'] ?></td>
                 <td>
@@ -578,6 +591,52 @@ async function deleteItem(id) {
             </div>
 
             <div class="form-group"><label class="form-label">物品名称 *</label><input name="name" class="form-control" required value="<?= htmlspecialchars($editItem['name']) ?>"></div>
+            <div class="form-group"><label class="form-label">存放位置</label>
+                <select name="space_id" class="form-control" id="edit_space_select">
+                    <option value="">请选择空间</option>
+                    <?php
+                    $editHouseId = $editItem['house_id'] ?? 0;
+                    if ($editHouseId) {
+                        $editSpaces = $db->prepare('SELECT * FROM storage_space WHERE house_id = ? ORDER BY level ASC, sort_order ASC');
+                        $editSpaces->execute([$editHouseId]);
+                        foreach ($editSpaces->fetchAll() as $sp) {
+                            $selected = $sp['id'] == $editItem['space_id'] ? 'selected' : '';
+                            $prefix = $sp['level'] > 1 ? str_repeat('&nbsp;&nbsp;', $sp['level'] - 1) . '└ ' : '';
+                            echo '<option value="' . $sp['id'] . '" ' . $selected . '>' . $prefix . htmlspecialchars($sp['name']) . '</option>';
+                        }
+                    }
+                    ?>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">标签</label>
+                <div id="edit-tags-container" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+                    <?php
+                    $editTags = $db->prepare('SELECT t.id, t.name FROM tag t INNER JOIN goods_tag gt ON t.id = gt.tag_id WHERE gt.goods_id = ?');
+                    $editTags->execute([$editItem['id']]);
+                    $editTagIds = [];
+                    foreach ($editTags->fetchAll() as $et) {
+                        $editTagIds[] = $et['id'];
+                        echo '<span class="tag tag-blue" data-tag-id="' . $et['id'] . '">' . htmlspecialchars($et['name']) . ' <span onclick="removeEditTag(' . $et['id'] . ', this)" style="cursor:pointer;margin-left:4px">✕</span></span>';
+                    }
+                    ?>
+                </div>
+                <select id="edit_tag_select" class="form-control" onchange="addEditTag(this)">
+                    <option value="">+ 添加标签</option>
+                    <?php
+                    $allTagsForEdit = $db->query('SELECT id, name FROM tag ORDER BY name ASC')->fetchAll();
+                    foreach ($allTagsForEdit as $at) {
+                        if (!in_array($at['id'], $editTagIds)) {
+                            echo '<option value="' . $at['id'] . '">' . htmlspecialchars($at['name']) . '</option>';
+                        }
+                    }
+                    ?>
+                </select>
+                <div id="edit-tag-ids">
+                    <?php foreach ($editTagIds as $tid): ?>
+                    <input type="hidden" name="tag_ids[]" value="<?= $tid ?>" data-tag-id="<?= $tid ?>">
+                    <?php endforeach; ?>
+                </div>
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group"><label class="form-label">条形码</label><input name="barcode" class="form-control" value="<?= htmlspecialchars($editItem['barcode'] ?? '') ?>"></div>
                 <div class="form-group"><label class="form-label">分类</label><input name="category" class="form-control" value="<?= htmlspecialchars($editItem['category'] ?? '') ?>"></div>
@@ -590,6 +649,38 @@ async function deleteItem(id) {
                 <div class="form-group"><label class="form-label">价格</label><input name="purchase_price" class="form-control" type="number" step="0.01" value="<?= $editItem['purchase_price'] ?? '' ?>"></div>
             </div>
             <div class="form-group"><label class="form-label">备注</label><textarea name="note" class="form-control" rows="2"><?= htmlspecialchars($editItem['note'] ?? '') ?></textarea></div>
+            <script>
+            function removeEditTag(tagId, el) {
+                el.parentNode.remove();
+                var inputs = document.querySelectorAll('#edit-tag-ids input[data-tag-id="' + tagId + '"]');
+                inputs.forEach(function(i) { i.remove(); });
+                // 回到下拉选项
+                var sel = document.getElementById('edit_tag_select');
+                var opt = document.createElement('option');
+                opt.value = tagId;
+                opt.text = el.parentNode.textContent.replace('✕','').trim();
+                sel.appendChild(opt);
+            }
+            function addEditTag(sel) {
+                var tagId = sel.value;
+                if (!tagId) return;
+                var text = sel.options[sel.selectedIndex].text;
+                var container = document.getElementById('edit-tags-container');
+                var span = document.createElement('span');
+                span.className = 'tag tag-blue';
+                span.setAttribute('data-tag-id', tagId);
+                span.innerHTML = text + ' <span onclick="removeEditTag(' + tagId + ', this)" style="cursor:pointer;margin-left:4px">✕</span>';
+                container.appendChild(span);
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'tag_ids[]';
+                input.value = tagId;
+                input.setAttribute('data-tag-id', tagId);
+                document.getElementById('edit-tag-ids').appendChild(input);
+                sel.remove(sel.selectedIndex);
+                sel.selectedIndex = 0;
+            }
+            </script>
             <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:12px">保存修改</button>
         </form>
     </div>

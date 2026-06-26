@@ -25,6 +25,7 @@ public class AllItemsActivity extends AppCompatActivity {
     private TextView tvCount, tvTitle;
     private int houseId = 0;
     private String filterType = "";
+    private boolean isLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,13 +79,16 @@ public class AllItemsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        String kw = etSearch.getText().toString().trim();
-        loadItems(kw);
+        if (!isLoading) {
+            String kw = etSearch.getText().toString().trim();
+            loadItems(kw);
+        }
     }
 
     private void loadItems(String keyword) {
+        if (isLoading) return;
+        isLoading = true;
         progress.setVisibility(View.VISIBLE);
-        layoutItems.removeAllViews();
         layoutEmpty.setVisibility(View.GONE);
 
 
@@ -116,12 +120,12 @@ public class AllItemsActivity extends AppCompatActivity {
                 String respStr = data.toString();
                 Log.d(TAG, "API success: " + respStr.substring(0, Math.min(500, respStr.length())));
                 runOnUiThread(() -> {
+                    isLoading = false;
                     progress.setVisibility(View.GONE);
+                    layoutItems.removeAllViews();
                     try {
                         JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
                         int total = data.has("total") ? data.get("total").getAsInt() : list.size();
-
-
 
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
@@ -141,7 +145,6 @@ public class AllItemsActivity extends AppCompatActivity {
                                     Log.e(TAG, "Render error at " + i + ": " + e.getMessage());
                                 }
                             }
-
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Parse error: " + e.getMessage());
@@ -152,9 +155,9 @@ public class AllItemsActivity extends AppCompatActivity {
             @Override public void onError(String msg) {
                 Log.e(TAG, "API error: " + msg);
                 runOnUiThread(() -> {
+                    isLoading = false;
                     progress.setVisibility(View.GONE);
                     layoutEmpty.setVisibility(View.VISIBLE);
-
                 });
             }
         });
@@ -238,7 +241,21 @@ public class AllItemsActivity extends AppCompatActivity {
                 imgIcon.setImageResource(R.drawable.bg_quick_item);
             }
         } else {
-            imgIcon.setImageResource(R.drawable.bg_quick_item);
+            // 使用分类emoji作为默认图
+            String category = item.has("category") && !item.get("category").isJsonNull() ? item.get("category").getAsString() : "";
+            String emoji = getCategoryIcon(category);
+            android.graphics.Bitmap emojiBitmap = android.graphics.Bitmap.createBitmap(dp(48), dp(48), android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(emojiBitmap);
+            canvas.drawColor(0xFFFFE8D6);
+            android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            paint.setTextSize(dp(24));
+            paint.setTextAlign(android.graphics.Paint.Align.CENTER);
+            android.graphics.Rect textBounds = new android.graphics.Rect();
+            paint.getTextBounds(emoji, 0, emoji.length(), textBounds);
+            float x = canvas.getWidth() / 2f;
+            float y = canvas.getHeight() / 2f + textBounds.height() / 2f;
+            canvas.drawText(emoji, x, y, paint);
+            imgIcon.setImageBitmap(emojiBitmap);
         }
         row.addView(imgIcon);
 

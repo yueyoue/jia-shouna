@@ -25,7 +25,8 @@ import java.io.*;
 import java.util.*;
 
 public class AddItemActivity extends AppCompatActivity {
-    private EditText etName, etBarcode, etQuantity, etUnit, etExpiryDays, etPrice, etNote, etThreshold;
+    private EditText etName, etBarcode, etBrand, etQuantity, etExpiryDays, etPrice, etNote, etThreshold;
+    private Spinner etUnit;
     private EditText etPurchaseDate;
     private TextView tvExpiryDateAuto;
     private Spinner spExpiryUnit;
@@ -51,6 +52,9 @@ public class AddItemActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_PERMISSION = 103;
     private static final int REQUEST_AI_PHOTO = 104;
 
+    private boolean isEditMode = false;
+    private int editGoodsId = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,13 +62,24 @@ public class AddItemActivity extends AppCompatActivity {
 
         localDb = new LocalDb(this);
 
+        // 检查编辑模式
+        isEditMode = getIntent().getBooleanExtra("edit_mode", false);
+        editGoodsId = getIntent().getIntExtra("goods_id", 0);
+
         String mode = getIntent().getStringExtra("mode");
         if (mode == null) mode = "scan";
 
         etName = findViewById(R.id.et_name);
         etBarcode = findViewById(R.id.et_barcode);
+        etBrand = findViewById(R.id.et_brand);
         etQuantity = findViewById(R.id.et_quantity);
         etUnit = findViewById(R.id.et_unit);
+
+        // 问题10: 单位Spinner
+        String[] unitOptions = {"个", "盒", "瓶", "包", "袋", "罐", "箱", "件", "套"};
+        android.widget.ArrayAdapter<String> unitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, unitOptions);
+        unitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        etUnit.setAdapter(unitAdapter);
         etExpiryDays = findViewById(R.id.et_expiry_days);
         etPrice = findViewById(R.id.et_price);
         etThreshold = findViewById(R.id.et_threshold);
@@ -103,8 +118,8 @@ public class AddItemActivity extends AppCompatActivity {
         // 空间选择
         spacePicker.setOnClickListener(v -> showSpacePickerDialog());
 
-        // 添加照片
-        btnAddPhoto.setOnClickListener(v -> showPhotoOptions());
+        // 添加照片 - 问题7: 直接调用相机
+        btnAddPhoto.setOnClickListener(v -> startPhotoCapture());
 
         // 添加标签
         btnAddTag.setOnClickListener(v -> showTagDialog());
@@ -146,6 +161,11 @@ public class AddItemActivity extends AppCompatActivity {
 
         loadSpaces();
         loadTags();
+
+        // 问题5: 编辑模式加载数据
+        if (isEditMode && editGoodsId > 0) {
+            loadItemForEdit(editGoodsId);
+        }
 
         // 恢复上次选择的空间
         int lastSpaceId = getSharedPreferences("add_item_prefs", MODE_PRIVATE).getInt("last_space_id", 0);
@@ -280,7 +300,7 @@ public class AddItemActivity extends AppCompatActivity {
             }
             if (!name.isEmpty()) etName.setText(name);
             if (!barcode.isEmpty()) etBarcode.setText(barcode);
-            if (!brand.isEmpty()) etNote.setText("品牌: " + brand);
+            if (!brand.isEmpty()) etBrand.setText(brand);
             if (!expireDate.isEmpty()) {
                 try {
                     java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -439,15 +459,45 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void addPhotoToList(Bitmap bitmap) {
         photos.add(bitmap);
-        // 添加照片预览
+        int photoIndex = photos.size() - 1;
+        // 添加照片预览容器
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        LinearLayout.LayoutParams containerLp = new LinearLayout.LayoutParams(dp(80), dp(80));
+        containerLp.rightMargin = dp(8);
+        container.setLayoutParams(containerLp);
+
         ImageView iv = new ImageView(this);
         iv.setImageBitmap(bitmap);
         iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(80), dp(80));
-        lp.rightMargin = dp(8);
-        iv.setLayoutParams(lp);
+        iv.setLayoutParams(new android.widget.FrameLayout.LayoutParams(android.widget.FrameLayout.LayoutParams.MATCH_PARENT, android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
         iv.setBackgroundResource(R.drawable.bg_card_16);
-        llPhotos.addView(iv);
+        container.addView(iv);
+
+        // 问题8: 右上角X删除按钮
+        TextView btnDelete = new TextView(this);
+        btnDelete.setText("✕");
+        btnDelete.setTextSize(10);
+        btnDelete.setTextColor(Color.WHITE);
+        btnDelete.setGravity(android.view.Gravity.CENTER);
+        android.graphics.drawable.GradientDrawable deleteBg = new android.graphics.drawable.GradientDrawable();
+        deleteBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        deleteBg.setColor(0xCC000000);
+        btnDelete.setBackground(deleteBg);
+        android.widget.FrameLayout.LayoutParams deleteLp = new android.widget.FrameLayout.LayoutParams(dp(20), dp(20));
+        deleteLp.gravity = android.view.Gravity.TOP | android.view.Gravity.END;
+        deleteLp.topMargin = dp(2);
+        deleteLp.rightMargin = dp(2);
+        btnDelete.setLayoutParams(deleteLp);
+        btnDelete.setOnClickListener(v -> {
+            int idx = llPhotos.indexOfChild(container);
+            if (idx >= 0 && idx < photos.size()) {
+                photos.remove(idx);
+            }
+            llPhotos.removeView(container);
+        });
+        container.addView(btnDelete);
+
+        llPhotos.addView(container);
         Toast.makeText(this, "📷 正在识别物品...", Toast.LENGTH_SHORT).show();
         // 自动调用图像识别
         recognizeImage(bitmap);
@@ -541,13 +591,7 @@ public class AddItemActivity extends AppCompatActivity {
                     .setPositiveButton("确认填入", (d, w) -> {
                         if (!name.isEmpty()) etName.setText(name);
                         if (!barcode.isEmpty()) etBarcode.setText(barcode);
-                        if (!brand.isEmpty()) {
-                            // Auto-fill brand to note if not empty
-                            String existingNote = etNote.getText().toString().trim();
-                            if (existingNote.isEmpty()) {
-                                etNote.setText("品牌: " + brand);
-                            }
-                        }
+                        if (!brand.isEmpty()) etBrand.setText(brand);
                         Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
                     })
                     .setNegativeButton("重新识别", (d, w) -> {
@@ -729,9 +773,11 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void updateTagDisplay() {
         llTags.removeAllViews();
-        for (String tag : selectedTagNames) {
+        for (int i = 0; i < selectedTagNames.size(); i++) {
+            String tag = selectedTagNames.get(i);
+            int tagIndex = i;
             TextView tv = new TextView(this);
-            tv.setText(tag);
+            tv.setText(tag + " ✕");
             tv.setTextSize(12);
             tv.setTextColor(Color.parseColor("#5B9FED"));
             tv.setBackgroundResource(R.drawable.bg_tag_blue);
@@ -741,6 +787,16 @@ public class AddItemActivity extends AppCompatActivity {
             lp.rightMargin = dp(6);
             lp.bottomMargin = dp(4);
             tv.setLayoutParams(lp);
+            // 问题8: 点击删除标签
+            tv.setOnClickListener(v -> {
+                if (tagIndex < selectedTagIds.size()) {
+                    selectedTagIds.remove(tagIndex);
+                }
+                if (tagIndex < selectedTagNames.size()) {
+                    selectedTagNames.remove(tagIndex);
+                }
+                updateTagDisplay();
+            });
             llTags.addView(tv);
         }
     }
@@ -842,6 +898,73 @@ public class AddItemActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 问题5: 编辑模式加载物品数据
+     */
+    private void loadItemForEdit(int goodsId) {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("id", String.valueOf(goodsId));
+        ApiClient.get("goods.php?action=detail", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonObject item = data.has("goods") ? data.getAsJsonObject("goods") : data;
+                        if (item.has("name")) etName.setText(item.get("name").getAsString());
+                        if (item.has("barcode")) etBarcode.setText(item.get("barcode").getAsString());
+                        if (item.has("brand") && !item.get("brand").isJsonNull()) etBrand.setText(item.get("brand").getAsString());
+                        if (item.has("quantity")) etQuantity.setText(String.valueOf(item.get("quantity").getAsInt()));
+                        if (item.has("unit")) {
+                            String unit = item.get("unit").getAsString();
+                            android.widget.ArrayAdapter<String> adapter = (android.widget.ArrayAdapter<String>) etUnit.getAdapter();
+                            if (adapter != null) {
+                                int pos = adapter.getPosition(unit);
+                                if (pos >= 0) etUnit.setSelection(pos);
+                            }
+                        }
+                        if (item.has("purchase_date") && !item.get("purchase_date").isJsonNull()) {
+                            selectedPurchaseDate = item.get("purchase_date").getAsString();
+                            etPurchaseDate.setText(selectedPurchaseDate);
+                        }
+                        if (item.has("expiry_date") && !item.get("expiry_date").isJsonNull()) {
+                            // 从过期日期反算保质期天数
+                            try {
+                                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                                java.util.Date expiry = sdf.parse(item.get("expiry_date").getAsString());
+                                if (expiry != null && !selectedPurchaseDate.isEmpty()) {
+                                    java.util.Date purchase = sdf.parse(selectedPurchaseDate);
+                                    if (purchase != null) {
+                                        int days = (int) ((expiry.getTime() - purchase.getTime()) / 86400000L);
+                                        if (days > 0) etExpiryDays.setText(String.valueOf(days));
+                                    }
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                        if (item.has("purchase_price") && !item.get("purchase_price").isJsonNull()) {
+                            etPrice.setText(String.valueOf(item.get("purchase_price").getAsDouble()));
+                        }
+                        if (item.has("note") && !item.get("note").isJsonNull()) etNote.setText(item.get("note").getAsString());
+                        if (item.has("is_private")) swPrivate.setChecked(item.get("is_private").getAsInt() == 1);
+                        if (item.has("space_id") && !item.get("space_id").isJsonNull()) {
+                            selectedSpaceId = item.get("space_id").getAsInt();
+                        }
+                        if (item.has("space_name") && !item.get("space_name").isJsonNull()) {
+                            tvSpaceName.setText(item.get("space_name").getAsString());
+                        }
+
+                        // 更新标题
+                        setTitle("编辑物品");
+                        btnSave.setText("保存修改");
+                    } catch (Exception e) {
+                        Toast.makeText(AddItemActivity.this, "加载物品数据失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "加载失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
     private void saveItem() {
         saveItem(false);
     }
@@ -887,7 +1010,7 @@ public class AddItemActivity extends AppCompatActivity {
         goods.category = "";
         String qtyStr = etQuantity.getText().toString().trim();
         goods.quantity = qtyStr.isEmpty() ? 1 : Double.parseDouble(qtyStr);
-        goods.unit = etUnit.getText().toString().trim().isEmpty() ? "个" : etUnit.getText().toString().trim();
+        goods.unit = etUnit.getSelectedItem() != null ? etUnit.getSelectedItem().toString() : "个";
         // 过期日期：使用自动计算的日期
         String autoExpiry = tvExpiryDateAuto.getText().toString().trim();
         if (!autoExpiry.isEmpty() && !autoExpiry.contains("输入")) {
@@ -929,6 +1052,7 @@ public class AddItemActivity extends AppCompatActivity {
             body.addProperty("name", goods.name);
             body.addProperty("barcode", goods.barcode);
             body.addProperty("category", goods.category);
+            body.addProperty("brand", etBrand.getText().toString().trim());
             body.addProperty("quantity", goods.quantity);
             body.addProperty("unit", goods.unit);
             body.addProperty("purchase_date", selectedPurchaseDate);
@@ -946,7 +1070,11 @@ public class AddItemActivity extends AppCompatActivity {
                 body.add("tags", tagsArray);
             }
 
-            ApiClient.post("goods.php?action=create", body, new ApiClient.ApiCallback() {
+            // 问题5: 编辑模式调用update
+            String endpoint = isEditMode ? "goods.php?action=update" : "goods.php?action=create";
+            if (isEditMode) body.addProperty("id", editGoodsId);
+
+            ApiClient.post(endpoint, body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
                         Toast.makeText(AddItemActivity.this, "✅ 保存成功", Toast.LENGTH_SHORT).show();
@@ -979,7 +1107,7 @@ public class AddItemActivity extends AppCompatActivity {
         etName.setText("");
         etBarcode.setText("");
         etQuantity.setText("1");
-        etUnit.setText("");
+        etUnit.setSelection(0);
         etExpiryDays.setText("");
         etPrice.setText("");
         etThreshold.setText("");
@@ -1026,7 +1154,7 @@ public class AddItemActivity extends AppCompatActivity {
         goods.category = "";
         String qtyStr = etQuantity.getText().toString().trim();
         goods.quantity = qtyStr.isEmpty() ? 1 : Double.parseDouble(qtyStr);
-        goods.unit = etUnit.getText().toString().trim().isEmpty() ? "个" : etUnit.getText().toString().trim();
+        goods.unit = etUnit.getSelectedItem() != null ? etUnit.getSelectedItem().toString() : "个";
 
         String autoExpiry = tvExpiryDateAuto.getText().toString().trim();
         if (!autoExpiry.isEmpty() && !autoExpiry.contains("输入")) {

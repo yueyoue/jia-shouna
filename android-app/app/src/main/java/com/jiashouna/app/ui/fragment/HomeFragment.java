@@ -36,6 +36,21 @@ public class HomeFragment extends Fragment {
         tvSpaceCount = v.findViewById(R.id.tv_space_count);
         tvExpiringCount = v.findViewById(R.id.tv_expiring_count);
         tvMemberCount = v.findViewById(R.id.tv_member_count);
+
+        // 问题11: 首页数字可点击
+        tvSpaceCount.setOnClickListener(e -> {
+            if (getActivity() != null) {
+                com.google.android.material.bottomnavigation.BottomNavigationView nav = getActivity().findViewById(R.id.bottom_nav);
+                if (nav != null) nav.setSelectedItemId(R.id.nav_spaces);
+            }
+        });
+        tvExpiringCount.setOnClickListener(e -> {
+            Intent intent = new Intent(getActivity(), AllItemsActivity.class);
+            intent.putExtra("filter_type", "expiring");
+            intent.putExtra("title", "临期物品");
+            startActivity(intent);
+        });
+        tvMemberCount.setOnClickListener(e -> startActivity(new Intent(getActivity(), FamilyShareActivity.class)));
         tvExpiringTag = v.findViewById(R.id.tv_expiring_tag);
         llExpiringList = v.findViewById(R.id.ll_expiring_list);
         llRecentList = v.findViewById(R.id.ll_recent_list);

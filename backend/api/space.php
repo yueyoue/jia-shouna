@@ -41,6 +41,14 @@ switch ($action) {
         $stmt->execute([$houseId]);
         $all = $stmt->fetchAll();
 
+        // 问题4: 计算每个空间的直接物品数量
+        foreach ($all as &$spaceItem) {
+            $cntStmt = $db->prepare("SELECT COUNT(*) as cnt FROM goods WHERE space_id = ? AND status = 1");
+            $cntStmt->execute([$spaceItem['id']]);
+            $spaceItem['item_count'] = $cntStmt->fetch()['cnt'];
+        }
+        unset($spaceItem);
+
         // 构建树形结构
         $tree = [];
         $map = [];

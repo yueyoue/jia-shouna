@@ -91,7 +91,7 @@ $tree = buildTree($spaces);
 <style>
 .layout{display:grid;grid-template-columns:340px 1fr;gap:16px}
 @media(max-width:1024px){.layout{grid-template-columns:1fr}}
-.tree-panel{background:#fff;border-radius:var(--radius);border:1px solid var(--border-2);box-shadow:var(--shadow);display:flex;flex-direction:column;max-height:calc(100vh - 130px);position:sticky;top:84px}
+.tree-panel{background:#fff;border-radius:var(--radius);border:1px solid var(--border-2);box-shadow:var(--shadow);display:flex;flex-direction:column;max-height:calc(100vh - 100px);min-height:400px;position:sticky;top:84px}
 .tree-header{padding:16px 18px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:space-between}
 .tree-header h3{font-size:15px;font-weight:600}
 .tree-actions{display:flex;gap:6px}

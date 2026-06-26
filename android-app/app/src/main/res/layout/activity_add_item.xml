@@ -60,7 +60,7 @@
             android:layout_height="40dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="AI"
+            android:text="🤖 AI识别"
             android:textColor="#718096"
             android:textSize="13sp"
             android:background="@drawable/bg_tab_normal" />
@@ -353,15 +353,13 @@
                             android:textColor="#718096"
                             android:textSize="11sp" />
 
-                        <EditText
+                        <Spinner
                             android:id="@+id/et_unit"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="4dp"
                             android:background="@drawable/bg_input_new"
-                            android:hint="个"
-                            android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
-                            android:textSize="13sp" />
+                            android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -566,6 +564,25 @@
                     android:layout_marginTop="4dp"
                     android:background="@drawable/bg_input_new"
                     android:hint="条形码"
+                    android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                    android:textSize="13sp" />
+
+                <!-- Brand -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="品牌"
+                    android:textColor="#718096"
+                    android:textSize="11sp" />
+
+                <EditText
+                    android:id="@+id/et_brand"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_input_new"
+                    android:hint="品牌名称"
                     android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
                     android:textSize="13sp" />
 
