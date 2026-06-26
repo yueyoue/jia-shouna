@@ -36,7 +36,7 @@ public class AddItemActivity extends AppCompatActivity {
     private Button btnSave, btnSaveContinue;
     private TextView btnStartScan, btnAddPhoto, btnAddTag;
     private LinearLayout scanContainer, llPhotos, llTags;
-    private TextView tabScan, tabPhoto, tabManual;
+    private TextView tabScan, tabPhoto, tabManual, tabAi;
     private int selectedSpaceId = 0;
     private LocalDb localDb;
     private JsonArray spaceList = new JsonArray();
@@ -49,6 +49,7 @@ public class AddItemActivity extends AppCompatActivity {
     private static final int REQUEST_PHOTO = 101;
     private static final int REQUEST_GALLERY = 102;
     private static final int REQUEST_CAMERA_PERMISSION = 103;
+    private static final int REQUEST_AI_PHOTO = 104;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +82,7 @@ public class AddItemActivity extends AppCompatActivity {
         tabScan = findViewById(R.id.tab_scan);
         tabPhoto = findViewById(R.id.tab_photo);
         tabManual = findViewById(R.id.tab_manual);
+        tabAi = findViewById(R.id.tab_ai);
         tvScanHint = findViewById(R.id.tv_scan_hint);
         btnStartScan = findViewById(R.id.btn_start_scan);
         btnAddPhoto = findViewById(R.id.btn_add_photo);
@@ -92,6 +94,7 @@ public class AddItemActivity extends AppCompatActivity {
         tabScan.setOnClickListener(v -> switchTab("scan"));
         tabPhoto.setOnClickListener(v -> switchTab("photo"));
         tabManual.setOnClickListener(v -> switchTab("manual"));
+        tabAi.setOnClickListener(v -> switchTab("ai"));
 
         btnStartScan.setOnClickListener(v -> startBarcodeScan());
 
@@ -159,12 +162,15 @@ public class AddItemActivity extends AppCompatActivity {
         tabScan.setBackgroundResource(R.drawable.bg_tab_normal);
         tabPhoto.setBackgroundResource(R.drawable.bg_tab_normal);
         tabManual.setBackgroundResource(R.drawable.bg_tab_normal);
+        tabAi.setBackgroundResource(R.drawable.bg_tab_normal);
         tabScan.setTextColor(Color.parseColor("#718096"));
         tabPhoto.setTextColor(Color.parseColor("#718096"));
         tabManual.setTextColor(Color.parseColor("#718096"));
+        tabAi.setTextColor(Color.parseColor("#718096"));
         tabScan.setTypeface(null, android.graphics.Typeface.NORMAL);
         tabPhoto.setTypeface(null, android.graphics.Typeface.NORMAL);
         tabManual.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabAi.setTypeface(null, android.graphics.Typeface.NORMAL);
 
         switch (mode) {
             case "scan":
@@ -191,6 +197,133 @@ public class AddItemActivity extends AppCompatActivity {
                 tabManual.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.GONE);
                 break;
+            case "ai":
+                tabAi.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabAi.setTextColor(Color.parseColor("#FFFFFF"));
+                tabAi.setTypeface(null, android.graphics.Typeface.BOLD);
+                scanContainer.setVisibility(View.VISIBLE);
+                tvScanHint.setText("AI 智能识别：拍照自动提取物品信息");
+                btnStartScan.setText("AI 智能识别");
+                btnStartScan.setOnClickListener(v -> startAiRecognize());
+                break;
+        }
+    }
+
+    private void startAiRecognize() {
+        if (checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+            return;
+        }
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        try {
+            java.io.File storageDir = getExternalCacheDir();
+            if (storageDir != null && !storageDir.exists()) storageDir.mkdirs();
+            java.io.File photoFile = java.io.File.createTempFile("ai_photo_", ".jpg", storageDir);
+            cameraImageUri = androidx.core.content.FileProvider.getUriForFile(
+                this, getPackageName() + ".fileprovider", photoFile);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_READ_URI_PERMISSION);
+        } catch (Exception ignored) {}
+        startActivityForResult(intent, REQUEST_AI_PHOTO);
+    }
+
+    private void callAiRecognize(byte[] imageBytes) {
+        Toast.makeText(this, "AI 正在识别物品...", Toast.LENGTH_SHORT).show();
+        btnSave.setEnabled(false);
+        btnSaveContinue.setEnabled(false);
+        okhttp3.MultipartBody.Builder builder = new okhttp3.MultipartBody.Builder()
+            .setType(okhttp3.MultipartBody.FORM)
+            .addFormDataPart("image", "ai_photo.jpg",
+                okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (selectedSpaceId > 0) builder.addFormDataPart("space_id", String.valueOf(selectedSpaceId));
+        if (houseId > 0) builder.addFormDataPart("house_id", String.valueOf(houseId));
+        String url = App.BASE_URL + "ai/recognize";
+        okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder().url(url).post(builder.build());
+        String token = App.getInstance().getToken();
+        if (token != null && !token.isEmpty()) reqBuilder.addHeader("Authorization", "Bearer " + token);
+        new okhttp3.OkHttpClient.Builder()
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+            .newCall(reqBuilder.build())
+            .enqueue(new okhttp3.Callback() {
+                @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                    runOnUiThread(() -> {
+                        btnSave.setEnabled(true);
+                        btnSaveContinue.setEnabled(true);
+                        Toast.makeText(AddItemActivity.this, "AI 识别失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+                }
+                @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                    String body = response.body() != null ? response.body().string() : "";
+                    runOnUiThread(() -> {
+                        btnSave.setEnabled(true);
+                        btnSaveContinue.setEnabled(true);
+                        handleAiResult(body);
+                    });
+                }
+            });
+    }
+
+    private void handleAiResult(String responseBody) {
+        try {
+            JsonObject json = com.google.gson.JsonParser.parseString(responseBody).getAsJsonObject();
+            if (json.get("code").getAsInt() != 0) {
+                String msg = json.has("msg") ? json.get("msg").getAsString() : "识别失败";
+                Toast.makeText(this, "AI 识别失败: " + msg, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            JsonObject data = json.getAsJsonObject("data");
+            String name = data.has("goods_name") ? data.get("goods_name").getAsString() : "";
+            String brand = data.has("brand") ? data.get("brand").getAsString() : "";
+            String barcode = data.has("barcode") ? data.get("barcode").getAsString() : "";
+            String expireDate = data.has("expire_date") ? data.get("expire_date").getAsString() : "";
+            String storageTip = data.has("storage_tip") ? data.get("storage_tip").getAsString() : "";
+            double confidence = data.has("confidence") ? data.get("confidence").getAsDouble() : 0;
+            if (data.has("suggested_space_id") && !data.get("suggested_space_id").isJsonNull()) {
+                int sid = data.get("suggested_space_id").getAsInt();
+                if (sid > 0) {
+                    selectedSpaceId = sid;
+                    String sname = data.has("suggested_space_name") ? data.get("suggested_space_name").getAsString() : "";
+                    tvSpaceName.setText("AI: " + sname);
+                    tvSpacePath.setText("AI 推荐存放位置");
+                }
+            }
+            if (!name.isEmpty()) etName.setText(name);
+            if (!barcode.isEmpty()) etBarcode.setText(barcode);
+            StringBuilder note = new StringBuilder();
+            if (!brand.isEmpty()) note.append("品牌: ").append(brand);
+            if (!storageTip.isEmpty()) {
+                if (note.length() > 0) note.append("\n");
+                note.append("建议: ").append(storageTip);
+            }
+            if (note.length() > 0) etNote.setText(note.toString());
+            if (!expireDate.isEmpty()) {
+                try {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    java.util.Date expiry = sdf.parse(expireDate);
+                    if (expiry != null) {
+                        int days = (int) ((expiry.getTime() - System.currentTimeMillis()) / 86400000L);
+                        if (days > 0) etExpiryDays.setText(String.valueOf(days));
+                    }
+                } catch (Exception ignored) {}
+            }
+            String resultMsg = "名称: " + (name.isEmpty() ? "未识别" : name)
+                + "\n品牌: " + brand
+                + "\n分类: " + (data.has("category") ? data.get("category").getAsString() : "")
+                + "\n条码: " + barcode
+                + "\n保质期: " + expireDate
+                + "\n置信度: " + String.format(Locale.getDefault(), "%.0f%%", confidence * 100);
+            new AlertDialog.Builder(this)
+                .setTitle("AI 识别结果")
+                .setMessage(resultMsg)
+                .setPositiveButton("确认填入", null)
+                .setNegativeButton("重新识别", (d, w) -> startAiRecognize())
+                .show();
+        } catch (Exception e) {
+            Toast.makeText(this, "识别结果解析失败", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -295,6 +428,28 @@ public class AddItemActivity extends AppCompatActivity {
                 }
                 if (bitmap != null) {
                     addPhotoToList(bitmap);
+                } else {
+                    Toast.makeText(this, "拍照获取失败", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e) {
+                Toast.makeText(this, "拍照处理失败", Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == REQUEST_AI_PHOTO) {
+            try {
+                Bitmap bitmap = null;
+                if (cameraImageUri != null) {
+                    try {
+                        bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri);
+                    } catch (Exception ignored) {}
+                }
+                if (bitmap == null && data != null) {
+                    Bundle extras = data.getExtras();
+                    if (extras != null) bitmap = (Bitmap) extras.get("data");
+                }
+                if (bitmap != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+                    callAiRecognize(baos.toByteArray());
                 } else {
                     Toast.makeText(this, "拍照获取失败", Toast.LENGTH_SHORT).show();
                 }
