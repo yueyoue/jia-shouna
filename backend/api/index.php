@@ -83,7 +83,11 @@ $routes = [
     
     // 图像识别
     'POST /image-recognize/recognize' => 'image-recognize.php?action=recognize',
-    
+
+    // AI 智能录入
+    'POST /ai/recognize'        => 'ai/recognize.php',
+    'POST /ai/confirm'          => 'ai/confirm.php',
+
     // 版本检查
     'GET  /version/check'       => 'version.php?action=check',
     'GET  /version/latest'      => 'version.php?action=latest',

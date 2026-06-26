@@ -59,11 +59,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         $msg = $code > 0 ? "连通性测试成功 (HTTP $code)" : "连通性测试失败";
+    } elseif ($action === 'test_ai') {
+        $id = intval($_POST['id'] ?? 0);
+        $stmt = $db->prepare("SELECT * FROM api_config WHERE id = ?");
+        $stmt->execute([$id]);
+        $api = $stmt->fetch();
+        $extra = json_decode($api['extra_params'] ?? '{}', true) ?: [];
+        $model = $extra['model'] ?? '';
+        $apiKey = $api['api_key'];
+        if (empty($apiKey)) {
+            $error = '请先填写 API Key';
+        } else {
+            $testPayload = json_encode([
+                'model' => $model,
+                'messages' => [['role' => 'user', 'content' => '你好，请回复OK']],
+                'max_tokens' => 10
+            ]);
+            $ch = curl_init($api['api_url']);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $testPayload);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: Bearer ' . $apiKey]);
+            $resp = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($code === 200) {
+                $data = json_decode($resp, true);
+                if (isset($data['choices'])) {
+                    $msg = 'AI 连接测试成功！模型: ' . $model;
+                } else {
+                    $error = 'AI 返回格式异常: ' . substr($resp, 0, 200);
+                }
+            } else {
+                $error = 'AI 连接失败 (HTTP ' . $code . '): ' . substr($resp, 0, 200);
+            }
+        }
     }
 }
 
 $barcodeApis = $db->query("SELECT * FROM api_config WHERE type = 'barcode' ORDER BY priority DESC")->fetchAll();
 $imageApis = $db->query("SELECT * FROM api_config WHERE type = 'image' ORDER BY priority DESC")->fetchAll();
+$aiApis = $db->query("SELECT * FROM api_config WHERE type = 'ai' ORDER BY priority DESC")->fetchAll();
 $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->fetchAll();
 ?>
 
@@ -78,6 +116,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
 .api-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff}
 .api-icon.barcode{background:linear-gradient(135deg,#FF8C42,#FF6B35)}
 .api-icon.image{background:linear-gradient(135deg,#4ECDC4,#0E9F8E)}
+.api-icon.ai{background:linear-gradient(135deg,#805AD5,#6B46C1)}
 .api-card-title h3{font-size:15px;font-weight:600}
 .api-card-title p{font-size:11px;color:#718096;margin-top:2px}
 .channel-list{padding:8px 0}
@@ -126,6 +165,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
 <div class="tabs">
     <div class="tab active">📊 条码查询接口</div>
     <div class="tab">📷 图像识别接口</div>
+    <div class="tab">🤖 AI 智能识别</div>
     <div class="tab">📋 接口调用日志</div>
 </div>
 
@@ -282,6 +322,83 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
             </form>
         </div>
         <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- AI 配置 -->
+<div class="api-card">
+    <div class="api-card-header">
+        <div class="api-card-title">
+            <div class="api-icon ai">🤖</div>
+            <div>
+                <h3>AI 智能识别配置</h3>
+                <p>配置 AI 大模型服务商，用于物品智能识别录入</p>
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showAddApi('ai')">＋ 添加服务商</button>
+    </div>
+    <div class="channel-list">
+        <?php if (empty($aiApis)): ?>
+        <div style="padding:40px;text-align:center;color:#718096">
+            <div style="font-size:32px;margin-bottom:12px">🤖</div>
+            <div>尚未配置 AI 服务商</div>
+            <div style="font-size:12px;margin-top:8px">请点击上方「添加服务商」按钮配置智谱、豆包等 AI 服务</div>
+        </div>
+        <?php else: foreach ($aiApis as $idx => $api): ?>
+        <?php $extra = json_decode($api['extra_params'] ?? '{}', true) ?: []; ?>
+        <div class="channel-item">
+            <div class="channel-rank"><?= $idx + 1 ?></div>
+            <div class="channel-info">
+                <div class="channel-name">
+                    <?= htmlspecialchars($api['name']) ?>
+                    <?php if ($api['is_active']): ?>
+                        <span class="badge-main">当前使用</span>
+                    <?php else: ?>
+                        <span class="badge-backup">备用</span>
+                    <?php endif; ?>
+                    <span class="tag tag-purple" style="font-size:10px;padding:2px 6px"><?= htmlspecialchars($extra['model'] ?? '') ?></span>
+                </div>
+                <div class="channel-desc"><?= htmlspecialchars($api['api_url']) ?></div>
+                <div class="channel-stats">
+                    <span>📊 总调用 <strong><?= $api['total_calls'] ?></strong></span>
+                    <span>成功率 <strong class="green"><?= $api['total_calls'] > 0 ? round($api['success_calls']/$api['total_calls']*100) : 0 ?>%</strong></span>
+                </div>
+            </div>
+            <div class="channel-actions">
+                <form method="POST" style="display:inline">
+                    <input type="hidden" name="action" value="test_ai">
+                    <input type="hidden" name="id" value="<?= $api['id'] ?>">
+                    <button type="submit" class="icon-mini" title="测试连接">⚡</button>
+                </form>
+                <div class="icon-mini" title="编辑" onclick="toggleEdit(<?= $api['id'] ?>)">✎</div>
+            </div>
+        </div>
+        <div id="edit-<?= $api['id'] ?>" style="display:none;padding:14px 20px;background:#FAFBFC;border-bottom:1px solid var(--border-2)">
+            <form method="POST">
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="id" value="<?= $api['id'] ?>">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group" style="margin-bottom:0">
+                        <label class="form-label">接口地址</label>
+                        <input type="text" name="api_url" class="form-control" value="<?= htmlspecialchars($api['api_url']) ?>">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label class="form-label">API Key *</label>
+                        <input type="text" name="api_key" class="form-control" value="<?= htmlspecialchars($api['api_key']) ?>" placeholder="输入 AI 服务商的 API Key">
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+                    <label class="switch">
+                        <input type="checkbox" name="is_active" <?= $api['is_active'] ? 'checked' : '' ?>>
+                        <span class="switch-slider"></span>
+                    </label>
+                    <span style="font-size:12px;color:#718096">启用为当前 AI 服务商</span>
+                    <button type="submit" class="btn btn-primary btn-sm" style="margin-left:auto">💾 保存</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="toggleEdit(<?= $api['id'] ?>)">取消</button>
+                </div>
+            </form>
+        </div>
+        <?php endforeach; endif; ?>
     </div>
 </div>
 
