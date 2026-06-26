@@ -582,6 +582,40 @@
                     android:background="#EDF2F7"
                     android:visibility="gone" />
 
+                <!-- Brand -->
+                <LinearLayout
+                    android:id="@+id/row_brand"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="80dp"
+                        android:layout_height="wrap_content"
+                        android:text="🏷 品牌"
+                        android:textColor="#718096"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tv_brand_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="#2D3748"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <View
+                    android:id="@+id/divider_brand"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="12dp"
+                    android:background="#EDF2F7"
+                    android:visibility="gone" />
+
                 <!-- Tags -->
                 <LinearLayout
                     android:id="@+id/row_tags"

@@ -311,9 +311,35 @@ public class AddItemActivity extends AppCompatActivity {
                     }
                 } catch (Exception ignored) {}
             }
-            String msg = "名称: " + name + "\n品牌: " + brand + "\n置信度: " + String.format(Locale.getDefault(), "%.0f%%", confidence * 100);
+            // 问题5: 提取分类
+            String category = data.has("category") ? data.get("category").getAsString() : "";
+            String msg = "名称: " + name;
+            if (!brand.isEmpty()) msg += "\n品牌: " + brand;
+            if (!category.isEmpty()) msg += "\n分类: " + category;
+            msg += "\n置信度: " + String.format(Locale.getDefault(), "%.0f%%", confidence * 100);
+
             new AlertDialog.Builder(this).setTitle("AI 识别结果").setMessage(msg)
-                .setPositiveButton("确认填入", null)
+                .setPositiveButton("确认填入", (d, w) -> {
+                    // 填入识别结果
+                    if (!name.isEmpty()) etName.setText(name);
+                    if (!barcode.isEmpty()) etBarcode.setText(barcode);
+                    if (!brand.isEmpty()) etBrand.setText(brand);
+                    // 问题5: 分类作为标签
+                    if (!category.isEmpty() && !selectedTagNames.contains(category)) {
+                        selectedTagNames.add(category);
+                        updateTagDisplay();
+                    }
+                    // 问题4: 将AI识别的照片添加到物品图片
+                    if (cameraImageUri != null) {
+                        try {
+                            Bitmap aiPhoto = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri);
+                            if (aiPhoto != null) {
+                                addPhotoToList(aiPhoto);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
+                })
                 .setNegativeButton("重新识别", (d, w) -> startAiRecognize())
                 .show();
         } catch (Exception e) {
@@ -498,9 +524,7 @@ public class AddItemActivity extends AppCompatActivity {
         container.addView(btnDelete);
 
         llPhotos.addView(container);
-        Toast.makeText(this, "📷 正在识别物品...", Toast.LENGTH_SHORT).show();
-        // 自动调用图像识别
-        recognizeImage(bitmap);
+        // 问题7: 添加照片不自动调用识别，仅添加到列表
     }
 
     private void recognizeImage(Bitmap bitmap) {
@@ -592,6 +616,11 @@ public class AddItemActivity extends AppCompatActivity {
                         if (!name.isEmpty()) etName.setText(name);
                         if (!barcode.isEmpty()) etBarcode.setText(barcode);
                         if (!brand.isEmpty()) etBrand.setText(brand);
+                        // 问题5: 分类作为标签
+                        if (!category.isEmpty() && !selectedTagNames.contains(category)) {
+                            selectedTagNames.add(category);
+                            updateTagDisplay();
+                        }
                         Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
                     })
                     .setNegativeButton("重新识别", (d, w) -> {
@@ -908,12 +937,27 @@ public class AddItemActivity extends AppCompatActivity {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
-                        JsonObject item = data.has("goods") ? data.getAsJsonObject("goods") : data;
-                        if (item.has("name")) etName.setText(item.get("name").getAsString());
-                        if (item.has("barcode")) etBarcode.setText(item.get("barcode").getAsString());
-                        if (item.has("brand") && !item.get("brand").isJsonNull()) etBrand.setText(item.get("brand").getAsString());
-                        if (item.has("quantity")) etQuantity.setText(String.valueOf(item.get("quantity").getAsInt()));
-                        if (item.has("unit")) {
+                        // ApiClient已提取data层，后端返回goods包裹
+                        JsonObject item = null;
+                        if (data.has("goods") && !data.get("goods").isJsonNull()) {
+                            item = data.getAsJsonObject("goods");
+                        } else if (data.has("name")) {
+                            item = data; // 兼容直接返回物品数据
+                        }
+                        if (item == null) {
+                            Toast.makeText(AddItemActivity.this, "物品数据为空", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        if (item.has("name") && !item.get("name").isJsonNull()) etName.setText(item.get("name").getAsString());
+                        if (item.has("barcode") && !item.get("barcode").isJsonNull()) etBarcode.setText(item.get("barcode").getAsString());
+                        if (item.has("brand") && !item.get("brand").isJsonNull()) {
+                            String brand = item.get("brand").getAsString();
+                            if (!brand.isEmpty()) etBrand.setText(brand);
+                        }
+                        if (item.has("quantity")) {
+                            try { etQuantity.setText(String.valueOf((int) item.get("quantity").getAsDouble())); } catch (Exception ignored) {}
+                        }
+                        if (item.has("unit") && !item.get("unit").isJsonNull()) {
                             String unit = item.get("unit").getAsString();
                             android.widget.ArrayAdapter<String> adapter = (android.widget.ArrayAdapter<String>) etUnit.getAdapter();
                             if (adapter != null) {
@@ -926,7 +970,6 @@ public class AddItemActivity extends AppCompatActivity {
                             etPurchaseDate.setText(selectedPurchaseDate);
                         }
                         if (item.has("expiry_date") && !item.get("expiry_date").isJsonNull()) {
-                            // 从过期日期反算保质期天数
                             try {
                                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
                                 java.util.Date expiry = sdf.parse(item.get("expiry_date").getAsString());
@@ -940,7 +983,7 @@ public class AddItemActivity extends AppCompatActivity {
                             } catch (Exception ignored) {}
                         }
                         if (item.has("purchase_price") && !item.get("purchase_price").isJsonNull()) {
-                            etPrice.setText(String.valueOf(item.get("purchase_price").getAsDouble()));
+                            try { etPrice.setText(String.valueOf(item.get("purchase_price").getAsDouble())); } catch (Exception ignored) {}
                         }
                         if (item.has("note") && !item.get("note").isJsonNull()) etNote.setText(item.get("note").getAsString());
                         if (item.has("is_private")) swPrivate.setChecked(item.get("is_private").getAsInt() == 1);
@@ -951,11 +994,26 @@ public class AddItemActivity extends AppCompatActivity {
                             tvSpaceName.setText(item.get("space_name").getAsString());
                         }
 
-                        // 更新标题
+                        // 加载已有标签
+                        if (item.has("tags") && !item.get("tags").isJsonNull()) {
+                            JsonArray tags = item.getAsJsonArray("tags");
+                            for (int i = 0; i < tags.size(); i++) {
+                                JsonObject tag = tags.get(i).getAsJsonObject();
+                                int tid = tag.has("id") ? tag.get("id").getAsInt() : 0;
+                                String tname = tag.has("name") && !tag.get("name").isJsonNull() ? tag.get("name").getAsString() : "";
+                                if (tid > 0 && !selectedTagIds.contains(tid)) {
+                                    selectedTagIds.add(tid);
+                                    selectedTagNames.add(tname);
+                                }
+                            }
+                            updateTagDisplay();
+                        }
+
                         setTitle("编辑物品");
                         btnSave.setText("保存修改");
                     } catch (Exception e) {
-                        Toast.makeText(AddItemActivity.this, "加载物品数据失败", Toast.LENGTH_SHORT).show();
+                        android.util.Log.e("AddItem", "loadItemForEdit error: " + e.getMessage(), e);
+                        Toast.makeText(AddItemActivity.this, "加载物品数据失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
             }

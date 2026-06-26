@@ -449,6 +449,27 @@ public class HomeFragment extends Fragment {
     private void loadContributions(int houseId) {
         if (llContributions == null || houseId <= 0) return;
         llContributions.removeAllViews();
+        // 添加加载提示
+        TextView loadingTv = new TextView(getActivity());
+        loadingTv.setText("加载中...");
+        loadingTv.setTextSize(11);
+        loadingTv.setTextColor(0xFFA0AEC0);
+        llContributions.addView(loadingTv);
+
+        // 超时保护：10秒后如果还是加载中则显示暂无数据
+        llContributions.postDelayed(() -> {
+            if (getActivity() != null && llContributions.getChildCount() == 1) {
+                View child = llContributions.getChildAt(0);
+                if (child instanceof TextView && "加载中...".equals(((TextView) child).getText().toString())) {
+                    llContributions.removeAllViews();
+                    TextView tv = new TextView(getActivity());
+                    tv.setText("暂无数据");
+                    tv.setTextSize(11);
+                    tv.setTextColor(0xFFA0AEC0);
+                    llContributions.addView(tv);
+                }
+            }
+        }, 10000);
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));

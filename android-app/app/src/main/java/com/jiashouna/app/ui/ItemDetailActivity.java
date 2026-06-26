@@ -30,8 +30,9 @@ public class ItemDetailActivity extends AppCompatActivity {
     private View btnMove, btnCopy, btnBorrow, btnEdit, btnEditBottom, btnDelete;
     private LinearLayout layoutStatusBadges, layoutTags, layoutBorrowSection, layoutBorrowList;
     private LinearLayout galleryDots;
-    private View rowPurchaseDate, rowExpiry, rowPrice, rowBarcode, rowTags, rowNote;
-    private View dividerPurchase, dividerExpiry, dividerPrice, dividerBarcode, dividerTags;
+    private View rowPurchaseDate, rowExpiry, rowPrice, rowBarcode, rowBrand, rowTags, rowNote;
+    private View dividerPurchase, dividerExpiry, dividerPrice, dividerBarcode, dividerBrand, dividerTags;
+    private TextView tvBrandValue;
     private ViewPager2 viewpagerPhotos;
     private JsonObject currentGoods;
 
@@ -93,12 +94,15 @@ public class ItemDetailActivity extends AppCompatActivity {
         rowExpiry = findViewById(R.id.row_expiry);
         rowPrice = findViewById(R.id.row_price);
         rowBarcode = findViewById(R.id.row_barcode);
+        rowBrand = findViewById(R.id.row_brand);
+        tvBrandValue = findViewById(R.id.tv_brand_value);
         rowTags = findViewById(R.id.row_tags);
         rowNote = findViewById(R.id.row_note);
         dividerPurchase = findViewById(R.id.divider_purchase);
         dividerExpiry = findViewById(R.id.divider_expiry);
         dividerPrice = findViewById(R.id.divider_price);
         dividerBarcode = findViewById(R.id.divider_barcode);
+        dividerBrand = findViewById(R.id.divider_brand);
         dividerTags = findViewById(R.id.divider_tags);
 
         btnBack.setOnClickListener(v -> finish());
@@ -157,6 +161,14 @@ public class ItemDetailActivity extends AppCompatActivity {
             tvBarcodeValue.setText(barcode);
             rowBarcode.setVisibility(View.VISIBLE);
             dividerBarcode.setVisibility(View.VISIBLE);
+        }
+
+        // Brand
+        String brand = g.has("brand") && !g.get("brand").isJsonNull() ? g.get("brand").getAsString() : "";
+        if (!brand.isEmpty()) {
+            tvBrandValue.setText(brand);
+            rowBrand.setVisibility(View.VISIBLE);
+            dividerBrand.setVisibility(View.VISIBLE);
         }
 
         // Expiry status badge
