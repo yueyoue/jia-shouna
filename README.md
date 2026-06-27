@@ -12,6 +12,7 @@
 | 后端 | PHP 7.4+ / 8.0+ |
 | 数据库 | MySQL 5.7+ / 8.0+ |
 | 管理后台 | PHP + HTML + CSS + JS |
+| 构建 | GitHub Actions 自动编译 |
 
 ## 项目结构
 
@@ -35,22 +36,26 @@ jia-shouna/
 ## 核心功能
 
 ### APP端
-- 多级收纳空间管理（3级层级）
-- 物品录入（扫码/拍照/手动）
-- 物品查找（搜索/扫码/浏览）
+- 多级收纳空间管理（家→房间→容器 三级层级）
+- 物品录入（条码扫描 / 拍照 / AI智能识别 / 手动）
+- 物品查找（搜索 / 扫码 / 浏览）
+- **品牌管理**：AI识别自动填入品牌字段
 - 领用归还管理
-- 智能提醒（临期/库存/自定义）
-- 家庭共享协作
+- 智能提醒（临期 / 库存不足）
+- 家庭共享协作（邀请码、角色权限）
 - 物品级隐私控制
-- 离线模式（断网录入，联网同步）
+- **离线模式**：无网络时可查看已缓存的物品数据
+- **日志收集**：APP端错误/崩溃自动上报
 - 多房屋支持
-- 自动版本更新
+- 自动版本更新（GitHub Actions）
 
 ### Web管理后台
 - 数据总览看板
-- 收纳空间管理
-- 物品信息管理（批量操作/Excel导入导出）
-- 第三方接口配置（条码查询/图像识别）
+- 收纳空间管理（树形层级、自适应高度）
+- 物品信息管理（含品牌/标签/位置、批量导入导出）
+- 接口配置（条码查询 / AI识别）
+- AI调用日志
+- **APP端日志**（错误/崩溃监控）
 - 数据备份与恢复
 - 用户与家庭组管理
 - APP版本更新管理
@@ -76,17 +81,17 @@ mysql -u root -p < database/schema.sql
 
 ## API接口
 
-所有APP端API通过 `backend/api/index.php` 路由，使用JWT Token鉴权。
+所有APP端API通过 `backend/api/` 目录下的PHP文件提供，使用JWT Token鉴权。
 
 主要接口：
-- `POST /auth/login` - 登录
-- `POST /auth/register` - 注册
-- `GET /space/list` - 空间列表
-- `GET /goods/list` - 物品列表
-- `POST /goods/create` - 创建物品
-- `GET /version/check` - 检查更新
-- `POST /sync/push` - 离线同步
-- `GET /sync/pull` - 拉取数据
+- `POST /auth.php?action=login` - 登录
+- `GET /goods.php?action=list` - 物品列表
+- `POST /goods.php?action=create` - 创建物品（支持brand、tags、images）
+- `GET /goods.php?action=detail&id=X` - 物品详情
+- `GET /space.php?action=tree` - 空间树形结构
+- `POST /ai/recognize.php?action=recognize` - AI识别
+- `POST /log.php?action=upload` - 日志上报
+- `GET /version.php?action=check` - 检查更新
 
 ## 版本更新功能
 
