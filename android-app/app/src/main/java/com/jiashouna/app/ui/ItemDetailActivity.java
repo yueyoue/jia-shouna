@@ -157,6 +157,15 @@ public class ItemDetailActivity extends AppCompatActivity {
     private void displayGoods(JsonObject g) {
         android.util.Log.d("ItemDetail", "displayGoods called, keys: " + g.keySet());
 
+        // 临时调试：显示brand字段
+        try {
+            String debugBrand = g.has("brand") ? (g.get("brand").isJsonNull() ? "null" : "'" + g.get("brand").getAsString() + "'") : "missing";
+            String debugTags = g.has("tags") ? g.getAsJsonArray("tags").size() + "个" : "missing";
+            String debugNote = g.has("note") ? (g.get("note").isJsonNull() ? "null" : g.get("note").getAsString().substring(0, Math.min(30, g.get("note").getAsString().length()))) : "missing";
+            android.util.Log.d("ItemDetail", "brand=" + debugBrand + " tags=" + debugTags + " note=" + debugNote);
+            Toast.makeText(this, "调试 brand=" + debugBrand, Toast.LENGTH_LONG).show();
+        } catch (Exception e) { android.util.Log.e("ItemDetail", "debug error", e); }
+
         // Name
         String name = g.has("name") && !g.get("name").isJsonNull() ? g.get("name").getAsString() : "";
         tvItemName.setText(name);

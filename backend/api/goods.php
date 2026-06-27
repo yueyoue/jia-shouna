@@ -677,6 +677,18 @@ switch ($action) {
         echo "趣多多饼干,6901234567890,食品,趣多多,100g,2,盒,2025-01-15,2025-07-15,12.5,好吃,厨房\n";
         exit;
 
+    case 'debug_check':
+        // 临时调试：检查最新物品的brand字段
+        $stmt = $db->prepare('SELECT id, name, brand, note, category FROM goods WHERE status = 1 ORDER BY id DESC LIMIT 5');
+        $stmt->execute();
+        $items = $stmt->fetchAll();
+        // 检查brand列是否存在
+        $colStmt = $db->prepare('SHOW COLUMNS FROM goods LIKE ?');
+        $colStmt->execute(['brand']);
+        $brandCol = $colStmt->fetch();
+        success(['items' => $items, 'brand_column_exists' => !!$brandCol]);
+        break;
+
     default:
         error('未知操作');
 }
