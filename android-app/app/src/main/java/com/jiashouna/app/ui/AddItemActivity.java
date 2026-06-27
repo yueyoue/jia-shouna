@@ -131,15 +131,8 @@ public class AddItemActivity extends AppCompatActivity {
         // 保存继续
         btnSaveContinue.setOnClickListener(v -> saveItem(true));
 
-        // 购买日期 - 弹窗日期选择 + 自动计算过期日期
-        etPurchaseDate.setOnClickListener(v -> {
-            java.util.Calendar cal = java.util.Calendar.getInstance();
-            new DatePickerDialog(this, (view, year, month, day) -> {
-                selectedPurchaseDate = String.format("%04d-%02d-%02d", year, month + 1, day);
-                etPurchaseDate.setText(selectedPurchaseDate);
-                calcExpiryDate();
-            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
-        });
+        // 购买日期 - 年月日快速选择
+        etPurchaseDate.setOnClickListener(v -> showDatePicker());
 
         // 保质期单位选择器
         if (spExpiryUnit != null) {
@@ -921,6 +914,78 @@ public class AddItemActivity extends AppCompatActivity {
     /**
      * 将用户输入的保质期值和单位换算成天数
      */
+    /**
+     * 年月日快速选择器（先选年，再选月日）
+     */
+    private void showDatePicker() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int currentYear = cal.get(java.util.Calendar.YEAR);
+        int currentMonth = cal.get(java.util.Calendar.MONTH);
+        int currentDay = cal.get(java.util.Calendar.DAY_OF_MONTH);
+
+        // 如果已有日期，解析它
+        if (!selectedPurchaseDate.isEmpty()) {
+            try {
+                String[] parts = selectedPurchaseDate.split("-");
+                currentYear = Integer.parseInt(parts[0]);
+                currentMonth = Integer.parseInt(parts[1]) - 1;
+                currentDay = Integer.parseInt(parts[2]);
+            } catch (Exception ignored) {}
+        }
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER);
+        layout.setPadding(dp(16), dp(16), dp(16), dp(8));
+
+        // 年份Spinner
+        int startYear = currentYear - 10;
+        int endYear = currentYear + 5;
+        String[] years = new String[endYear - startYear + 1];
+        for (int i = 0; i < years.length; i++) years[i] = (startYear + i) + "年";
+        Spinner spYear = new Spinner(this);
+        spYear.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, years));
+        spYear.setSelection(currentYear - startYear);
+        LinearLayout.LayoutParams yearLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        yearLp.rightMargin = dp(8);
+        spYear.setLayoutParams(yearLp);
+        layout.addView(spYear);
+
+        // 月份Spinner
+        String[] months = {"1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"};
+        Spinner spMonth = new Spinner(this);
+        spMonth.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, months));
+        spMonth.setSelection(currentMonth);
+        LinearLayout.LayoutParams monthLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        monthLp.rightMargin = dp(8);
+        spMonth.setLayoutParams(monthLp);
+        layout.addView(spMonth);
+
+        // 日期Spinner
+        String[] days = new String[31];
+        for (int i = 0; i < 31; i++) days[i] = (i + 1) + "日";
+        Spinner spDay = new Spinner(this);
+        spDay.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, days));
+        spDay.setSelection(currentDay - 1);
+        LinearLayout.LayoutParams dayLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        spDay.setLayoutParams(dayLp);
+        layout.addView(spDay);
+
+        new AlertDialog.Builder(this)
+            .setTitle("选择日期")
+            .setView(layout)
+            .setPositiveButton("确定", (d, w) -> {
+                int year = startYear + spYear.getSelectedItemPosition();
+                int month = spMonth.getSelectedItemPosition();
+                int day = spDay.getSelectedItemPosition() + 1;
+                selectedPurchaseDate = String.format("%04d-%02d-%02d", year, month + 1, day);
+                etPurchaseDate.setText(selectedPurchaseDate);
+                calcExpiryDate();
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
     private int convertToDays(int value, String unit) {
         switch (unit) {
             case "月": return value * 30;
