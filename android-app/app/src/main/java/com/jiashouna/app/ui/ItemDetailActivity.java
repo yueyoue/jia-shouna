@@ -14,6 +14,9 @@ import com.google.gson.JsonObject;
 import com.jiashouna.app.App;
 import com.jiashouna.app.R;
 import com.jiashouna.app.api.ApiClient;
+import com.jiashouna.app.db.LocalDb;
+import com.jiashouna.app.utils.NetworkUtils;
+import com.jiashouna.app.model.Goods;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -49,7 +52,12 @@ public class ItemDetailActivity extends AppCompatActivity {
         }
 
         initViews();
-        loadDetail();
+
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            loadFromCache();
+        } else {
+            loadDetail();
+        }
     }
 
     private void initViews() {
@@ -152,6 +160,42 @@ public class ItemDetailActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    /**
+     * 离线模式：从缓存加载物品详情
+     */
+    private void loadFromCache() {
+        LocalDb localDb = new LocalDb(this);
+        Goods cached = localDb.getCachedGoodsDetail(goodsId);
+        if (cached == null) {
+            Toast.makeText(this, "离线模式：未找到缓存数据", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        // 离线提示
+        Toast.makeText(this, "📱 离线模式", Toast.LENGTH_SHORT).show();
+
+        JsonObject g = new JsonObject();
+        g.addProperty("name", cached.name);
+        g.addProperty("barcode", cached.barcode);
+        g.addProperty("category", cached.category);
+        g.addProperty("brand", cached.brand);
+        g.addProperty("quantity", cached.quantity);
+        g.addProperty("unit", cached.unit);
+        g.addProperty("purchase_date", cached.purchaseDate != null ? cached.purchaseDate : "");
+        g.addProperty("expiry_date", cached.expiryDate != null ? cached.expiryDate : "");
+        g.addProperty("note", cached.note);
+        g.addProperty("space_name", cached.spaceName);
+        g.addProperty("is_private", 0);
+        g.addProperty("creator_name", "");
+        g.add("tags", new com.google.gson.JsonArray());
+        g.add("images", new com.google.gson.JsonArray());
+        g.add("space_path", new com.google.gson.JsonArray());
+        g.add("borrow_records", new com.google.gson.JsonArray());
+        currentGoods = g;
+        displayGoods(g);
     }
 
     private void displayGoods(JsonObject g) {
@@ -594,6 +638,10 @@ public class ItemDetailActivity extends AppCompatActivity {
     }
 
     private void editItem() {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            Toast.makeText(this, "离线模式下无法编辑，请联网后重试", Toast.LENGTH_SHORT).show();
+            return;
+        }
         Intent intent = new Intent(this, AddItemActivity.class);
         intent.putExtra("edit_mode", true);
         intent.putExtra("goods_id", goodsId);

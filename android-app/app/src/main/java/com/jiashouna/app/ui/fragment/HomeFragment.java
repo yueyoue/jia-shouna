@@ -12,6 +12,9 @@ import com.google.gson.JsonObject;
 import com.jiashouna.app.App;
 import com.jiashouna.app.R;
 import com.jiashouna.app.api.ApiClient;
+import com.jiashouna.app.db.LocalDb;
+import com.jiashouna.app.utils.NetworkUtils;
+import com.jiashouna.app.model.Goods;
 import com.jiashouna.app.ui.AddItemActivity;
 import com.jiashouna.app.ui.AddSpaceActivity;
 import com.jiashouna.app.ui.AllItemsActivity;
@@ -275,6 +278,10 @@ public class HomeFragment extends Fragment {
         });
 
         // 获取最近添加的物品
+        if (!NetworkUtils.isNetworkAvailable(getActivity())) {
+            // 离线：从缓存加载
+            loadRecentFromCache();
+        } else {
         HashMap<String, String> recentParams = new HashMap<>();
         recentParams.put("action", "list");
         recentParams.put("house_id", String.valueOf(houseId));
@@ -328,6 +335,56 @@ public class HomeFragment extends Fragment {
                 });
             }
         });
+        } // end else (online)
+    }
+
+    /**
+     * 离线模式：从缓存加载最近物品
+     */
+    private void loadRecentFromCache() {
+        if (getActivity() == null) return;
+        LocalDb localDb = new LocalDb(getActivity());
+        List<Goods> cached = localDb.getCachedGoods();
+        llRecentList.removeAllViews();
+        if (cached.isEmpty()) {
+            addEmptyHint(llRecentList, "暂无缓存数据");
+            return;
+        }
+        int count = Math.min(cached.size(), 4);
+        for (int i = 0; i < count; i += 2) {
+            LinearLayout row = new LinearLayout(getActivity());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            if (i > 0) {
+                LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) row.getLayoutParams();
+                lp.topMargin = dp(10);
+            }
+            Goods g1 = cached.get(i);
+            JsonObject item1 = new JsonObject();
+            item1.addProperty("id", g1.id);
+            item1.addProperty("name", g1.name);
+            item1.addProperty("space_name", g1.spaceName);
+            item1.addProperty("cover_image", g1.coverImage);
+            addRecentItem(row, item1);
+            if (i + 1 < count) {
+                View spacer = new View(getActivity());
+                spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(10), 0));
+                row.addView(spacer);
+                Goods g2 = cached.get(i + 1);
+                JsonObject item2 = new JsonObject();
+                item2.addProperty("id", g2.id);
+                item2.addProperty("name", g2.name);
+                item2.addProperty("space_name", g2.spaceName);
+                item2.addProperty("cover_image", g2.coverImage);
+                addRecentItem(row, item2);
+            } else {
+                View spacer = new View(getActivity());
+                spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
+                row.addView(spacer);
+            }
+            llRecentList.addView(row);
+        }
     }
 
     private void addExpiringItem(JsonObject item) {

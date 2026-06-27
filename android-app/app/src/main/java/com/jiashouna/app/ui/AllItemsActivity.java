@@ -15,6 +15,9 @@ import com.google.gson.JsonObject;
 import com.jiashouna.app.App;
 import com.jiashouna.app.R;
 import com.jiashouna.app.api.ApiClient;
+import com.jiashouna.app.db.LocalDb;
+import com.jiashouna.app.utils.NetworkUtils;
+import com.jiashouna.app.model.Goods;
 import java.util.*;
 
 public class AllItemsActivity extends AppCompatActivity {
@@ -26,12 +29,14 @@ public class AllItemsActivity extends AppCompatActivity {
     private int houseId = 0;
     private String filterType = "";
     private boolean isLoading = false;
+    private LocalDb localDb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_all_items);
 
+        localDb = new LocalDb(this);
         houseId = getIntent().getIntExtra("house_id", App.getInstance().getCurrentHouseId());
         filterType = getIntent().getStringExtra("filter_type") != null ? getIntent().getStringExtra("filter_type") : "";
 
@@ -115,6 +120,12 @@ public class AllItemsActivity extends AppCompatActivity {
 
         Log.d(TAG, "Requesting: " + endpoint + " params=" + params);
 
+        // 离线且无搜索关键词时走缓存
+        if (!NetworkUtils.isNetworkAvailable(this) && (keyword == null || keyword.isEmpty())) {
+            loadFromCache();
+            return;
+        }
+
         ApiClient.get(endpoint, params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 String respStr = data.toString();
@@ -126,6 +137,9 @@ public class AllItemsActivity extends AppCompatActivity {
                     try {
                         JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
                         int total = data.has("total") ? data.get("total").getAsInt() : list.size();
+
+                        // 联网成功时缓存列表数据
+                        try { cacheItems(list); } catch (Exception ignored) {}
 
                         tvCount.setText(list.size() + " 件");
                         if (list.size() == 0) {
@@ -323,6 +337,67 @@ public class AllItemsActivity extends AppCompatActivity {
             return wrapper;
         }
         return row;
+    }
+
+    /**
+     * 缓存物品列表到本地
+     */
+    private void cacheItems(JsonArray list) {
+        List<JsonObject> items = new ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            items.add(list.get(i).getAsJsonObject());
+        }
+        localDb.refreshCache(items);
+    }
+
+    /**
+     * 从本地缓存加载物品（离线模式）
+     */
+    private void loadFromCache() {
+        isLoading = true;
+        progress.setVisibility(View.GONE);
+        layoutItems.removeAllViews();
+        layoutEmpty.setVisibility(View.GONE);
+
+        List<Goods> cached;
+        String keyword = etSearch.getText().toString().trim();
+        if (keyword != null && !keyword.isEmpty()) {
+            cached = localDb.searchCachedGoods(keyword);
+        } else {
+            cached = localDb.getCachedGoods();
+        }
+
+        // 离线提示
+        if (!cached.isEmpty()) {
+            TextView banner = new TextView(this);
+            banner.setText("📱 离线模式 · 显示缓存数据（" + cached.size() + "件）");
+            banner.setTextSize(12);
+            banner.setTextColor(0xFF718096);
+            banner.setBackgroundColor(0xFFFFF7F0);
+            banner.setPadding(dp(16), dp(8), dp(16), dp(8));
+            layoutItems.addView(banner);
+        }
+
+        tvCount.setText(cached.size() + " 件");
+        for (int i = 0; i < cached.size(); i++) {
+            Goods g = cached.get(i);
+            JsonObject item = new JsonObject();
+            item.addProperty("id", g.id);
+            item.addProperty("name", g.name);
+            item.addProperty("barcode", g.barcode);
+            item.addProperty("category", g.category);
+            item.addProperty("quantity", g.quantity);
+            item.addProperty("unit", g.unit);
+            item.addProperty("space_name", g.spaceName);
+            item.addProperty("cover_image", g.coverImage);
+            layoutItems.addView(createItemRow(item, i < cached.size() - 1));
+        }
+
+        if (cached.isEmpty()) {
+            layoutEmpty.setVisibility(View.VISIBLE);
+        }
+
+        isLoading = false;
     }
 
     private String getCategoryIcon(String category) {
