@@ -2,46 +2,75 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/helpers.php';
 corsHeaders();
-/**
- * 操作日志接口
- */
-$action = $_GET['action'] ?? 'list';
+
+$action = $_GET['action'] ?? '';
 $db = getDB();
-$user = requireLogin();
 
 switch ($action) {
-    case 'list':
-        $houseId = intval($_GET['house_id'] ?? 0);
-        $module = $_GET['module'] ?? '';
-        $page = max(1, intval($_GET['page'] ?? 1));
-        $limit = min(50, max(1, intval($_GET['limit'] ?? 20)));
-        $offset = ($page - 1) * $limit;
-
-        $where = ["ol.user_id = ?"];
-        $params = [$user['id']];
-
-        if ($module) {
-            $where[] = "ol.module = ?";
-            $params[] = $module;
+    case 'upload':
+        // APP端上报错误日志
+        $input = getJsonInput();
+        $logs = $input['logs'] ?? [];
+        if (empty($logs)) {
+            $logs = [$input]; // 兼容单条日志
         }
 
-        // 如果指定了house_id，只查该房屋相关的操作日志（通过target_id关联）
-        // 但操作日志不直接关联house_id，所以我们通过user_id过滤
+        $inserted = 0;
+        $stmt = $db->prepare('INSERT INTO app_log (user_id, device_info, log_type, tag, message, stack_trace, app_version, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        foreach ($logs as $log) {
+            $userId = intval($log['user_id'] ?? 0);
+            $deviceInfo = $log['device_info'] ?? '';
+            $logType = $log['type'] ?? 'error';
+            $tag = $log['tag'] ?? '';
+            $message = $log['message'] ?? '';
+            $stackTrace = $log['stack_trace'] ?? '';
+            $appVersion = $log['app_version'] ?? '';
+            $now = time();
+            $stmt->execute([$userId, $deviceInfo, $logType, $tag, $message, $stackTrace, $appVersion, $now]);
+            $inserted++;
+        }
+        success(['inserted' => $inserted]);
+        break;
 
-        $whereStr = implode(' AND ', $where);
+    case 'list':
+        // 网页端查看日志列表
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $pageSize = min(100, max(10, intval($_GET['page_size'] ?? 50)));
+        $logType = $_GET['type'] ?? '';
 
-        $stmt = $db->prepare("SELECT ol.* FROM operate_log ol WHERE $whereStr ORDER BY ol.created_at DESC LIMIT $limit OFFSET $offset");
+        $where = [];
+        $params = [];
+        if ($logType) {
+            $where[] = 'log_type = ?';
+            $params[] = $logType;
+        }
+
+        $whereStr = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $countStmt = $db->prepare("SELECT COUNT(*) as cnt FROM app_log $whereStr");
+        $countStmt->execute($params);
+        $total = $countStmt->fetch()['cnt'];
+
+        $offset = ($page - 1) * $pageSize;
+        $stmt = $db->prepare("SELECT * FROM app_log $whereStr ORDER BY id DESC LIMIT $pageSize OFFSET $offset");
         $stmt->execute($params);
         $list = $stmt->fetchAll();
 
-        // 格式化时间
-        foreach ($list as &$item) {
-            if (isset($item['created_at']) && is_numeric($item['created_at'])) {
-                $item['created_at'] = date('Y-m-d H:i:s', intval($item['created_at']));
-            }
-        }
+        success(['list' => $list, 'total' => $total, 'page' => $page]);
+        break;
 
-        success(['list' => $list, 'page' => $page, 'limit' => $limit]);
+    case 'stats':
+        // 日志统计
+        $total = $db->query('SELECT COUNT(*) as cnt FROM app_log')->fetch()['cnt'];
+        $today = $db->query('SELECT COUNT(*) as cnt FROM app_log WHERE created_at > ' . (time() - 86400))->fetch()['cnt'];
+        $errors = $db->query("SELECT COUNT(*) as cnt FROM app_log WHERE log_type = 'crash'")->fetch()['cnt'];
+        success(['total' => $total, 'today' => $today, 'crashes' => $errors]);
+        break;
+
+    case 'clear':
+        // 清空日志
+        $db->exec('DELETE FROM app_log');
+        success(null, '已清空');
         break;
 
     default:

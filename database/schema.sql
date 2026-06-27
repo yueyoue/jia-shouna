@@ -256,6 +256,21 @@ CREATE TABLE IF NOT EXISTS `api_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='接口调用日志表';
 
 -- -------------------------------------------
+-- APP端日志表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `app_log` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED DEFAULT 0 COMMENT '用户ID',
+    `device_info` VARCHAR(500) DEFAULT '' COMMENT '设备信息',
+    `log_type` VARCHAR(20) DEFAULT 'error' COMMENT '日志类型: crash/error/api/warn/info',
+    `tag` VARCHAR(100) DEFAULT '' COMMENT '标签',
+    `message` TEXT COMMENT '错误信息',
+    `stack_trace` TEXT COMMENT '堆栈跟踪',
+    `app_version` VARCHAR(50) DEFAULT '' COMMENT 'APP版本',
+    `created_at` INT UNSIGNED DEFAULT 0 COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='APP端日志';
+
+-- -------------------------------------------
 -- 操作日志表
 -- -------------------------------------------
 CREATE TABLE IF NOT EXISTS `operate_log` (

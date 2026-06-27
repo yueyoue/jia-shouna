@@ -21,6 +21,7 @@ $navGroups = [
     '系统' => [
         ['p' => 'api-config', 'icon' => '🔌', 'label' => '接口配置'],
         ['p' => 'ai-logs', 'icon' => '🤖', 'label' => 'AI调用日志'],
+        ['p' => 'app-logs', 'icon' => '📱', 'label' => 'APP端日志'],
         ['p' => 'backup', 'icon' => '💾', 'label' => '数据备份'],
         ['p' => 'users', 'icon' => '👥', 'label' => '用户家庭'],
     ],
@@ -37,6 +38,7 @@ $pageTitles = [
     'spaces' => '收纳空间',
     'api-config' => '接口配置',
     'ai-logs' => 'AI调用日志',
+    'app-logs' => 'APP端日志',
     'backup' => '数据备份',
     'users' => '用户家庭',
     'settings' => '系统设置',

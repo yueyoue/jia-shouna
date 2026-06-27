@@ -530,7 +530,6 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void addPhotoToList(Bitmap bitmap) {
         photos.add(bitmap);
-        int photoIndex = photos.size() - 1;
         // 添加照片预览容器
         android.widget.FrameLayout container = new android.widget.FrameLayout(this);
         LinearLayout.LayoutParams containerLp = new LinearLayout.LayoutParams(dp(80), dp(80));
@@ -544,7 +543,7 @@ public class AddItemActivity extends AppCompatActivity {
         iv.setBackgroundResource(R.drawable.bg_card_16);
         container.addView(iv);
 
-        // 问题8: 右上角X删除按钮
+        // 右上角X删除按钮
         TextView btnDelete = new TextView(this);
         btnDelete.setText("✕");
         btnDelete.setTextSize(10);
@@ -569,7 +568,7 @@ public class AddItemActivity extends AppCompatActivity {
         container.addView(btnDelete);
 
         llPhotos.addView(container);
-        // 问题7: 添加照片不自动调用识别，仅添加到列表
+        // 添加照片不自动调用识别
     }
 
     private void recognizeImage(Bitmap bitmap) {

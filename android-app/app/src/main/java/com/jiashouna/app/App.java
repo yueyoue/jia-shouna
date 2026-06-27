@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import com.jiashouna.app.ui.SplashActivity;
+import com.jiashouna.app.utils.AppLogger;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -17,7 +18,10 @@ public class App extends Application {
         super.onCreate();
         instance = this;
 
-        // Global crash handler - show error in dialog
+        // 初始化日志收集器
+        AppLogger.init(this);
+
+        // Global crash handler - show error in dialog and upload to server
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
             StringWriter sw = new StringWriter();
             throwable.printStackTrace(new PrintWriter(sw));
@@ -29,6 +33,9 @@ public class App extends Application {
                 sb.append(lines[i]).append("\n");
             }
             String shortTrace = sb.toString();
+
+            // 上传crash日志到服务器
+            try { AppLogger.error("Crash", throwable.getMessage(), throwable); } catch (Exception ignored) {}
 
             android.content.Intent intent = new android.content.Intent(instance, SplashActivity.class);
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
