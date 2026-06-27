@@ -126,11 +126,22 @@ public class ItemDetailActivity extends AppCompatActivity {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
-                        JsonObject goods = data.getAsJsonObject("goods");
+                        JsonObject goods = null;
+                        if (data.has("goods") && !data.get("goods").isJsonNull()) {
+                            goods = data.getAsJsonObject("goods");
+                        } else if (data.has("name")) {
+                            goods = data;
+                        }
+                        if (goods == null) {
+                            Toast.makeText(ItemDetailActivity.this, "物品数据为空", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                         currentGoods = goods;
+                        android.util.Log.d("ItemDetail", "goods keys: " + goods.keySet());
                         displayGoods(goods);
                     } catch (Exception e) {
-                        Toast.makeText(ItemDetailActivity.this, "数据解析失败", Toast.LENGTH_SHORT).show();
+                        android.util.Log.e("ItemDetail", "loadDetail parse error: " + e.getMessage(), e);
+                        Toast.makeText(ItemDetailActivity.this, "数据解析失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -144,6 +155,8 @@ public class ItemDetailActivity extends AppCompatActivity {
     }
 
     private void displayGoods(JsonObject g) {
+        android.util.Log.d("ItemDetail", "displayGoods called, keys: " + g.keySet());
+
         // Name
         String name = g.has("name") && !g.get("name").isJsonNull() ? g.get("name").getAsString() : "";
         tvItemName.setText(name);
@@ -154,7 +167,10 @@ public class ItemDetailActivity extends AppCompatActivity {
         tvDefaultIcon.setText(icon);
 
         // Barcode
-        String barcode = g.has("barcode") && !g.get("barcode").isJsonNull() ? g.get("barcode").getAsString() : "";
+        String barcode = "";
+        try {
+            barcode = g.has("barcode") && !g.get("barcode").isJsonNull() ? g.get("barcode").getAsString() : "";
+        } catch (Exception e) { android.util.Log.e("ItemDetail", "barcode error", e); }
         if (!barcode.isEmpty()) {
             tvItemBarcode.setText("条码: " + barcode);
             tvItemBarcode.setVisibility(View.VISIBLE);
@@ -164,7 +180,11 @@ public class ItemDetailActivity extends AppCompatActivity {
         }
 
         // Brand
-        String brand = g.has("brand") && !g.get("brand").isJsonNull() ? g.get("brand").getAsString() : "";
+        String brand = "";
+        try {
+            brand = g.has("brand") && !g.get("brand").isJsonNull() ? g.get("brand").getAsString() : "";
+        } catch (Exception e) { android.util.Log.e("ItemDetail", "brand error", e); }
+        android.util.Log.d("ItemDetail", "brand='" + brand + "'");
         if (!brand.isEmpty()) {
             tvBrandValue.setText(brand);
             rowBrand.setVisibility(View.VISIBLE);

@@ -45,6 +45,7 @@ public class AddItemActivity extends AppCompatActivity {
     private List<Integer> selectedTagIds = new ArrayList<>();
     private List<String> selectedTagNames = new ArrayList<>();
     private List<Bitmap> photos = new ArrayList<>();
+    private List<String> existingImagePaths = new ArrayList<>(); // 已上传的图片路径
 
     private static final int REQUEST_BARCODE = 100;
     private static final int REQUEST_PHOTO = 101;
@@ -481,6 +482,50 @@ public class AddItemActivity extends AppCompatActivity {
                 Toast.makeText(this, "图片加载失败", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    /**
+     * 编辑模式：显示已有的远程图片
+     */
+    private void addExistingPhotoToView(String imageUrl, int existingIndex) {
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        LinearLayout.LayoutParams containerLp = new LinearLayout.LayoutParams(dp(80), dp(80));
+        containerLp.rightMargin = dp(8);
+        container.setLayoutParams(containerLp);
+
+        ImageView iv = new ImageView(this);
+        iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        iv.setLayoutParams(new android.widget.FrameLayout.LayoutParams(android.widget.FrameLayout.LayoutParams.MATCH_PARENT, android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
+        iv.setBackgroundResource(R.drawable.bg_card_16);
+        try {
+            com.bumptech.glide.Glide.with(this).load(imageUrl).centerCrop().into(iv);
+        } catch (Exception ignored) {}
+        container.addView(iv);
+
+        // 删除按钮
+        TextView btnDelete = new TextView(this);
+        btnDelete.setText("✕");
+        btnDelete.setTextSize(10);
+        btnDelete.setTextColor(Color.WHITE);
+        btnDelete.setGravity(android.view.Gravity.CENTER);
+        android.graphics.drawable.GradientDrawable deleteBg = new android.graphics.drawable.GradientDrawable();
+        deleteBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        deleteBg.setColor(0xCC000000);
+        btnDelete.setBackground(deleteBg);
+        android.widget.FrameLayout.LayoutParams deleteLp = new android.widget.FrameLayout.LayoutParams(dp(20), dp(20));
+        deleteLp.gravity = android.view.Gravity.TOP | android.view.Gravity.END;
+        deleteLp.topMargin = dp(2);
+        deleteLp.rightMargin = dp(2);
+        btnDelete.setLayoutParams(deleteLp);
+        btnDelete.setOnClickListener(v -> {
+            int idx = llPhotos.indexOfChild(container);
+            if (idx >= 0 && idx < existingImagePaths.size()) {
+                existingImagePaths.remove(idx);
+            }
+            llPhotos.removeView(container);
+        });
+        container.addView(btnDelete);
+        llPhotos.addView(container);
     }
 
     private void addPhotoToList(Bitmap bitmap) {
@@ -1009,6 +1054,19 @@ public class AddItemActivity extends AppCompatActivity {
                             updateTagDisplay();
                         }
 
+                        // 加载已有图片
+                        if (item.has("images") && !item.get("images").isJsonNull()) {
+                            JsonArray images = item.getAsJsonArray("images");
+                            for (int i = 0; i < images.size(); i++) {
+                                JsonObject img = images.get(i).getAsJsonObject();
+                                String imgUrl = img.has("image_path") && !img.get("image_path").isJsonNull() ? img.get("image_path").getAsString() : "";
+                                if (!imgUrl.isEmpty()) {
+                                    existingImagePaths.add(imgUrl);
+                                    addExistingPhotoToView(imgUrl, existingImagePaths.size() - 1);
+                                }
+                            }
+                        }
+
                         setTitle("编辑物品");
                         btnSave.setText("保存修改");
                     } catch (Exception e) {
@@ -1128,7 +1186,13 @@ public class AddItemActivity extends AppCompatActivity {
                 body.add("tags", tagsArray);
             }
 
-            // 问题5: 编辑模式调用update
+            // 编辑模式：附带已有图片路径
+            if (isEditMode && !existingImagePaths.isEmpty()) {
+                JsonArray imagesArray = new JsonArray();
+                for (String path : existingImagePaths) imagesArray.add(path);
+                body.add("images", imagesArray);
+            }
+
             String endpoint = isEditMode ? "goods.php?action=update" : "goods.php?action=create";
             if (isEditMode) body.addProperty("id", editGoodsId);
 
@@ -1179,6 +1243,7 @@ public class AddItemActivity extends AppCompatActivity {
 
         // 清空照片和标签
         photos.clear();
+        existingImagePaths.clear();
         selectedTagIds.clear();
         selectedTagNames.clear();
         llPhotos.removeAllViews();
