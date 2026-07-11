@@ -380,12 +380,12 @@ INSERT INTO `sys_setting` (`skey`, `svalue`, `description`, `updated_at`) VALUES
 ('auto_backup_keep', '5', '自动备份保留份数', UNIX_TIMESTAMP());
 
 -- 默认第三方接口配置
-INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `is_active`, `priority`, `created_at`, `updated_at`) VALUES
-('barcode', 'ApiZero', 'https://apizero.cn/marketplace/barcode-gs1?barcode={barcode}&api_key=', '', 1, 20, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('barcode', 'ApiZero Pro', 'https://v1.apizero.cn/api/barcode-gs1?code={barcode}&key=', '', 0, 15, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('barcode', 'ApiByte 山海云端', 'https://apione.apibyte.cn/api/barcode?barcode={barcode}', '', 0, 12, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('barcode', 'RollAPI (mxnzp)', 'https://api.mxnzp.com/barcode/goods/details?barcode={barcode}&app_id=&app_secret=', '', 0, 10, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('barcode', 'Open Food Facts', 'https://world.openfoodfacts.org/api/v2/product/{barcode}', '', 0, 8, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `api_secret`, `is_active`, `priority`, `created_at`, `updated_at`) VALUES
+('barcode', 'RollToolsApi (默认推荐)', 'https://www.mxnzp.com/api/barcode/goods/details?barcode={barcode}&app_id=&app_secret=', '', '', 1, 30, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('barcode', 'Open Food Facts (免费)', 'https://world.openfoodfacts.org/api/v2/product/{barcode}', '', '', 1, 25, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('barcode', 'ApiZero', 'https://apizero.cn/marketplace/barcode-gs1?barcode={barcode}&api_key=', '', '', 0, 20, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('barcode', 'ApiZero Pro', 'https://v1.apizero.cn/api/barcode-gs1?code={barcode}&key=', '', '', 0, 15, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('barcode', 'ApiByte 山海云端', 'https://apione.apibyte.cn/api/barcode?barcode={barcode}', '', '', 0, 12, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('image', '百度AI图像识别', 'https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general', '', 0, 10, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('image', '腾讯云图像识别', 'https://ai.tencent.com/api/image/tag', '', 0, 5, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
