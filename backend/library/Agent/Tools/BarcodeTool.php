@@ -1,7 +1,7 @@
 <?php
 /**
- * 条码查询工具 - 根据条码编号查询本地商品库
- * 复用现有 barcode.php 的查询逻辑
+ * 条码查询工具 - 根据条码编号查询本地商品库和第三方API
+ * 支持 RollToolsApi、Open Food Facts、ApiZero 等多个接口
  */
 
 function register_barcode_tool($agent) {
@@ -40,58 +40,15 @@ function register_barcode_tool($agent) {
                 ];
             }
 
-            // 2. 尝试调用第三方条码 API
-            $apiStmt = $db->prepare("SELECT * FROM api_config WHERE type = 'barcode' AND is_active = 1 ORDER BY priority DESC LIMIT 1");
+            // 2. 依次尝试所有启用的第三方接口
+            $apiStmt = $db->prepare("SELECT * FROM api_config WHERE type = 'barcode' AND is_active = 1 ORDER BY priority DESC");
             $apiStmt->execute();
-            $apiConfig = $apiStmt->fetch();
+            $apis = $apiStmt->fetchAll();
 
-            if ($apiConfig && !empty($apiConfig['api_key'])) {
-                $url = str_replace('{barcode}', urlencode($barcode), $apiConfig['api_url']);
-                if (!empty($apiConfig['api_key'])) {
-                    // 根据不同 API 拼接 key
-                    if (strpos($url, 'apizero.cn') !== false) {
-                        $url .= urlencode($apiConfig['api_key']);
-                    } elseif (strpos($url, 'mxnzp.com') !== false) {
-                        $url .= '&app_id=' . urlencode($apiConfig['api_key']);
-                    }
-                }
-
-                try {
-                    $ch = curl_init($url);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    $resp = curl_exec($ch);
-                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                    curl_close($ch);
-
-                    if ($httpCode === 200 && $resp) {
-                        $data = json_decode($resp, true);
-                        if ($data) {
-                            // ApiZero 格式
-                            if (isset($data['data']['goodsName'])) {
-                                return [
-                                    'found' => true,
-                                    'source' => 'api',
-                                    'name' => $data['data']['goodsName'] ?? '',
-                                    'brand' => $data['data']['brand'] ?? '',
-                                    'message' => '条码API查询成功'
-                                ];
-                            }
-                            // Open Food Facts 格式
-                            if (isset($data['product']['product_name'])) {
-                                return [
-                                    'found' => true,
-                                    'source' => 'api',
-                                    'name' => $data['product']['product_name'] ?? '',
-                                    'brand' => $data['product']['brands'] ?? '',
-                                    'message' => '条码API查询成功'
-                                ];
-                            }
-                        }
-                    }
-                } catch (Exception $e) {
-                    // API 调用失败，不影响主流程
+            foreach ($apis as $apiConfig) {
+                $result = tryBarcodeApi($db, $barcode, $apiConfig);
+                if ($result !== null) {
+                    return $result;
                 }
             }
 
@@ -102,4 +59,100 @@ function register_barcode_tool($agent) {
             ];
         }
     );
+}
+
+/**
+ * 尝试单个接口查询条码
+ */
+function tryBarcodeApi($db, $barcode, $apiConfig) {
+    $apiUrl = $apiConfig['api_url'];
+    if (strpos($apiUrl, '{barcode}') !== false) {
+        $url = str_replace('{barcode}', urlencode($barcode), $apiUrl);
+    } else {
+        $url = $apiUrl . urlencode($barcode);
+    }
+
+    // 处理需要 app_id/app_secret 的接口
+    if (!empty($apiConfig['api_key']) || !empty($apiConfig['api_secret'])) {
+        if (strpos($url, 'mxnzp.com') !== false) {
+            $url = str_replace('app_id=&app_secret=', 'app_id=' . urlencode($apiConfig['api_key']) . '&app_secret=' . urlencode($apiConfig['api_secret'] ?? ''), $url);
+        } elseif (strpos($url, 'apizero.cn') !== false) {
+            $url .= urlencode($apiConfig['api_key']);
+        }
+    }
+
+    try {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $resp = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || !$resp) {
+            return null;
+        }
+
+        $data = json_decode($resp, true);
+        if (!$data) {
+            return null;
+        }
+
+        // RollToolsApi (mxnzp) 格式
+        if (isset($data['code']) && $data['code'] == 0 && isset($data['data'])) {
+            $d = $data['data'];
+            return [
+                'found' => true,
+                'source' => 'api',
+                'name' => $d['goodsName'] ?? $d['name'] ?? '',
+                'brand' => $d['goodsBrand'] ?? $d['brand'] ?? '',
+                'category' => $d['goodsCategory'] ?? $d['category'] ?? '',
+                'message' => 'RollToolsApi 查询成功'
+            ];
+        }
+
+        // Open Food Facts 格式
+        if (isset($data['product'])) {
+            $p = $data['product'];
+            $status = $data['status'] ?? 1;
+            if ($status == 0) return null;
+            return [
+                'found' => true,
+                'source' => 'api',
+                'name' => $p['product_name'] ?? $p['product_name_zh'] ?? '',
+                'brand' => $p['brands'] ?? '',
+                'category' => $p['categories'] ?? '',
+                'message' => 'Open Food Facts 查询成功'
+            ];
+        }
+
+        // ApiZero 格式
+        if (isset($data['data']['goodsName'])) {
+            $d = $data['data'];
+            return [
+                'found' => true,
+                'source' => 'api',
+                'name' => $d['goodsName'] ?? '',
+                'brand' => $d['brand'] ?? '',
+                'message' => 'ApiZero 查询成功'
+            ];
+        }
+
+        // 通用格式
+        if (isset($data['goodsName']) || isset($data['name']) || isset($data['product_name'])) {
+            return [
+                'found' => true,
+                'source' => 'api',
+                'name' => $data['goodsName'] ?? $data['name'] ?? $data['product_name'] ?? '',
+                'brand' => $data['brand'] ?? $data['brands'] ?? '',
+                'message' => '条码API查询成功'
+            ];
+        }
+
+        return null;
+
+    } catch (Exception $e) {
+        return null;
+    }
 }

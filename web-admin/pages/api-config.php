@@ -1,6 +1,20 @@
 <?php
 $db = getDB();
 
+// 自动补充缺失的推荐条码接口（不影响已有数据）
+$recommended = [
+    ['barcode', 'RollToolsApi (推荐)', 'https://www.mxnzp.com/api/barcode/goods/details?barcode={barcode}&app_id=&app_secret=', '', 0, 30],
+    ['barcode', 'Open Food Facts (免费)', 'https://world.openfoodfacts.org/api/v2/product/{barcode}', '', 0, 25],
+];
+foreach ($recommended as $r) {
+    $check = $db->prepare('SELECT id FROM api_config WHERE type = ? AND name = ? LIMIT 1');
+    $check->execute([$r[0], $r[1]]);
+    if (!$check->fetch()) {
+        $ins = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
+        $ins->execute([$r[0], $r[1], $r[2], $r[3], $r[4], $r[5], time(), time()]);
+    }
+}
+
 // 处理POST操作
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
