@@ -1,6 +1,20 @@
 <?php
 $db = getDB();
 
+// 自动补充缺失的推荐接口（不影响已有数据）
+$recommendedApis = [
+    ['barcode', 'RollToolsApi (推荐)', 'https://www.mxnzp.com/api/barcode/goods/details?barcode={barcode}&app_id=&app_secret=', '', '', 0, 30],
+    ['barcode', 'Open Food Facts (免费)', 'https://world.openfoodfacts.org/api/v2/product/{barcode}', '', '', 0, 25],
+];
+foreach ($recommendedApis as $api) {
+    $exists = $db->prepare("SELECT id FROM api_config WHERE type = ? AND name = ? LIMIT 1");
+    $exists->execute([$api[0], $api[1]]);
+    if (!$exists->fetch()) {
+        $stmt = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, api_secret, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
+        $stmt->execute([$api[0], $api[1], $api[2], $api[3], $api[4], $api[5], $api[6], time(), time()]);
+    }
+}
+
 // 处理POST操作
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -33,17 +47,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->exec('DELETE FROM api_config');
         $db->exec('ALTER TABLE api_config AUTO_INCREMENT = 1');
         $defaults = [
-            ['barcode', 'RollToolsApi (默认推荐)', 'https://www.mxnzp.com/api/barcode/goods/details?barcode={barcode}&app_id=&app_secret=', '', '', 1, 30],
-            ['barcode', 'Open Food Facts (免费)', 'https://world.openfoodfacts.org/api/v2/product/{barcode}', '', '', 1, 25],
+            ['barcode', 'RollToolsApi (推荐)', 'https://www.mxnzp.com/api/barcode/goods/details?barcode={barcode}&app_id=&app_secret=', '', '', 0, 30],
+            ['barcode', 'Open Food Facts (免费)', 'https://world.openfoodfacts.org/api/v2/product/{barcode}', '', '', 0, 25],
             ['barcode', 'ApiZero', 'https://apizero.cn/marketplace/barcode-gs1?barcode={barcode}&api_key=', '', '', 0, 20],
             ['barcode', 'ApiZero Pro', 'https://v1.apizero.cn/api/barcode-gs1?code={barcode}&key=', '', '', 0, 15],
             ['barcode', 'ApiByte 山海云端', 'https://apione.apibyte.cn/api/barcode?barcode={barcode}', '', '', 0, 12],
             ['image', '百度AI图像识别', 'https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general', '', '', 0, 10],
             ['image', '腾讯云图像识别', 'https://ai.tencent.com/api/image/tag', '', '', 0, 5],
         ];
-        $stmt = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
+        $stmt = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, api_secret, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
         foreach ($defaults as $d) {
-            $stmt->execute([$d[0], $d[1], $d[2], $d[3], $d[4], $d[5], $now, $now]);
+            $stmt->execute([$d[0], $d[1], $d[2], $d[3], $d[4], $d[5], $d[6], $now, $now]);
         }
         $msg = '已恢复默认接口配置';
     } elseif ($action === 'test') {
