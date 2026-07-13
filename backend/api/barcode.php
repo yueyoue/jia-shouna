@@ -136,7 +136,11 @@ function normalizeBarcodeResponse($data) {
             'name' => $d['goodsName'] ?? $d['name'] ?? '',
             'brand' => $d['goodsBrand'] ?? $d['brand'] ?? '',
             'category' => $d['goodsCategory'] ?? $d['category'] ?? '',
-            'spec' => $d['goodsSpec'] ?? $d['spec'] ?? '',
+            'spec' => $d['goodsSpec'] ?? $d['specification'] ?? $d['spec'] ?? '',
+            'price' => $d['price'] ?? '',
+            'image' => extractFirstImage($d),
+            'manufacturer' => $d['manufacturer'] ?? '',
+            'description' => $d['feature'] ?? $d['description'] ?? '',
         ];
     }
 
@@ -150,6 +154,10 @@ function normalizeBarcodeResponse($data) {
             'brand' => $p['brands'] ?? '',
             'category' => $p['categories'] ?? '',
             'spec' => $p['quantity'] ?? '',
+            'price' => '',
+            'image' => $p['image_url'] ?? $p['image_front_url'] ?? '',
+            'manufacturer' => $p['manufacturer'] ?? '',
+            'description' => $p['generic_name'] ?? '',
         ];
     }
 
@@ -160,7 +168,11 @@ function normalizeBarcodeResponse($data) {
             'name' => $d['goodsName'] ?? '',
             'brand' => $d['brand'] ?? '',
             'category' => $d['category'] ?? '',
-            'spec' => $d['spec'] ?? '',
+            'spec' => $d['specification'] ?? $d['spec'] ?? '',
+            'price' => $d['price'] ?? '',
+            'image' => extractFirstImage($d),
+            'manufacturer' => $d['manufacturer'] ?? '',
+            'description' => $d['feature'] ?? $d['description'] ?? '',
         ];
     }
 
@@ -170,9 +182,33 @@ function normalizeBarcodeResponse($data) {
             'name' => $data['goodsName'] ?? $data['name'] ?? $data['product_name'] ?? '',
             'brand' => $data['brand'] ?? $data['brands'] ?? '',
             'category' => $data['category'] ?? $data['categories'] ?? '',
-            'spec' => $data['spec'] ?? $data['quantity'] ?? '',
+            'spec' => $data['specification'] ?? $data['spec'] ?? $data['quantity'] ?? '',
+            'price' => $data['price'] ?? '',
+            'image' => extractFirstImage($data),
+            'manufacturer' => $data['manufacturer'] ?? '',
+            'description' => $data['feature'] ?? $data['description'] ?? '',
         ];
     }
 
     return null;
+}
+
+/**
+ * 从API响应中提取第一张图片URL
+ * 支持 images数组、image字符串、image_url等多种格式
+ */
+function extractFirstImage($d) {
+    // images数组 (ApiZero Pro格式)
+    if (isset($d['images']) && is_array($d['images']) && !empty($d['images'])) {
+        return $d['images'][0];
+    }
+    // 单个image字段
+    if (isset($d['image']) && !empty($d['image'])) {
+        return $d['image'];
+    }
+    // image_url字段
+    if (isset($d['image_url']) && !empty($d['image_url'])) {
+        return $d['image_url'];
+    }
+    return '';
 }

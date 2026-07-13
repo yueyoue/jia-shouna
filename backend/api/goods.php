@@ -184,7 +184,7 @@ switch ($action) {
         if (!$houseId || !$spaceId || empty($name)) error('请填写物品名称并选择存放位置');
 
         $now = time();
-        $stmt = $db->prepare("INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, manufacturer, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)");
         // 清理空字符串为null（避免DATE/DECIMAL列插入空字符串报错）
         $purchaseDate = !empty($input['purchase_date']) ? $input['purchase_date'] : null;
         $expiryDate = !empty($input['expiry_date']) ? $input['expiry_date'] : null;
@@ -194,7 +194,7 @@ switch ($action) {
         $stmt->execute([
             $houseId, $spaceId, $user['id'], $name,
             $input['barcode'] ?? '', $input['category'] ?? '', $input['brand'] ?? '',
-            $input['spec'] ?? '', floatval($input['quantity'] ?? 1), $input['unit'] ?? '个',
+            $input['manufacturer'] ?? '', $input['spec'] ?? '', floatval($input['quantity'] ?? 1), $input['unit'] ?? '个',
             $purchaseDate, $expiryDate,
             $purchasePrice, $stockThreshold,
             $input['note'] ?? '', intval($input['is_private'] ?? 0),
@@ -283,7 +283,7 @@ switch ($action) {
         $goods = $stmt->fetch();
         if (!$goods) error('物品不存在');
 
-        $allowedFields = ['name', 'barcode', 'category', 'brand', 'spec', 'quantity', 'unit', 'purchase_date', 'expiry_date', 'purchase_price', 'stock_threshold', 'note', 'is_private'];
+        $allowedFields = ['name', 'barcode', 'category', 'brand', 'manufacturer', 'spec', 'quantity', 'unit', 'purchase_date', 'expiry_date', 'purchase_price', 'stock_threshold', 'note', 'is_private'];
         $fields = [];
         $params = [];
         foreach ($allowedFields as $field) {
@@ -407,10 +407,10 @@ switch ($action) {
         if (!$goods) error('物品不存在');
 
         $now = time();
-        $stmt = $db->prepare("INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, manufacturer, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)");
         $stmt->execute([
             $goods['house_id'], $goods['space_id'], $user['id'], $goods['name'] . ' (副本)',
-            $goods['barcode'], $goods['category'], $goods['brand'], $goods['spec'],
+            $goods['barcode'], $goods['category'], $goods['brand'], $goods['manufacturer'] ?? '', $goods['spec'],
             $goods['quantity'], $goods['unit'], $goods['purchase_date'], $goods['expiry_date'],
             $goods['purchase_price'], $goods['stock_threshold'], $goods['note'], $goods['is_private'],
             $now, $now
@@ -641,11 +641,11 @@ switch ($action) {
                     }
                 }
 
-                $stmt = $db->prepare('INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
+                $stmt = $db->prepare('INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, manufacturer, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
                 $stmt->execute([
                     $houseId, $spaceId, $user['id'], $name,
                     $item['barcode'] ?? '', $item['category'] ?? '', $item['brand'] ?? '',
-                    $item['spec'] ?? '', floatval($item['quantity'] ?? 1), $item['unit'] ?? '个',
+                    $item['manufacturer'] ?? '', $item['spec'] ?? '', floatval($item['quantity'] ?? 1), $item['unit'] ?? '个',
                     $item['purchase_date'] ?? null, $item['expiry_date'] ?? null,
                     $item['purchase_price'] ?? null, $item['stock_threshold'] ?? null,
                     $item['note'] ?? '', 0,

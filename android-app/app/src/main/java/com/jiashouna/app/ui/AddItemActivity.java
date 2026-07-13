@@ -25,7 +25,7 @@ import java.io.*;
 import java.util.*;
 
 public class AddItemActivity extends AppCompatActivity {
-    private EditText etName, etBarcode, etBrand, etQuantity, etExpiryDays, etPrice, etNote, etThreshold;
+    private EditText etName, etBarcode, etBrand, etSpec, etManufacturer, etQuantity, etExpiryDays, etPrice, etNote, etThreshold;
     private Spinner etUnit;
     private EditText etPurchaseDate;
     private TextView tvExpiryDateAuto;
@@ -73,6 +73,8 @@ public class AddItemActivity extends AppCompatActivity {
         etName = findViewById(R.id.et_name);
         etBarcode = findViewById(R.id.et_barcode);
         etBrand = findViewById(R.id.et_brand);
+        etSpec = findViewById(R.id.et_spec);
+        etManufacturer = findViewById(R.id.et_manufacturer);
         etQuantity = findViewById(R.id.et_quantity);
         etUnit = findViewById(R.id.et_unit);
 
@@ -685,10 +687,35 @@ public class AddItemActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     try {
                         if (data.has("found") && data.get("found").getAsBoolean()) {
-                            if (data.has("data") && !data.get("data").isJsonNull()) {
-                                JsonObject info = data.getAsJsonObject("data");
-                                if (info.has("name") && !info.get("name").isJsonNull()) {
-                                    etName.setText(info.get("name").getAsString());
+                            // 条码直接来自扫描
+                            if (etBarcode.getText().toString().trim().isEmpty()) {
+                                etBarcode.setText(barcode);
+                            }
+                            // name、brand、spec、price、manufacturer等字段直接在data根层级
+                            if (data.has("name") && !data.get("name").isJsonNull()) {
+                                String name = data.get("name").getAsString();
+                                if (!name.isEmpty()) etName.setText(name);
+                            }
+                            if (data.has("brand") && !data.get("brand").isJsonNull()) {
+                                String brand = data.get("brand").getAsString();
+                                if (!brand.isEmpty()) etBrand.setText(brand);
+                            }
+                            if (data.has("spec") && !data.get("spec").isJsonNull()) {
+                                String spec = data.get("spec").getAsString();
+                                if (!spec.isEmpty() && etSpec != null) etSpec.setText(spec);
+                            }
+                            if (data.has("manufacturer") && !data.get("manufacturer").isJsonNull()) {
+                                String mfr = data.get("manufacturer").getAsString();
+                                if (!mfr.isEmpty() && etManufacturer != null) etManufacturer.setText(mfr);
+                            }
+                            if (data.has("price") && !data.get("price").isJsonNull()) {
+                                String price = data.get("price").getAsString();
+                                if (!price.isEmpty()) {
+                                    try {
+                                        // 去除可能的货币符号
+                                        String cleanPrice = price.replaceAll("[^0-9.]", "");
+                                        if (!cleanPrice.isEmpty()) etPrice.setText(cleanPrice);
+                                    } catch (Exception ignored) {}
                                 }
                             }
                             Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
@@ -1063,6 +1090,14 @@ public class AddItemActivity extends AppCompatActivity {
                             String brand = item.get("brand").getAsString();
                             if (!brand.isEmpty()) etBrand.setText(brand);
                         }
+                        if (item.has("spec") && !item.get("spec").isJsonNull()) {
+                            String spec = item.get("spec").getAsString();
+                            if (!spec.isEmpty() && etSpec != null) etSpec.setText(spec);
+                        }
+                        if (item.has("manufacturer") && !item.get("manufacturer").isJsonNull()) {
+                            String mfr = item.get("manufacturer").getAsString();
+                            if (!mfr.isEmpty() && etManufacturer != null) etManufacturer.setText(mfr);
+                        }
                         if (item.has("quantity")) {
                             try { etQuantity.setText(String.valueOf((int) item.get("quantity").getAsDouble())); } catch (Exception ignored) {}
                         }
@@ -1233,6 +1268,8 @@ public class AddItemActivity extends AppCompatActivity {
             body.addProperty("barcode", goods.barcode);
             body.addProperty("category", goods.category);
             body.addProperty("brand", etBrand.getText().toString().trim());
+            body.addProperty("manufacturer", etManufacturer != null ? etManufacturer.getText().toString().trim() : "");
+            body.addProperty("spec", etSpec != null ? etSpec.getText().toString().trim() : "");
             body.addProperty("quantity", goods.quantity);
             body.addProperty("unit", goods.unit);
             body.addProperty("purchase_date", selectedPurchaseDate);
@@ -1297,6 +1334,8 @@ public class AddItemActivity extends AppCompatActivity {
         etExpiryDays.setText("");
         etPrice.setText("");
         etThreshold.setText("");
+        if (etSpec != null) etSpec.setText("");
+        if (etManufacturer != null) etManufacturer.setText("");
         etPurchaseDate.setText("");
         selectedPurchaseDate = "";
         etNote.setText("");
@@ -1374,6 +1413,8 @@ public class AddItemActivity extends AppCompatActivity {
         body.addProperty("name", goods.name);
         body.addProperty("barcode", goods.barcode);
         body.addProperty("category", goods.category);
+        body.addProperty("manufacturer", etManufacturer != null ? etManufacturer.getText().toString().trim() : "");
+        body.addProperty("spec", etSpec != null ? etSpec.getText().toString().trim() : "");
         body.addProperty("quantity", goods.quantity);
         body.addProperty("unit", goods.unit);
         body.addProperty("purchase_date", selectedPurchaseDate);

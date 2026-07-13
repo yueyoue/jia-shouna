@@ -11,6 +11,7 @@ public class Goods implements Serializable {
     public String barcode = "";
     public String category = "";
     public String brand = "";
+    public String manufacturer = "";
     public String spec = "";
     public double quantity = 1;
     public String unit = "个";

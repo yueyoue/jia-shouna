@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS `goods` (
     `barcode` VARCHAR(100) DEFAULT '' COMMENT '条形码',
     `category` VARCHAR(50) DEFAULT '' COMMENT '分类',
     `brand` VARCHAR(100) DEFAULT '' COMMENT '品牌',
+    `manufacturer` VARCHAR(200) DEFAULT '' COMMENT '生产厂商',
     `spec` VARCHAR(200) DEFAULT '' COMMENT '规格',
     `quantity` DECIMAL(10,2) NOT NULL DEFAULT 1 COMMENT '数量',
     `unit` VARCHAR(20) DEFAULT '个' COMMENT '单位',
