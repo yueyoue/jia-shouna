@@ -8,6 +8,12 @@ $action = $_GET['action'] ?? '';
 $db = getDB();
 $user = requireLogin();
 
+// 自动修复: 检测并更新旧的ApiZero URL
+try {
+    $fixStmt = $db->prepare("UPDATE api_config SET api_url = 'https://v1.apizero.cn/api/barcode-lookup?barcode={barcode}', updated_at = ? WHERE type = 'barcode' AND name = 'ApiZero' AND api_url LIKE '%apizero.cn/marketplace/barcode-gs1%'");
+    $fixStmt->execute([time()]);
+} catch (Exception $e) { /* ignore */ }
+
 switch ($action) {
     case 'lookup':
         $barcode = trim($_GET['barcode'] ?? '');
@@ -56,14 +62,16 @@ function tryBarcodeLookup($db, $user, $barcode, $api) {
     if (!empty($api['api_key']) || !empty($api['api_secret'])) {
         if (strpos($url, 'mxnzp.com') !== false) {
             $url = str_replace('app_id=&app_secret=', 'app_id=' . urlencode($api['api_key']) . '&app_secret=' . urlencode($api['api_secret'] ?? ''), $url);
-        } elseif (strpos($url, 'apizero.cn') !== false) {
+        } elseif (strpos($url, 'apizero.cn/marketplace') !== false) {
+            // 旧版ApiZero接口：key拼在URL参数里
             $url .= urlencode($api['api_key']);
         }
     }
 
     $headers = ['Accept: application/json'];
-    if (!empty($api['api_key']) && strpos($url, 'mxnzp.com') === false && strpos($url, 'apizero.cn') === false) {
-        $headers[] = 'Authorization: Bearer ' . $api['api_key'];
+    // v1.apizero.cn 和其他接口用 Authorization header
+    if (!empty($api['api_key']) && strpos($url, 'mxnzp.com') === false && strpos($url, 'apizero.cn/marketplace') === false) {
+        $headers[] = 'Authorization: ' . $api['api_key'];
     }
 
     try {
