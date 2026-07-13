@@ -20,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'save') {
         $id = intval($_POST['id'] ?? 0);
-        $stmt = $db->prepare("UPDATE api_config SET api_url = ?, api_key = ?, api_secret = ?, is_active = ?, updated_at = ? WHERE id = ?");
-        $stmt->execute([$_POST['api_url'], $_POST['api_key'], $_POST['api_secret'], isset($_POST['is_active']) ? 1 : 0, time(), $id]);
+        $stmt = $db->prepare("UPDATE api_config SET api_url = ?, api_key = ?, api_secret = ?, is_active = ?, priority = ?, updated_at = ? WHERE id = ?");
+        $stmt->execute([$_POST['api_url'], $_POST['api_key'], $_POST['api_secret'], isset($_POST['is_active']) ? 1 : 0, intval($_POST['priority'] ?? 0), time(), $id]);
         $msg = '保存成功';
     } elseif ($action === 'add_api') {
         $type = $_POST['api_type'] ?? 'barcode';
@@ -237,7 +237,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
             <form method="POST">
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="id" value="<?= $api['id'] ?>">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
                     <div class="form-group" style="margin-bottom:0">
                         <label class="form-label">接口地址</label>
                         <input type="text" name="api_url" class="form-control" value="<?= htmlspecialchars($api['api_url']) ?>">
@@ -245,6 +245,10 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
                     <div class="form-group" style="margin-bottom:0">
                         <label class="form-label">API Key</label>
                         <input type="text" name="api_key" class="form-control" value="<?= htmlspecialchars($api['api_key']) ?>" placeholder="如无需密钥可留空">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label class="form-label">优先级 <span style="font-size:10px;color:#A0AEC0">（越大越优先）</span></label>
+                        <input type="number" name="priority" class="form-control" value="<?= intval($api['priority']) ?>" min="0" max="100">
                     </div>
                 </div>
                 <div class="form-group" style="margin-top:12px;margin-bottom:0">
