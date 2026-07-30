@@ -2,8 +2,8 @@ package com.jiashouna.app.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,77 +14,81 @@ import com.jiashouna.app.App;
 import com.jiashouna.app.R;
 import com.jiashouna.app.api.ApiClient;
 
-public class LoginActivity extends AppCompatActivity {
-    private EditText etUsername, etPassword;
-    private Button btnLogin;
+public class RegisterActivity extends AppCompatActivity {
+    private EditText etUsername, etPassword, etConfirmPassword;
+    private CheckBox cbTerms;
+    private Button btnRegister;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_register);
 
         etUsername = findViewById(R.id.et_username);
         etPassword = findViewById(R.id.et_password);
-        btnLogin = findViewById(R.id.btn_login);
+        etConfirmPassword = findViewById(R.id.et_confirm_password);
+        cbTerms = findViewById(R.id.cb_terms);
+        btnRegister = findViewById(R.id.btn_register);
 
-        btnLogin.setOnClickListener(v -> doLogin());
+        btnRegister.setOnClickListener(v -> doRegister());
 
-        // 注册链接
-        TextView tvRegister = findViewById(R.id.tv_register);
-        tvRegister.setOnClickListener(v -> {
-            startActivity(new Intent(this, RegisterActivity.class));
-        });
-
-        // 忘记密码
-        TextView tvForgot = findViewById(R.id.tv_forgot_password);
-        if (tvForgot != null) {
-            tvForgot.setOnClickListener(v ->
-                Toast.makeText(this, "忘记密码功能开发中", Toast.LENGTH_SHORT).show()
-            );
-        }
-
-        // 微信登录
-        View btnWechat = findViewById(R.id.btn_wechat_login);
-        if (btnWechat != null) {
-            btnWechat.setOnClickListener(v ->
-                Toast.makeText(this, "微信登录功能开发中", Toast.LENGTH_SHORT).show()
-            );
-        }
+        // 登录链接
+        TextView tvLogin = findViewById(R.id.tv_login);
+        tvLogin.setOnClickListener(v -> finish());
     }
 
-    private void doLogin() {
+    private void doRegister() {
         String username = etUsername.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
-        if (username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "请输入用户名和密码", Toast.LENGTH_SHORT).show();
+        String confirmPassword = etConfirmPassword.getText().toString().trim();
+
+        if (username.isEmpty()) {
+            Toast.makeText(this, "请输入用户名", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (password.isEmpty()) {
+            Toast.makeText(this, "请设置密码", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (password.length() < 6) {
+            Toast.makeText(this, "密码长度至少6位", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!password.equals(confirmPassword)) {
+            Toast.makeText(this, "两次输入的密码不一致", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!cbTerms.isChecked()) {
+            Toast.makeText(this, "请先同意用户协议和隐私政策", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        btnLogin.setEnabled(false);
-        btnLogin.setText("登录中...");
+        btnRegister.setEnabled(false);
+        btnRegister.setText("注册中...");
         JsonObject body = new JsonObject();
         body.addProperty("username", username);
         body.addProperty("password", password);
+        body.addProperty("house_name", "我的家");
 
-        ApiClient.post("auth.php?action=login", body, new ApiClient.ApiCallback() {
+        ApiClient.post("auth.php?action=register", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
-                    btnLogin.setEnabled(true);
-                    btnLogin.setText("立即登录");
-                    handleLoginSuccess(data);
+                    btnRegister.setEnabled(true);
+                    btnRegister.setText("注册并开启");
+                    handleRegisterSuccess(data);
                 });
             }
             @Override public void onError(String msg) {
                 runOnUiThread(() -> {
-                    btnLogin.setEnabled(true);
-                    btnLogin.setText("立即登录");
-                    Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    btnRegister.setEnabled(true);
+                    btnRegister.setText("注册并开启");
+                    Toast.makeText(RegisterActivity.this, msg, Toast.LENGTH_SHORT).show();
                 });
             }
         });
     }
 
-    private void handleLoginSuccess(JsonObject data) {
+    private void handleRegisterSuccess(JsonObject data) {
         App app = App.getInstance();
         String token = data.get("token").getAsString();
         JsonObject user = data.getAsJsonObject("user");
@@ -125,7 +129,7 @@ public class LoginActivity extends AppCompatActivity {
             }
             @Override public void onError(String msg) {
                 runOnUiThread(() -> {
-                    Toast.makeText(LoginActivity.this, "登录成功，请创建一个家庭", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(RegisterActivity.this, "注册成功，请创建一个家庭", Toast.LENGTH_SHORT).show();
                     goToMain();
                 });
             }

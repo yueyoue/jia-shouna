@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import androidx.appcompat.app.AppCompatActivity;
 import com.jiashouna.app.App;
+import com.jiashouna.app.R;
 import com.jiashouna.app.api.ApiClient;
 import com.google.gson.JsonObject;
 
@@ -15,6 +16,7 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_splash);
 
         // Show crash error if coming from crash handler
         String crashError = getIntent().getStringExtra("crash_error");
@@ -31,7 +33,7 @@ public class SplashActivity extends AppCompatActivity {
             return;
         }
 
-        new Handler().postDelayed(this::navigateNext, 1500);
+        new Handler().postDelayed(this::navigateNext, 2000);
     }
 
     private void navigateNext() {
@@ -89,7 +91,6 @@ public class SplashActivity extends AppCompatActivity {
     }
 
     private void downloadApk(String url) {
-        // 使用浏览器下载APK
         Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
         startActivity(intent);
     }
