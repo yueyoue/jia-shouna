@@ -1,7 +1,9 @@
 package com.jiashouna.app.ui.fragment;
 
+import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.*;
@@ -15,23 +17,32 @@ import com.jiashouna.app.ui.SpaceDetailActivity;
 import java.util.*;
 
 public class SpacesFragment extends Fragment {
-    private LinearLayout layoutHouses, layoutSpacesSection, layoutSpaces, emptyView;
-    private TextView tvSelectedHouse, tvSpaceCount;
+    private LinearLayout layoutSpaces;
+    private LinearLayout emptyView;
+    private LinearLayout addSpaceHint;
+    private TextView tvSelectedHouse;
     private int selectedHouseId = 0;
     private JsonArray houses = new JsonArray();
+
+    // Track expanded state of rooms
+    private HashMap<Integer, Boolean> expandedState = new HashMap<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_spaces, container, false);
-        layoutHouses = v.findViewById(R.id.layout_houses);
-        layoutSpacesSection = v.findViewById(R.id.layout_spaces_section);
+
         layoutSpaces = v.findViewById(R.id.layout_spaces);
         emptyView = v.findViewById(R.id.empty_view);
+        addSpaceHint = v.findViewById(R.id.btn_add_space_hint);
         tvSelectedHouse = v.findViewById(R.id.tv_selected_house);
-        tvSpaceCount = v.findViewById(R.id.tv_space_count);
 
-        v.findViewById(R.id.btn_add_space).setOnClickListener(x -> {
-            startActivity(new Intent(getActivity(), AddSpaceActivity.class));
+        // 新建按钮
+        v.findViewById(R.id.btn_add_space).setOnClickListener(x ->
+            startActivity(new Intent(getActivity(), AddSpaceActivity.class)));
+
+        // 搜索按钮
+        v.findViewById(R.id.btn_search).setOnClickListener(x -> {
+            // TODO: search spaces
         });
 
         loadHouses();
@@ -46,7 +57,10 @@ public class SpacesFragment extends Fragment {
 
     private void loadHouses() {
         int userId = App.getInstance().getUserId();
-        if (userId <= 0) return;
+        if (userId <= 0) {
+            showEmpty();
+            return;
+        }
 
         HashMap<String, String> params = new HashMap<>();
         params.put("user_id", String.valueOf(userId));
@@ -57,12 +71,15 @@ public class SpacesFragment extends Fragment {
                     try {
                         if (data.has("list")) {
                             houses = data.getAsJsonArray("list");
-                            renderHouses();
                             if (houses.size() > 0) {
                                 JsonObject first = houses.get(0).getAsJsonObject();
                                 int hid = first.get("id").getAsInt();
                                 selectHouse(hid);
+                            } else {
+                                showEmpty();
                             }
+                        } else {
+                            showEmpty();
                         }
                     } catch (Exception e) {
                         showEmpty();
@@ -70,113 +87,24 @@ public class SpacesFragment extends Fragment {
                 });
             }
             @Override public void onError(String msg) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> showEmpty());
-                }
+                if (getActivity() != null) getActivity().runOnUiThread(() -> showEmpty());
             }
         });
-    }
-
-    private void renderHouses() {
-        layoutHouses.removeAllViews();
-        if (houses.size() == 0) {
-            showEmpty();
-            return;
-        }
-        emptyView.setVisibility(View.GONE);
-
-        // Render houses in 2-column grid
-        for (int i = 0; i < houses.size(); i += 2) {
-            LinearLayout row = new LinearLayout(getContext());
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-            row.addView(createHouseCard(houses.get(i).getAsJsonObject()));
-
-            if (i + 1 < houses.size()) {
-                View spacer = new View(getContext());
-                spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(12), 0));
-                row.addView(spacer);
-                row.addView(createHouseCard(houses.get(i + 1).getAsJsonObject()));
-            } else {
-                // Empty space for alignment
-                View empty = new View(getContext());
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, 0);
-                lp.weight = 1;
-                empty.setLayoutParams(lp);
-                row.addView(empty);
-            }
-
-            layoutHouses.addView(row);
-
-            // Add vertical spacing between rows
-            if (i + 2 < houses.size()) {
-                View spacer = new View(getContext());
-                spacer.setLayoutParams(new LinearLayout.LayoutParams(0, dp(12)));
-                layoutHouses.addView(spacer);
-            }
-        }
-    }
-
-    private View createHouseCard(JsonObject house) {
-        int id = house.get("id").getAsInt();
-        String name = house.has("name") ? house.get("name").getAsString() : "我的家";
-        int itemCount = house.has("item_count") ? house.get("item_count").getAsInt() : 0;
-        int spaceCount = house.has("space_count") ? house.get("space_count").getAsInt() : 0;
-
-        LinearLayout card = new LinearLayout(getContext());
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundResource(R.drawable.bg_card_16);
-        card.setPadding(dp(16), dp(16), dp(16), dp(16));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.weight = 1;
-        card.setLayoutParams(lp);
-
-        // Icon
-        TextView icon = new TextView(getContext());
-        icon.setText("🏠");
-        icon.setTextSize(28);
-        icon.setGravity(android.view.Gravity.CENTER);
-        LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(56), dp(56));
-        iconLp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
-        icon.setLayoutParams(iconLp);
-        icon.setBackgroundResource(R.drawable.bg_gradient_orange);
-        card.addView(icon);
-
-        // Name
-        TextView tvName = new TextView(getContext());
-        tvName.setText(name);
-        tvName.setTextSize(14);
-        tvName.setTextColor(Color.parseColor("#2D3748"));
-        tvName.setTypeface(null, android.graphics.Typeface.BOLD);
-        tvName.setGravity(android.view.Gravity.CENTER);
-        tvName.setPadding(0, dp(8), 0, 0);
-        card.addView(tvName);
-
-        // Stats
-        TextView tvStats = new TextView(getContext());
-        tvStats.setText(itemCount + "件物品 · " + spaceCount + "个空间");
-        tvStats.setTextSize(11);
-        tvStats.setTextColor(Color.parseColor("#718096"));
-        tvStats.setGravity(android.view.Gravity.CENTER);
-        tvStats.setPadding(0, dp(4), 0, 0);
-        card.addView(tvStats);
-
-        card.setOnClickListener(v -> selectHouse(id));
-
-        // Highlight if selected
-        if (id == selectedHouseId) {
-            card.setBackgroundResource(R.drawable.bg_icon_orange_light);
-        }
-
-        return card;
     }
 
     private void selectHouse(int houseId) {
         selectedHouseId = houseId;
         App.getInstance().setCurrentHouseId(houseId);
-        renderHouses(); // Re-render to update highlight
+
+        // Update house name
+        for (int i = 0; i < houses.size(); i++) {
+            JsonObject h = houses.get(i).getAsJsonObject();
+            if (h.get("id").getAsInt() == houseId) {
+                tvSelectedHouse.setText(h.get("name").getAsString());
+                break;
+            }
+        }
+
         loadSpaces(houseId);
     }
 
@@ -189,136 +117,278 @@ public class SpacesFragment extends Fragment {
                 getActivity().runOnUiThread(() -> {
                     try {
                         JsonArray tree = data.has("tree") ? data.getAsJsonArray("tree") : new JsonArray();
-                        renderSpaces(tree, houseId);
+                        renderSpaces(tree);
                     } catch (Exception e) {
-                        layoutSpacesSection.setVisibility(View.GONE);
+                        showEmpty();
                     }
                 });
             }
             @Override public void onError(String msg) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> layoutSpacesSection.setVisibility(View.GONE));
-                }
+                if (getActivity() != null) getActivity().runOnUiThread(() -> showEmpty());
             }
         });
     }
 
-    private void renderSpaces(JsonArray tree, int houseId) {
-        layoutSpacesSection.setVisibility(View.VISIBLE);
+    private void renderSpaces(JsonArray tree) {
         layoutSpaces.removeAllViews();
-
-        // Find house name
-        for (int i = 0; i < houses.size(); i++) {
-            JsonObject h = houses.get(i).getAsJsonObject();
-            if (h.get("id").getAsInt() == houseId) {
-                tvSelectedHouse.setText("📁 " + h.get("name").getAsString() + " 的收纳空间");
-                break;
-            }
-        }
+        emptyView.setVisibility(View.GONE);
 
         if (tree.size() == 0) {
-            tvSpaceCount.setText("暂无空间");
-            TextView empty = new TextView(getContext());
-            empty.setText("点击右上角 + 新建 创建收纳空间");
-            empty.setTextColor(Color.parseColor("#A0AEC0"));
-            empty.setTextSize(12);
-            empty.setPadding(0, dp(16), 0, 0);
-            empty.setGravity(android.view.Gravity.CENTER);
-            layoutSpaces.addView(empty);
+            emptyView.setVisibility(View.VISIBLE);
+            addSpaceHint.setVisibility(View.GONE);
             return;
         }
 
-        int totalSpaces = countSpaces(tree);
-        tvSpaceCount.setText(totalSpaces + " 个空间");
+        addSpaceHint.setVisibility(View.VISIBLE);
 
         for (int i = 0; i < tree.size(); i++) {
-            JsonObject space = tree.get(i).getAsJsonObject();
-            layoutSpaces.addView(createSpaceItem(space, 0));
+            JsonObject room = tree.get(i).getAsJsonObject();
+            int roomId = room.get("id").getAsInt();
 
-            // Add children
-            if (space.has("children") && !space.get("children").isJsonNull()) {
-                JsonArray children = space.getAsJsonArray("children");
+            // Check if this room has children
+            boolean hasChildren = room.has("children") && !room.get("children").isJsonNull()
+                && room.getAsJsonArray("children").size() > 0;
+
+            // Room card container (white card with border)
+            LinearLayout roomCard = new LinearLayout(getActivity());
+            roomCard.setOrientation(LinearLayout.VERTICAL);
+            roomCard.setBackgroundResource(R.drawable.bg_room_card);
+            LinearLayout.LayoutParams roomLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            if (i > 0) roomLp.topMargin = dp(12);
+            roomCard.setLayoutParams(roomLp);
+
+            // Room header (clickable row)
+            LinearLayout roomHeader = createRoomHeader(room, hasChildren);
+            roomCard.addView(roomHeader);
+
+            // Sub-items container (initially hidden if expanded state says so)
+            LinearLayout subItemsContainer = new LinearLayout(getActivity());
+            subItemsContainer.setOrientation(LinearLayout.VERTICAL);
+            subItemsContainer.setBackgroundResource(R.drawable.bg_sub_items_container);
+            subItemsContainer.setPadding(dp(0), dp(0), dp(0), dp(8));
+
+            boolean isExpanded = expandedState.containsKey(roomId) ? expandedState.get(roomId) : true;
+            subItemsContainer.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
+
+            if (hasChildren) {
+                JsonArray children = room.getAsJsonArray("children");
                 for (int j = 0; j < children.size(); j++) {
-                    layoutSpaces.addView(createSpaceItem(children.get(j).getAsJsonObject(), 1));
+                    JsonObject child = children.get(j).getAsJsonObject();
+                    View childItem = createSubItem(child, j == children.size() - 1);
+                    subItemsContainer.addView(childItem);
                 }
             }
+
+            roomCard.addView(subItemsContainer);
+
+            // Toggle expand/collapse on header click
+            final int finalRoomId = roomId;
+            final LinearLayout finalSubItems = subItemsContainer;
+            final TextView[] arrowRef = new TextView[1];
+            // Find the arrow in header
+            roomHeader.post(() -> {
+                for (int k = 0; k < ((LinearLayout) roomHeader).getChildCount(); k++) {
+                    View child = ((LinearLayout) roomHeader).getChildAt(k);
+                    if (child instanceof TextView) {
+                        String text = ((TextView) child).getText().toString();
+                        if (text.equals("▼") || text.equals("▶")) {
+                            arrowRef[0] = (TextView) child;
+                            break;
+                        }
+                    }
+                }
+            });
+
+            if (hasChildren) {
+                roomHeader.setOnClickListener(v -> {
+                    boolean currentlyExpanded = finalSubItems.getVisibility() == View.VISIBLE;
+                    if (currentlyExpanded) {
+                        finalSubItems.setVisibility(View.GONE);
+                        expandedState.put(finalRoomId, false);
+                        // Animate arrow
+                        if (arrowRef[0] != null) arrowRef[0].setText("▶");
+                    } else {
+                        finalSubItems.setVisibility(View.VISIBLE);
+                        expandedState.put(finalRoomId, true);
+                        // Animate arrow
+                        if (arrowRef[0] != null) arrowRef[0].setText("▼");
+                    }
+                });
+            }
+
+            layoutSpaces.addView(roomCard);
         }
     }
 
-    private View createSpaceItem(JsonObject space, int level) {
+    private LinearLayout createRoomHeader(JsonObject room, boolean hasChildren) {
+        int id = room.get("id").getAsInt();
+        String name = room.has("name") ? room.get("name").getAsString() : "";
+        String icon = room.has("icon") && !room.get("icon").isJsonNull() ? room.get("icon").getAsString() : "🏠";
+        int itemCount = room.has("item_count") ? room.get("item_count").getAsInt() : 0;
+        boolean isExpanded = expandedState.containsKey(id) ? expandedState.get(id) : true;
+
+        LinearLayout header = new LinearLayout(getActivity());
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(16), dp(16), dp(16), dp(16));
+        header.setClickable(true);
+        header.setFocusable(true);
+
+        // Add ripple effect
+        android.util.TypedValue outValue = new android.util.TypedValue();
+        getActivity().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+        header.setBackgroundResource(outValue.resourceId);
+
+        // Icon
+        TextView tvIcon = new TextView(getActivity());
+        tvIcon.setText(icon);
+        tvIcon.setTextSize(24);
+        LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        iconLp.gravity = Gravity.CENTER_VERTICAL;
+        tvIcon.setLayoutParams(iconLp);
+        header.addView(tvIcon);
+
+        // Info
+        LinearLayout info = new LinearLayout(getActivity());
+        info.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        infoLp.gravity = Gravity.CENTER_VERTICAL;
+        infoLp.leftMargin = dp(12);
+        info.setLayoutParams(infoLp);
+
+        TextView tvName = new TextView(getActivity());
+        tvName.setText(name);
+        tvName.setTextSize(18);
+        tvName.setTextColor(Color.parseColor("#121C2C"));
+        tvName.setTypeface(null, Typeface.BOLD);
+        info.addView(tvName);
+
+        TextView tvDesc = new TextView(getActivity());
+        tvDesc.setText(itemCount + " 件物品");
+        tvDesc.setTextSize(12);
+        tvDesc.setTextColor(Color.parseColor("#564338"));
+        info.addView(tvDesc);
+
+        header.addView(info);
+
+        // Expand arrow (only if has children)
+        if (hasChildren) {
+            TextView arrow = new TextView(getActivity());
+            arrow.setText(isExpanded ? "▼" : "▶");
+            arrow.setTextSize(14);
+            arrow.setTextColor(Color.parseColor("#564338"));
+            LinearLayout.LayoutParams arrowLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            arrowLp.gravity = Gravity.CENTER_VERTICAL;
+            arrow.setLayoutParams(arrowLp);
+            header.addView(arrow);
+        }
+
+        // Click to navigate to space detail
+        header.setOnLongClickListener(v -> {
+            Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
+            intent.putExtra("space_id", id);
+            intent.putExtra("space_name", name);
+            intent.putExtra("house_id", selectedHouseId);
+            startActivity(intent);
+            return true;
+        });
+
+        return header;
+    }
+
+    private View createSubItem(JsonObject space, boolean isLast) {
         int id = space.get("id").getAsInt();
         String name = space.has("name") ? space.get("name").getAsString() : "";
         String icon = space.has("icon") && !space.get("icon").isJsonNull() ? space.get("icon").getAsString() : "📦";
         int itemCount = space.has("item_count") ? space.get("item_count").getAsInt() : 0;
 
-        LinearLayout item = new LinearLayout(getContext());
-        item.setOrientation(LinearLayout.HORIZONTAL);
-        item.setBackgroundResource(R.drawable.bg_card_16);
-        item.setPadding(dp(14), dp(12), dp(14), dp(12));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+        // Outer container with tree line effect
+        FrameLayout treeContainer = new FrameLayout(getActivity());
+        LinearLayout.LayoutParams treeLp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(6);
-        if (level > 0) {
-            lp.setMarginStart(dp(20));
-        }
-        item.setLayoutParams(lp);
+        treeContainer.setLayoutParams(treeLp);
 
-        // Icon
-        TextView tvIcon = new TextView(getContext());
+        // Vertical tree line
+        View verticalLine = new View(getActivity());
+        verticalLine.setBackgroundColor(Color.parseColor("#E2E8F0"));
+        FrameLayout.LayoutParams vertLp = new FrameLayout.LayoutParams(dp(2), FrameLayout.LayoutParams.MATCH_PARENT);
+        vertLp.leftMargin = dp(23);
+        // For last item, don't extend to bottom
+        if (isLast) {
+            // Use a shorter line
+            verticalLine.setLayoutParams(new FrameLayout.LayoutParams(dp(2), dp(24)));
+            ((FrameLayout.LayoutParams) verticalLine.LayoutParams).leftMargin = dp(23);
+            ((FrameLayout.LayoutParams) verticalLine.LayoutParams).topMargin = dp(0);
+        } else {
+            verticalLine.setLayoutParams(vertLp);
+        }
+        treeContainer.addView(verticalLine);
+
+        // Horizontal tree line
+        View horizontalLine = new View(getActivity());
+        horizontalLine.setBackgroundColor(Color.parseColor("#E2E8F0"));
+        FrameLayout.LayoutParams horizLp = new FrameLayout.LayoutParams(dp(14), dp(2));
+        horizLp.leftMargin = dp(23);
+        horizLp.topMargin = dp(23);
+        horizontalLine.setLayoutParams(horizLp);
+        treeContainer.addView(horizontalLine);
+
+        // Content row
+        LinearLayout row = new LinearLayout(getActivity());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(44), dp(12), dp(16), dp(12));
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        android.util.TypedValue outValue = new android.util.TypedValue();
+        getActivity().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+        row.setBackgroundResource(outValue.resourceId);
+
+        // Container icon
+        TextView tvIcon = new TextView(getActivity());
         tvIcon.setText(icon);
-        tvIcon.setTextSize(18);
-        tvIcon.setGravity(android.view.Gravity.CENTER);
-        LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(36), dp(36));
-        iconLp.gravity = android.view.Gravity.CENTER_VERTICAL;
-        tvIcon.setLayoutParams(iconLp);
-        tvIcon.setBackgroundResource(level == 0 ? R.drawable.bg_gradient_orange : R.drawable.bg_quick_green);
-        item.addView(tvIcon);
+        tvIcon.setTextSize(20);
+        row.addView(tvIcon);
 
         // Info
-        LinearLayout info = new LinearLayout(getContext());
+        LinearLayout info = new LinearLayout(getActivity());
         info.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT);
-        infoLp.weight = 1;
-        infoLp.gravity = android.view.Gravity.CENTER_VERTICAL;
-        infoLp.setMarginStart(dp(10));
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        infoLp.leftMargin = dp(12);
         info.setLayoutParams(infoLp);
 
-        TextView tvName = new TextView(getContext());
+        TextView tvName = new TextView(getActivity());
         tvName.setText(name);
-        tvName.setTextSize(14);
-        tvName.setTextColor(Color.parseColor("#2D3748"));
-        tvName.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvName.setTextSize(16);
+        tvName.setTextColor(Color.parseColor("#121C2C"));
         info.addView(tvName);
 
-        TextView tvDesc = new TextView(getContext());
-        tvDesc.setText(level == 0 ? "房间" : "容器");
-        tvDesc.setTextSize(11);
-        tvDesc.setTextColor(Color.parseColor("#A0AEC0"));
-        info.addView(tvDesc);
+        TextView tvCount = new TextView(getActivity());
+        tvCount.setText(itemCount + " 件");
+        tvCount.setTextSize(12);
+        tvCount.setTextColor(Color.parseColor("#564338"));
+        info.addView(tvCount);
 
-        item.addView(info);
+        row.addView(info);
 
-        // Count
-        TextView tvCount = new TextView(getContext());
-        tvCount.setText(itemCount + "");
-        tvCount.setTextSize(13);
-        tvCount.setTextColor(Color.parseColor("#FF8C42"));
-        tvCount.setTypeface(null, android.graphics.Typeface.BOLD);
-        tvCount.setGravity(android.view.Gravity.CENTER);
-        LinearLayout.LayoutParams countLp = new LinearLayout.LayoutParams(dp(32), dp(32));
-        countLp.gravity = android.view.Gravity.CENTER_VERTICAL;
-        tvCount.setLayoutParams(countLp);
-        item.addView(tvCount);
+        // More menu button
+        TextView moreBtn = new TextView(getActivity());
+        moreBtn.setText("⋮");
+        moreBtn.setTextSize(18);
+        moreBtn.setTextColor(Color.parseColor("#564338"));
+        moreBtn.setGravity(Gravity.CENTER);
+        moreBtn.setPadding(dp(8), dp(8), dp(8), dp(8));
+        moreBtn.setOnClickListener(v -> showSpaceContextMenu(v, id, name));
+        row.addView(moreBtn);
 
-        // Arrow
-        TextView arrow = new TextView(getContext());
-        arrow.setText("›");
-        arrow.setTextSize(16);
-        arrow.setTextColor(Color.parseColor("#CBD5E0"));
-        arrow.setGravity(android.view.Gravity.CENTER);
-        item.addView(arrow);
+        treeContainer.addView(row);
 
-        item.setOnClickListener(v -> {
+        // Click to navigate
+        row.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
             intent.putExtra("space_id", id);
             intent.putExtra("space_name", name);
@@ -326,24 +396,63 @@ public class SpacesFragment extends Fragment {
             startActivity(intent);
         });
 
-        return item;
+        return treeContainer;
     }
 
-    private int countSpaces(JsonArray tree) {
-        int count = tree.size();
-        for (int i = 0; i < tree.size(); i++) {
-            JsonObject s = tree.get(i).getAsJsonObject();
-            if (s.has("children") && !s.get("children").isJsonNull()) {
-                count += s.getAsJsonArray("children").size();
+    private void showSpaceContextMenu(View anchor, int spaceId, String spaceName) {
+        PopupMenu popup = new PopupMenu(getActivity(), anchor);
+        popup.getMenu().add(0, 1, 0, "查看详情");
+        popup.getMenu().add(0, 2, 0, "删除");
+        popup.setOnMenuItemClickListener(item -> {
+            switch (item.getItemId()) {
+                case 1:
+                    Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
+                    intent.putExtra("space_id", spaceId);
+                    intent.putExtra("space_name", spaceName);
+                    intent.putExtra("house_id", selectedHouseId);
+                    startActivity(intent);
+                    return true;
+                case 2:
+                    confirmDeleteSpace(spaceId, spaceName);
+                    return true;
             }
-        }
-        return count;
+            return false;
+        });
+        popup.show();
+    }
+
+    private void confirmDeleteSpace(int spaceId, String spaceName) {
+        new android.app.AlertDialog.Builder(getActivity())
+            .setTitle("删除空间")
+            .setMessage("确定要删除「" + spaceName + "」吗？\n该空间下的所有子空间和物品将被移除。")
+            .setPositiveButton("删除", (d, w) -> deleteSpace(spaceId))
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private void deleteSpace(int spaceId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("id", spaceId);
+        ApiClient.post("space.php?action=delete", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    Toast.makeText(getContext(), "已删除", Toast.LENGTH_SHORT).show();
+                    loadSpaces(selectedHouseId);
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() ->
+                    Toast.makeText(getContext(), "删除失败: " + msg, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
     }
 
     private void showEmpty() {
         emptyView.setVisibility(View.VISIBLE);
-        layoutHouses.removeAllViews();
-        layoutSpacesSection.setVisibility(View.GONE);
+        layoutSpaces.removeAllViews();
+        addSpaceHint.setVisibility(View.GONE);
     }
 
     private int dp(int dp) {
