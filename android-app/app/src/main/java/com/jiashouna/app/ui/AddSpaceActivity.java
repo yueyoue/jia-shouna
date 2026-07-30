@@ -1,7 +1,9 @@
 package com.jiashouna.app.ui;
 
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,24 +23,34 @@ public class AddSpaceActivity extends AppCompatActivity {
     private EditText etName;
     private View levelRoom, levelContainer, levelArea;
     private Switch swShared;
-    private Button btnSave;
+    private TextView btnSave, btnCancel;
     private RadioGroup rgHouses;
-    private TextView tvNoHouseHint;
+    private TextView tvNoHouseHint, tvSelectedHouse, tvParentSpace;
     private TextView btnCreateHouse;
+    private LinearLayout layoutIconSelector, layoutColorSelector;
     private String selectedIcon = "🏠";
     private String selectedColor = "#FF8C42";
-    private int selectedLevel = 1; // 1=房间, 2=容器, 3=区域
+    private int selectedLevel = 1;
     private int selectedHouseId = 0;
-    private int parentSpaceId = 0; // 父级空间ID，0=顶级
+    private int parentSpaceId = 0;
     private String parentSpaceName = "";
     private LocalDb localDb;
     private JsonArray houseList = new JsonArray();
-    private JsonArray spaceListForParent = new JsonArray(); // 可选的父级空间列表
-    private TextView tvParentHint;
+    private JsonArray spaceListForParent = new JsonArray();
 
-    private final String[] roomIcons = {"🛋", "🍳", "🛏", "🚿", "📖", "📺", "❄", "🚪"};
-    private final String[] containerIcons = {"📦", "🗄", "🧳", "🎒", "💼", "🪣"};
-    private final String[] areaIcons = {"📂", "🗂", "🔖", "📌"};
+    private final String[] allIcons = {"🏠", "🛏️", "🍳", "📦", "👕", "💊", "🎮", "📚"};
+    private final int[] colorValues = {
+        0xFFFF8C42, // primary-container
+        0xFF79F3EA, // secondary-container
+        0xFF5B9FED, // info-blue
+        0xFFB89AFF, // tertiary-container
+        0xFF48BB78, // success-green
+        0xFFF56565, // error-red
+        0xFFED8936  // warning-orange
+    };
+    private final String[] colorHex = {
+        "#FF8C42", "#79F3EA", "#5B9FED", "#B89AFF", "#48BB78", "#F56565", "#ED8936"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +59,6 @@ public class AddSpaceActivity extends AppCompatActivity {
 
         localDb = new LocalDb(this);
 
-        // 接收父级空间信息
         parentSpaceId = getIntent().getIntExtra("parent_id", 0);
         parentSpaceName = getIntent().getStringExtra("parent_space_name");
         if (parentSpaceName == null) parentSpaceName = "";
@@ -60,55 +71,177 @@ public class AddSpaceActivity extends AppCompatActivity {
         levelArea = findViewById(R.id.level_area);
         swShared = findViewById(R.id.sw_shared);
         btnSave = findViewById(R.id.btn_save);
+        btnCancel = findViewById(R.id.btn_cancel);
         rgHouses = findViewById(R.id.rg_houses);
         tvNoHouseHint = findViewById(R.id.tv_no_house_hint);
+        tvSelectedHouse = findViewById(R.id.tv_selected_house);
+        tvParentSpace = findViewById(R.id.tv_parent_space);
         btnCreateHouse = findViewById(R.id.btn_create_house);
+        layoutIconSelector = findViewById(R.id.layout_icon_selector);
+        layoutColorSelector = findViewById(R.id.layout_color_selector);
 
-        // 如果有父级空间，显示提示并自动选择子级
-        if (parentSpaceId > 0) {
-            String hint = parentSpaceName.isEmpty() ? "创建子空间" : "在「" + parentSpaceName + "」中创建子空间";
-            tvNoHouseHint.setText(hint);
-            tvNoHouseHint.setVisibility(View.VISIBLE);
-            // 自动选择下一级
-            int parentLevel = getIntent().getIntExtra("parent_level", 1);
-            if (parentLevel < 3) {
-                selectedLevel = parentLevel + 1;
-            }
+        // Parent space hint
+        if (parentSpaceId > 0 && !parentSpaceName.isEmpty()) {
+            tvParentSpace.setText(parentSpaceName);
         }
 
-        // 层级选择 - 房间/容器/区域
-        View.OnClickListener levelClick = v -> {
-            resetLevelSelection();
-            v.setSelected(true);
-            v.setBackgroundResource(R.drawable.bg_button_primary);
-            if (v.getId() == R.id.level_room) {
-                selectedLevel = 1;
-                selectedIcon = roomIcons[0];
-            } else if (v.getId() == R.id.level_container) {
-                selectedLevel = 2;
-                selectedIcon = containerIcons[0];
-            } else if (v.getId() == R.id.level_area) {
-                selectedLevel = 3;
-                selectedIcon = areaIcons[0];
-            }
-            updateIconGrid();
-        };
-        levelRoom.setOnClickListener(levelClick);
-        levelContainer.setOnClickListener(levelClick);
-        levelArea.setOnClickListener(levelClick);
-        levelRoom.setSelected(true);
-        selectedLevel = 1;
-        selectedIcon = roomIcons[0];
+        // Back / Cancel
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+        btnCancel.setOnClickListener(v -> finish());
 
-        updateIconGrid();
+        // House selector click
+        findViewById(R.id.btn_house_selector).setOnClickListener(v -> showHousePicker());
+
+        // Parent selector click
+        findViewById(R.id.btn_parent_selector).setOnClickListener(v -> showParentSpacePicker());
+
+        // Build icon selector
+        buildIconSelector();
+
+        // Build color selector
+        buildColorSelector();
 
         btnSave.setOnClickListener(v -> saveSpace());
         btnCreateHouse.setOnClickListener(v -> showCreateHouseDialog());
 
-        // 返回
-        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
-
         loadHouses();
+    }
+
+    private void buildIconSelector() {
+        layoutIconSelector.removeAllViews();
+        for (int i = 0; i < allIcons.length; i++) {
+            String icon = allIcons[i];
+            TextView tv = new TextView(this);
+            tv.setText(icon);
+            tv.setTextSize(24);
+            tv.setGravity(Gravity.CENTER);
+            int size = dp(56);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+            lp.setMarginEnd(dp(12));
+            tv.setLayoutParams(lp);
+
+            boolean isSelected = icon.equals(selectedIcon);
+            tv.setBackgroundResource(isSelected ? R.drawable.bg_icon_selected : R.drawable.bg_icon_unselected);
+
+            final int idx = i;
+            tv.setOnClickListener(v -> {
+                selectedIcon = allIcons[idx];
+                buildIconSelector(); // refresh
+            });
+            layoutIconSelector.addView(tv);
+        }
+    }
+
+    private void buildColorSelector() {
+        layoutColorSelector.removeAllViews();
+        int size = dp(32);
+        int margin = dp(8);
+        for (int i = 0; i < colorValues.length; i++) {
+            View dot = new View(this);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+            lp.setMarginEnd(margin);
+            dot.setLayoutParams(lp);
+
+            GradientDrawable bg = new GradientDrawable();
+            bg.setShape(GradientDrawable.OVAL);
+            bg.setColor(colorValues[i]);
+            dot.setBackground(bg);
+
+            boolean isSelected = colorHex[i].equals(selectedColor);
+            if (isSelected) {
+                dot.setElevation(dp(4));
+                // Add ring effect via padding + border
+                GradientDrawable ringBg = new GradientDrawable();
+                ringBg.setShape(GradientDrawable.OVAL);
+                ringBg.setColor(colorValues[i]);
+                ringBg.setStroke(dp(3), 0xFF9B4500);
+                dot.setBackground(ringBg);
+            }
+
+            final int idx = i;
+            dot.setOnClickListener(v -> {
+                selectedColor = colorHex[idx];
+                buildColorSelector(); // refresh
+            });
+            layoutColorSelector.addView(dot);
+        }
+    }
+
+    private void showHousePicker() {
+        if (houseList.size() == 0) {
+            Toast.makeText(this, "暂无家庭，请先创建", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] names = new String[houseList.size()];
+        for (int i = 0; i < houseList.size(); i++) {
+            JsonObject h = houseList.get(i).getAsJsonObject();
+            names[i] = "🏠 " + (h.has("name") ? h.get("name").getAsString() : "我的家");
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("选择家庭")
+            .setItems(names, (d, which) -> {
+                JsonObject h = houseList.get(which).getAsJsonObject();
+                selectedHouseId = h.get("id").getAsInt();
+                tvSelectedHouse.setText(h.has("name") ? h.get("name").getAsString() : "我的家");
+            })
+            .show();
+    }
+
+    private void showParentSpacePicker() {
+        if (selectedHouseId <= 0) {
+            Toast.makeText(this, "请先选择家庭", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(selectedHouseId));
+        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonArray tree = data.has("tree") ? data.getAsJsonArray("tree") : new JsonArray();
+                        showParentPicker(tree);
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
+    }
+
+    private void showParentPicker(JsonArray spaces) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        java.util.List<Integer> ids = new java.util.ArrayList<>();
+
+        names.add("🏠 一级空间 (无上级)");
+        ids.add(0);
+
+        for (int i = 0; i < spaces.size(); i++) {
+            JsonObject space = spaces.get(i).getAsJsonObject();
+            int id = space.get("id").getAsInt();
+            String sName = space.has("name") ? space.get("name").getAsString() : "";
+            String icon = space.has("icon") ? space.get("icon").getAsString() : "🏠";
+            names.add(icon + " " + sName);
+            ids.add(id);
+
+            if (space.has("children") && !space.get("children").isJsonNull()) {
+                JsonArray children = space.getAsJsonArray("children");
+                for (int j = 0; j < children.size(); j++) {
+                    JsonObject child = children.get(j).getAsJsonObject();
+                    int cId = child.get("id").getAsInt();
+                    String cName = child.has("name") ? child.get("name").getAsString() : "";
+                    String cIcon = child.has("icon") ? child.get("icon").getAsString() : "📦";
+                    names.add("  " + cIcon + " " + cName);
+                    ids.add(cId);
+                }
+            }
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("选择上级空间")
+            .setItems(names.toArray(new String[0]), (d, which) -> {
+                parentSpaceId = ids.get(which);
+                tvParentSpace.setText(which == 0 ? "一级空间 (无上级)" : names.get(which));
+            })
+            .show();
     }
 
     private void loadHouses() {
@@ -120,59 +253,41 @@ public class AddSpaceActivity extends AppCompatActivity {
                             houseList = data.getAsJsonArray("list");
                         }
                     } catch (Exception ignored) {}
-                    updateHouseSelector();
+                    updateHouseDisplay();
                 });
             }
             @Override public void onError(String msg) {
-                runOnUiThread(() -> updateHouseSelector());
+                runOnUiThread(() -> updateHouseDisplay());
             }
         });
     }
 
-    private void updateHouseSelector() {
-        rgHouses.removeAllViews();
-
+    private void updateHouseDisplay() {
         if (houseList.size() == 0) {
+            tvSelectedHouse.setText("暂无家庭");
             tvNoHouseHint.setVisibility(View.VISIBLE);
-            rgHouses.setVisibility(View.GONE);
+            btnCreateHouse.setVisibility(View.VISIBLE);
             return;
         }
-
         tvNoHouseHint.setVisibility(View.GONE);
-        rgHouses.setVisibility(View.VISIBLE);
+        btnCreateHouse.setVisibility(View.GONE);
 
         int currentHouseId = App.getInstance().getCurrentHouseId();
-
         for (int i = 0; i < houseList.size(); i++) {
             JsonObject house = houseList.get(i).getAsJsonObject();
             int id = house.get("id").getAsInt();
-            String name = house.has("name") ? house.get("name").getAsString() : "我的家";
-
-            RadioButton rb = new RadioButton(this);
-            rb.setText("🏠 " + name);
-            rb.setTextSize(14);
-            rb.setTextColor(Color.parseColor("#2D3748"));
-            rb.setPadding(16, 12, 16, 12);
-            rb.setId(id);
-
-            // 默认选中当前家或第一个
             if (id == currentHouseId || (currentHouseId <= 0 && i == 0)) {
-                rb.setChecked(true);
                 selectedHouseId = id;
+                tvSelectedHouse.setText(house.has("name") ? house.get("name").getAsString() : "我的家");
+                break;
             }
-
-            rgHouses.addView(rb);
         }
-
-        rgHouses.setOnCheckedChangeListener((group, checkedId) -> {
-            selectedHouseId = checkedId;
-        });
     }
 
     private void showCreateHouseDialog() {
         EditText input = new EditText(this);
         input.setHint("例如：奶奶家、爷爷家");
-        input.setPadding(48, 32, 48, 32);
+        input.setPadding(dp(16), dp(12), dp(16), dp(12));
 
         new AlertDialog.Builder(this)
             .setTitle("创建新家")
@@ -192,7 +307,6 @@ public class AddSpaceActivity extends AppCompatActivity {
     private void createHouse(String name) {
         JsonObject body = new JsonObject();
         body.addProperty("name", name);
-
         ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
@@ -202,7 +316,6 @@ public class AddSpaceActivity extends AppCompatActivity {
                             App app = App.getInstance();
                             app.setCurrentHouseId(houseId);
                             app.setCurrentHouseName(name);
-                            // 刷新家列表
                             loadHouses();
                         }
                         Toast.makeText(AddSpaceActivity.this, "✅ 家庭创建成功", Toast.LENGTH_SHORT).show();
@@ -217,40 +330,6 @@ public class AddSpaceActivity extends AppCompatActivity {
         });
     }
 
-    private void resetLevelSelection() {
-        levelRoom.setSelected(false);
-        levelContainer.setSelected(false);
-        levelArea.setSelected(false);
-        levelRoom.setBackgroundResource(R.drawable.bg_level_option);
-        levelContainer.setBackgroundResource(R.drawable.bg_level_option);
-        levelArea.setBackgroundResource(R.drawable.bg_level_option);
-    }
-
-    private void updateIconGrid() {
-        GridLayout iconGrid = findViewById(R.id.grid_icons);
-        iconGrid.removeAllViews();
-
-        String[] icons;
-        switch (selectedLevel) {
-            case 1: icons = roomIcons; break;
-            case 2: icons = containerIcons; break;
-            case 3: icons = areaIcons; break;
-            default: icons = roomIcons; break;
-        }
-
-        for (String icon : icons) {
-            TextView tv = new TextView(this);
-            tv.setText(icon);
-            tv.setTextSize(24);
-            tv.setPadding(16, 16, 16, 16);
-            tv.setOnClickListener(v -> {
-                selectedIcon = icon;
-                Toast.makeText(this, "已选择: " + icon, Toast.LENGTH_SHORT).show();
-            });
-            iconGrid.addView(tv);
-        }
-    }
-
     private void saveSpace() {
         String name = etName.getText().toString().trim();
         if (name.isEmpty()) {
@@ -258,133 +337,11 @@ public class AddSpaceActivity extends AppCompatActivity {
             etName.requestFocus();
             return;
         }
-
         if (selectedHouseId <= 0) {
             Toast.makeText(this, "请先选择或创建一个家庭", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        // 如果还没选择父级空间，先让用户选择
-        if (parentSpaceId == 0 && selectedLevel > 1) {
-            showParentSpaceSelector(name);
-            return;
-        }
-
         doSaveSpace(name);
-    }
-
-    private void showParentSpaceSelector(String spaceName) {
-        // 加载当前家的空间列表让用户选择父级
-        HashMap<String, String> params = new HashMap<>();
-        params.put("action", "tree");
-        params.put("house_id", String.valueOf(selectedHouseId));
-
-        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
-                runOnUiThread(() -> {
-                    try {
-                        JsonArray tree = new JsonArray();
-                        if (data.has("tree") && !data.get("tree").isJsonNull()) {
-                            tree = data.getAsJsonArray("tree");
-                        } else if (data.has("list") && !data.get("list").isJsonNull()) {
-                            tree = data.getAsJsonArray("list");
-                        }
-                        if (tree.size() == 0) {
-                            // 没有已有空间，直接创建在顶级
-                            doSaveSpace(spaceName);
-                        } else {
-                            showParentPicker(tree, spaceName);
-                        }
-                    } catch (Exception e) {
-                        doSaveSpace(spaceName);
-                    }
-                });
-            }
-            @Override public void onError(String msg) {
-                runOnUiThread(() -> doSaveSpace(spaceName));
-            }
-        });
-    }
-
-    private void showParentPicker(JsonArray spaces, String spaceName) {
-        // 构建可选的父级空间列表（只显示房间级别，即level=1）
-        java.util.List<String> names = new java.util.ArrayList<>();
-        java.util.List<Integer> ids = new java.util.ArrayList<>();
-        java.util.List<Integer> levels = new java.util.ArrayList<>();
-
-        // 添加“顶级”选项
-        names.add("🏠 顶级（直接在家下面）");
-        ids.add(0);
-        levels.add(0);
-
-        // 添加房间
-        for (int i = 0; i < spaces.size(); i++) {
-            JsonObject space = spaces.get(i).getAsJsonObject();
-            int id = space.has("id") ? space.get("id").getAsInt() : 0;
-            String sName = space.has("name") ? space.get("name").getAsString() : "";
-            String icon = space.has("icon") ? space.get("icon").getAsString() : "🛋";
-            int level = space.has("level") ? space.get("level").getAsInt() : 1;
-            names.add(icon + " " + sName + " (房间)");
-            ids.add(id);
-            levels.add(level);
-
-            // 添加容器
-            if (space.has("children") && !space.get("children").isJsonNull()) {
-                JsonArray children = space.getAsJsonArray("children");
-                for (int j = 0; j < children.size(); j++) {
-                    JsonObject child = children.get(j).getAsJsonObject();
-                    int cId = child.has("id") ? child.get("id").getAsInt() : 0;
-                    String cName = child.has("name") ? child.get("name").getAsString() : "";
-                    String cIcon = child.has("icon") ? child.get("icon").getAsString() : "📦";
-                    int cLevel = child.has("level") ? child.get("level").getAsInt() : 2;
-                    names.add("  " + cIcon + " " + cName + " (容器)");
-                    ids.add(cId);
-                    levels.add(cLevel);
-                }
-            }
-        }
-
-        String[] nameArr = names.toArray(new String[0]);
-
-        new AlertDialog.Builder(this)
-            .setTitle("「" + spaceName + "」放在哪里？")
-            .setItems(nameArr, (d, which) -> {
-                int chosenId = ids.get(which);
-                int chosenLevel = levels.get(which);
-                if (chosenId > 0) {
-                    parentSpaceId = chosenId;
-                    // 自动设置子级层级
-                    if (chosenLevel == 1) selectedLevel = 2; // 房间下→容器
-                    else if (chosenLevel == 2) selectedLevel = 3; // 容器下→区域
-                    updateLevelSelection();
-                } else {
-                    parentSpaceId = 0;
-                    selectedLevel = 1;
-                    updateLevelSelection();
-                }
-                doSaveSpace(spaceName);
-            })
-            .setNegativeButton("取消", null)
-            .show();
-    }
-
-    private void updateLevelSelection() {
-        resetLevelSelection();
-        switch (selectedLevel) {
-            case 1:
-                levelRoom.setSelected(true);
-                levelRoom.setBackgroundResource(R.drawable.bg_button_primary);
-                break;
-            case 2:
-                levelContainer.setSelected(true);
-                levelContainer.setBackgroundResource(R.drawable.bg_button_primary);
-                break;
-            case 3:
-                levelArea.setSelected(true);
-                levelArea.setBackgroundResource(R.drawable.bg_button_primary);
-                break;
-        }
-        updateIconGrid();
     }
 
     private void doSaveSpace(String name) {
@@ -428,5 +385,9 @@ public class AddSpaceActivity extends AppCompatActivity {
             Toast.makeText(this, "已保存到本地，联网后自动同步", Toast.LENGTH_SHORT).show();
             finish();
         }
+    }
+
+    private int dp(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density);
     }
 }
