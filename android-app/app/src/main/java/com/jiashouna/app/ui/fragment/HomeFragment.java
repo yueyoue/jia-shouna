@@ -19,94 +19,106 @@ import com.jiashouna.app.ui.AddItemActivity;
 import com.jiashouna.app.ui.AddSpaceActivity;
 import com.jiashouna.app.ui.AllItemsActivity;
 import com.jiashouna.app.ui.FamilyShareActivity;
+import com.jiashouna.app.ui.ItemDetailActivity;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class HomeFragment extends Fragment {
-    private TextView tvGreeting, tvHouseInfo, tvItemCount, tvSpaceCount, tvExpiringCount, tvMemberCount;
-    private TextView tvExpiringTag;
-    private LinearLayout llExpiringList, llRecentList, llContributions;
+    private TextView tvGreeting, tvHouseInfo, tvDate;
+    private TextView tvItemCount, tvSpaceCount, tvExpiringCount, tvMemberCount;
+    private LinearLayout llExpiringList, llRecentList;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_home, container, false);
 
-        tvGreeting = v.findViewById(R.id.tv_greeting);
+        // Top bar
         tvHouseInfo = v.findViewById(R.id.tv_house_info);
+        tvDate = v.findViewById(R.id.tv_date);
+        tvGreeting = v.findViewById(R.id.tv_greeting);
+
+        // Stats
         tvItemCount = v.findViewById(R.id.tv_item_count);
-        tvItemCount.setOnClickListener(e -> startActivity(new Intent(getActivity(), AllItemsActivity.class)));
         tvSpaceCount = v.findViewById(R.id.tv_space_count);
         tvExpiringCount = v.findViewById(R.id.tv_expiring_count);
         tvMemberCount = v.findViewById(R.id.tv_member_count);
 
-        // 问题11: 首页数字可点击
-        tvSpaceCount.setOnClickListener(e -> {
-            if (getActivity() != null) {
-                com.google.android.material.bottomnavigation.BottomNavigationView nav = getActivity().findViewById(R.id.bottom_nav);
-                if (nav != null) nav.setSelectedItemId(R.id.nav_spaces);
-            }
-        });
-        tvExpiringCount.setOnClickListener(e -> {
+        // Lists
+        llExpiringList = v.findViewById(R.id.ll_expiring_list);
+        llRecentList = v.findViewById(R.id.ll_recent_list);
+
+        // === Card clicks ===
+        // 物品总数 → 全部物品
+        v.findViewById(R.id.card_item_count).setOnClickListener(e ->
+            startActivity(new Intent(getActivity(), AllItemsActivity.class)));
+
+        // 即将过期 → 临期物品列表
+        v.findViewById(R.id.card_expiring).setOnClickListener(e -> {
             Intent intent = new Intent(getActivity(), AllItemsActivity.class);
             intent.putExtra("filter_type", "expiring");
             intent.putExtra("title", "临期物品");
             startActivity(intent);
         });
-        tvMemberCount.setOnClickListener(e -> startActivity(new Intent(getActivity(), FamilyShareActivity.class)));
-        tvExpiringTag = v.findViewById(R.id.tv_expiring_tag);
-        llExpiringList = v.findViewById(R.id.ll_expiring_list);
-        llRecentList = v.findViewById(R.id.ll_recent_list);
-        llContributions = v.findViewById(R.id.ll_contributions);
 
-        // 快捷入口
+        // 收纳空间 → 切换到空间Tab
+        v.findViewById(R.id.card_space_count).setOnClickListener(e -> {
+            if (getActivity() != null) {
+                com.google.android.material.bottomnavigation.BottomNavigationView nav =
+                    getActivity().findViewById(R.id.bottom_nav);
+                if (nav != null) nav.setSelectedItemId(R.id.nav_spaces);
+            }
+        });
+
+        // 家庭成员 → 家庭共享
+        v.findViewById(R.id.card_member_count).setOnClickListener(e ->
+            startActivity(new Intent(getActivity(), FamilyShareActivity.class)));
+
+        // === Quick Actions ===
+        // 扫码
         v.findViewById(R.id.btn_scan).setOnClickListener(e -> {
             Intent i = new Intent(getActivity(), AddItemActivity.class);
             i.putExtra("mode", "scan");
             startActivity(i);
         });
+
+        // 拍照
         v.findViewById(R.id.btn_photo).setOnClickListener(e -> {
             Intent i = new Intent(getActivity(), AddItemActivity.class);
             i.putExtra("mode", "photo");
             startActivity(i);
         });
+
+        // 手动
         v.findViewById(R.id.btn_manual).setOnClickListener(e -> {
             Intent i = new Intent(getActivity(), AddItemActivity.class);
             i.putExtra("mode", "manual");
             startActivity(i);
         });
-        v.findViewById(R.id.btn_browse_spaces).setOnClickListener(e -> {
-            // 切换到空间Tab
-            if (getActivity() != null) {
-                com.google.android.material.bottomnavigation.BottomNavigationView nav = getActivity().findViewById(R.id.bottom_nav);
-                if (nav != null) nav.setSelectedItemId(R.id.nav_spaces);
-            }
-        });
-        v.findViewById(R.id.btn_add_space).setOnClickListener(e -> startActivity(new Intent(getActivity(), AddSpaceActivity.class)));
-        v.findViewById(R.id.btn_family).setOnClickListener(e -> startActivity(new Intent(getActivity(), FamilyShareActivity.class)));
 
-        // 搜索栏 - 点击进入所有物品页面搜索
+        // AI识别
+        v.findViewById(R.id.btn_ai_scan).setOnClickListener(e -> {
+            Intent i = new Intent(getActivity(), AddItemActivity.class);
+            i.putExtra("mode", "ai");
+            startActivity(i);
+        });
+
+        // === Search ===
         v.findViewById(R.id.btn_search).setOnClickListener(e -> {
             Intent intent = new Intent(getActivity(), AllItemsActivity.class);
             intent.putExtra("focus_search", true);
             startActivity(intent);
         });
-        v.findViewById(R.id.btn_scan_search).setOnClickListener(e -> {
-            Intent i = new Intent(getActivity(), AddItemActivity.class);
-            i.putExtra("mode", "scan");
-            startActivity(i);
+
+        // === Home selector ===
+        v.findViewById(R.id.btn_home_selector).setOnClickListener(e -> {
+            // TODO: Show house picker dialog
+            Toast.makeText(getContext(), "切换家庭", Toast.LENGTH_SHORT).show();
         });
 
-        // 查看全部
-        v.findViewById(R.id.tv_view_all_reminders).setOnClickListener(e -> {
-            if (getActivity() != null) {
-                com.google.android.material.bottomnavigation.BottomNavigationView nav = getActivity().findViewById(R.id.bottom_nav);
-                if (nav != null) nav.setSelectedItemId(R.id.nav_reminders);
-            }
-        });
-        v.findViewById(R.id.tv_view_all_recent).setOnClickListener(e -> {
-            startActivity(new Intent(getActivity(), AllItemsActivity.class));
-        });
+        // === View All ===
+        v.findViewById(R.id.tv_view_all_recent).setOnClickListener(e ->
+            startActivity(new Intent(getActivity(), AllItemsActivity.class)));
 
         loadData();
         return v;
@@ -121,26 +133,29 @@ public class HomeFragment extends Fragment {
     private void loadData() {
         App app = App.getInstance();
 
+        // 设置日期
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy年M月d日 EEEE", Locale.CHINA);
+        tvDate.setText(sdf.format(new Date()));
+
         // 设置问候语
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         String greeting;
-        if (hour < 6) greeting = "凌晨好 🌙";
-        else if (hour < 9) greeting = "早上好 🌅";
-        else if (hour < 12) greeting = "上午好 ☀️";
-        else if (hour < 14) greeting = "中午好 🌞";
-        else if (hour < 18) greeting = "下午好 👋";
-        else if (hour < 22) greeting = "晚上好 🌆";
-        else greeting = "夜深了 🌙";
+        if (hour < 6) greeting = "凌晨好，欢迎回来 🌙";
+        else if (hour < 9) greeting = "早上好，欢迎回来 🌅";
+        else if (hour < 12) greeting = "上午好，欢迎回来 ☀️";
+        else if (hour < 14) greeting = "中午好，欢迎回来 🌞";
+        else if (hour < 18) greeting = "下午好，欢迎回来 👋";
+        else if (hour < 22) greeting = "晚上好，欢迎回来 🌆";
+        else greeting = "夜深了，欢迎回来 🌙";
         tvGreeting.setText(greeting);
 
         int houseId = app.getCurrentHouseId();
         if (houseId <= 0) {
-            tvHouseInfo.setText("暂无家庭，请先创建");
+            tvHouseInfo.setText("暂无家庭");
             tvItemCount.setText("0");
             tvSpaceCount.setText("0");
             tvExpiringCount.setText("0");
             tvMemberCount.setText("0");
-            tvExpiringTag.setText("0 件");
             llExpiringList.removeAllViews();
             addEmptyHint(llExpiringList, "暂无临期物品");
             llRecentList.removeAllViews();
@@ -149,9 +164,6 @@ public class HomeFragment extends Fragment {
         }
 
         tvHouseInfo.setText(app.getCurrentHouseName());
-
-        HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(houseId));
 
         // 获取家庭成员数
         ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
@@ -165,7 +177,7 @@ public class HomeFragment extends Fragment {
                                 JsonObject house = houses.get(i).getAsJsonObject();
                                 if (house.has("id") && house.get("id").getAsInt() == houseId) {
                                     int members = house.has("member_count") ? house.get("member_count").getAsInt() : 1;
-                                    tvMemberCount.setText(members + "");
+                                    tvMemberCount.setText(String.valueOf(members));
                                     break;
                                 }
                             }
@@ -175,9 +187,6 @@ public class HomeFragment extends Fragment {
             }
             @Override public void onError(String msg) {}
         });
-
-        // 加载家庭贡献
-        loadContributions(houseId);
 
         // 获取物品统计
         HashMap<String, String> params2 = new HashMap<>();
@@ -226,13 +235,10 @@ public class HomeFragment extends Fragment {
                             JsonObject stats = data.getAsJsonObject("stats");
                             int expiring = stats.has("expiring_7days") ? stats.get("expiring_7days").getAsInt() : 0;
                             tvExpiringCount.setText(String.valueOf(expiring));
-                            tvExpiringTag.setText(expiring + " 件");
                         }
-                        // 也从goods接口获取临期数
                         if (data.has("expiring_count")) {
                             int expiring = data.get("expiring_count").getAsInt();
                             tvExpiringCount.setText(String.valueOf(expiring));
-                            tvExpiringTag.setText(expiring + " 件");
                         }
                     } catch (Exception ignored) {}
                 });
@@ -257,8 +263,7 @@ public class HomeFragment extends Fragment {
                                 addEmptyHint(llExpiringList, "暂无临期物品 👍");
                             } else {
                                 for (int i = 0; i < Math.min(list.size(), 5); i++) {
-                                    JsonObject item = list.get(i).getAsJsonObject();
-                                    addExpiringItem(item);
+                                    addExpiringItem(list.get(i).getAsJsonObject());
                                 }
                             }
                         } else {
@@ -279,63 +284,63 @@ public class HomeFragment extends Fragment {
 
         // 获取最近添加的物品
         if (!NetworkUtils.isNetworkAvailable(getActivity())) {
-            // 离线：从缓存加载
             loadRecentFromCache();
         } else {
-        HashMap<String, String> recentParams = new HashMap<>();
-        recentParams.put("action", "list");
-        recentParams.put("house_id", String.valueOf(houseId));
-        recentParams.put("page_size", "4");
-        ApiClient.get("goods.php?action=list", recentParams, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
-                if (getActivity() == null) return;
-                getActivity().runOnUiThread(() -> {
-                    llRecentList.removeAllViews();
-                    try {
-                        if (data.has("list") && !data.get("list").isJsonNull()) {
-                            JsonArray list = data.getAsJsonArray("list");
-                            if (list.size() == 0) {
-                                addEmptyHint(llRecentList, "暂无物品，快去添加吧");
-                            } else {
-                                for (int i = 0; i < list.size(); i += 2) {
-                                    LinearLayout row = new LinearLayout(getActivity());
-                                    row.setOrientation(LinearLayout.HORIZONTAL);
-                                    row.setLayoutParams(new LinearLayout.LayoutParams(
-                                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-                                    if (i > 0) {
-                                        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) row.getLayoutParams();
-                                        lp.topMargin = dp(10);
+            HashMap<String, String> recentParams = new HashMap<>();
+            recentParams.put("action", "list");
+            recentParams.put("house_id", String.valueOf(houseId));
+            recentParams.put("page_size", "4");
+            ApiClient.get("goods.php?action=list", recentParams, new ApiClient.ApiCallback() {
+                @Override public void onSuccess(JsonObject data) {
+                    if (getActivity() == null) return;
+                    getActivity().runOnUiThread(() -> {
+                        llRecentList.removeAllViews();
+                        try {
+                            if (data.has("list") && !data.get("list").isJsonNull()) {
+                                JsonArray list = data.getAsJsonArray("list");
+                                if (list.size() == 0) {
+                                    addEmptyHint(llRecentList, "暂无物品，快去添加吧");
+                                } else {
+                                    for (int i = 0; i < list.size(); i += 2) {
+                                        LinearLayout row = new LinearLayout(getActivity());
+                                        row.setOrientation(LinearLayout.HORIZONTAL);
+                                        row.setLayoutParams(new LinearLayout.LayoutParams(
+                                            LinearLayout.LayoutParams.MATCH_PARENT,
+                                            LinearLayout.LayoutParams.WRAP_CONTENT));
+                                        if (i > 0) {
+                                            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) row.getLayoutParams();
+                                            lp.topMargin = dp(12);
+                                        }
+                                        addBentoItem(row, list.get(i).getAsJsonObject());
+                                        if (i + 1 < list.size()) {
+                                            View spacer = new View(getActivity());
+                                            spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(12), 0));
+                                            row.addView(spacer);
+                                            addBentoItem(row, list.get(i + 1).getAsJsonObject());
+                                        } else {
+                                            View spacer = new View(getActivity());
+                                            spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
+                                            row.addView(spacer);
+                                        }
+                                        llRecentList.addView(row);
                                     }
-                                    addRecentItem(row, list.get(i).getAsJsonObject());
-                                    if (i + 1 < list.size()) {
-                                        View spacer = new View(getActivity());
-                                        spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(10), 0));
-                                        row.addView(spacer);
-                                        addRecentItem(row, list.get(i + 1).getAsJsonObject());
-                                    } else {
-                                        View spacer = new View(getActivity());
-                                        spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
-                                        row.addView(spacer);
-                                    }
-                                    llRecentList.addView(row);
                                 }
+                            } else {
+                                addEmptyHint(llRecentList, "暂无物品，快去添加吧");
                             }
-                        } else {
+                        } catch (Exception e) {
                             addEmptyHint(llRecentList, "暂无物品，快去添加吧");
                         }
-                    } catch (Exception e) {
+                    });
+                }
+                @Override public void onError(String msg) {
+                    if (getActivity() != null) getActivity().runOnUiThread(() -> {
+                        llRecentList.removeAllViews();
                         addEmptyHint(llRecentList, "暂无物品，快去添加吧");
-                    }
-                });
-            }
-            @Override public void onError(String msg) {
-                if (getActivity() != null) getActivity().runOnUiThread(() -> {
-                    llRecentList.removeAllViews();
-                    addEmptyHint(llRecentList, "暂无物品，快去添加吧");
-                });
-            }
-        });
-        } // end else (online)
+                    });
+                }
+            });
+        }
     }
 
     /**
@@ -355,10 +360,11 @@ public class HomeFragment extends Fragment {
             LinearLayout row = new LinearLayout(getActivity());
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
             if (i > 0) {
                 LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) row.getLayoutParams();
-                lp.topMargin = dp(10);
+                lp.topMargin = dp(12);
             }
             Goods g1 = cached.get(i);
             JsonObject item1 = new JsonObject();
@@ -366,10 +372,10 @@ public class HomeFragment extends Fragment {
             item1.addProperty("name", g1.name);
             item1.addProperty("space_name", g1.spaceName);
             item1.addProperty("cover_image", g1.coverImage);
-            addRecentItem(row, item1);
+            addBentoItem(row, item1);
             if (i + 1 < count) {
                 View spacer = new View(getActivity());
-                spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(10), 0));
+                spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(12), 0));
                 row.addView(spacer);
                 Goods g2 = cached.get(i + 1);
                 JsonObject item2 = new JsonObject();
@@ -377,7 +383,7 @@ public class HomeFragment extends Fragment {
                 item2.addProperty("name", g2.name);
                 item2.addProperty("space_name", g2.spaceName);
                 item2.addProperty("cover_image", g2.coverImage);
-                addRecentItem(row, item2);
+                addBentoItem(row, item2);
             } else {
                 View spacer = new View(getActivity());
                 spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
@@ -389,101 +395,217 @@ public class HomeFragment extends Fragment {
 
     private void addExpiringItem(JsonObject item) {
         if (getActivity() == null) return;
+
         LinearLayout row = new LinearLayout(getActivity());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(8), 0, dp(8));
+        row.setPadding(0, dp(16), 0, dp(16));
         row.setLayoutParams(new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        TextView icon = new TextView(getActivity());
-        icon.setText("⚠️");
-        icon.setTextSize(14);
-        row.addView(icon);
+        // Image thumbnail
+        FrameLayout imgFrame = new FrameLayout(getActivity());
+        LinearLayout.LayoutParams imgLp = new LinearLayout.LayoutParams(dp(64), dp(64));
+        imgFrame.setLayoutParams(imgLp);
 
-        TextView name = new TextView(getActivity());
-        name.setText(item.has("name") ? item.get("name").getAsString() : "");
-        name.setTextSize(13);
-        name.setTextColor(Color.parseColor("#2D3748"));
-        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        nameLp.leftMargin = dp(8);
-        name.setLayoutParams(nameLp);
-        row.addView(name);
-
-        TextView date = new TextView(getActivity());
-        String expiry = item.has("expiry_date") && !item.get("expiry_date").isJsonNull() ? item.get("expiry_date").getAsString() : "";
-        date.setText(expiry);
-        date.setTextSize(11);
-        date.setTextColor(Color.parseColor("#ED8936"));
-        row.addView(date);
-
-        row.setOnClickListener(e -> {
-            // 跳转到物品详情
-            Toast.makeText(getContext(), "查看: " + (item.has("name") ? item.get("name").getAsString() : ""), Toast.LENGTH_SHORT).show();
-        });
-
-        llExpiringList.addView(row);
-    }
-
-    private void addRecentItem(LinearLayout parent, JsonObject item) {
-        if (getActivity() == null) return;
-        LinearLayout card = new LinearLayout(getActivity());
-        card.setOrientation(LinearLayout.HORIZONTAL);
-        card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setBackgroundResource(R.drawable.bg_quick_item);
-        card.setPadding(dp(12), dp(12), dp(12), dp(12));
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        card.setLayoutParams(cardLp);
-
-        String coverImage = item.has("cover_image") && !item.get("cover_image").isJsonNull() ? item.get("cover_image").getAsString() : "";
-        android.widget.ImageView imgIcon = new android.widget.ImageView(getActivity());
-        imgIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-        LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(48), dp(48));
-        imgIcon.setLayoutParams(iconLp);
+        android.widget.ImageView imgView = new android.widget.ImageView(getActivity());
+        imgView.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        imgView.setLayoutParams(new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         android.graphics.drawable.GradientDrawable imgBg = new android.graphics.drawable.GradientDrawable();
-        imgBg.setCornerRadius(dp(10));
-        imgBg.setColor(0xFFFFE8D6);
-        imgIcon.setBackground(imgBg);
+        imgBg.setCornerRadius(dp(8));
+        imgBg.setColor(0xFFE7EEFF);
+        imgView.setBackground(imgBg);
+
+        String coverImage = item.has("cover_image") && !item.get("cover_image").isJsonNull()
+            ? item.get("cover_image").getAsString() : "";
         if (!coverImage.isEmpty()) {
             try {
                 com.bumptech.glide.Glide.with(getActivity())
                     .load(coverImage)
-                    .placeholder(R.drawable.bg_quick_item)
-                    .error(R.drawable.bg_quick_item)
                     .centerCrop()
-                    .into(imgIcon);
-            } catch (Exception e) {
-                imgIcon.setImageResource(R.drawable.bg_quick_item);
-            }
+                    .into(imgView);
+            } catch (Exception ignored) {}
         } else {
-            imgIcon.setImageResource(R.drawable.bg_quick_item);
+            TextView emoji = new TextView(getActivity());
+            emoji.setText("📦");
+            emoji.setTextSize(24);
+            emoji.setGravity(Gravity.CENTER);
+            FrameLayout.LayoutParams emojiLp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+            emoji.setLayoutParams(emojiLp);
+            imgFrame.addView(imgView);
+            imgFrame.addView(emoji);
         }
-        card.addView(imgIcon);
+        if (coverImage.isEmpty()) {
+            imgFrame.addView(imgView);
+        } else {
+            imgFrame.addView(imgView);
+        }
+        row.addView(imgFrame);
 
+        // Info
         LinearLayout info = new LinearLayout(getActivity());
         info.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        infoLp.leftMargin = dp(10);
+        infoLp.leftMargin = dp(16);
         info.setLayoutParams(infoLp);
+
+        // Name + expiry tag
+        LinearLayout topRow = new LinearLayout(getActivity());
+        topRow.setOrientation(LinearLayout.HORIZONTAL);
+        topRow.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView name = new TextView(getActivity());
         name.setText(item.has("name") ? item.get("name").getAsString() : "");
-        name.setTextSize(12);
-        name.setTextColor(Color.parseColor("#2D3748"));
+        name.setTextSize(16);
+        name.setTextColor(Color.parseColor("#121C2C"));
+        name.setTypeface(null, Typeface.BOLD);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        name.setLayoutParams(nameLp);
+        topRow.addView(name);
+
+        // Expiry status
+        String expiry = item.has("expiry_date") && !item.get("expiry_date").isJsonNull()
+            ? item.get("expiry_date").getAsString() : "";
+        TextView expiryTag = new TextView(getActivity());
+        if (!expiry.isEmpty()) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date expiryDate = sdf.parse(expiry);
+                long diff = expiryDate.getTime() - System.currentTimeMillis();
+                long daysLeft = diff / (1000 * 60 * 60 * 24);
+                if (daysLeft < 0) {
+                    expiryTag.setText("已过期");
+                    expiryTag.setTextColor(Color.parseColor("#F56565"));
+                    expiryTag.setTypeface(null, Typeface.BOLD);
+                } else if (daysLeft <= 2) {
+                    expiryTag.setText("还有 " + daysLeft + " 天过期");
+                    expiryTag.setTextColor(Color.parseColor("#ED8936"));
+                } else {
+                    expiryTag.setText("还有 " + daysLeft + " 天过期");
+                    expiryTag.setTextColor(Color.parseColor("#ED8936"));
+                }
+            } catch (Exception e) {
+                expiryTag.setText(expiry);
+                expiryTag.setTextColor(Color.parseColor("#ED8936"));
+            }
+        }
+        expiryTag.setTextSize(12);
+        topRow.addView(expiryTag);
+        info.addView(topRow);
+
+        // Location
+        String spaceName = item.has("space_name") && !item.get("space_name").isJsonNull()
+            ? item.get("space_name").getAsString() : "未分类";
+        TextView location = new TextView(getActivity());
+        location.setText("📍 " + spaceName);
+        location.setTextSize(12);
+        location.setTextColor(Color.parseColor("#564338"));
+        LinearLayout.LayoutParams locLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        locLp.topMargin = dp(4);
+        location.setLayoutParams(locLp);
+        info.addView(location);
+
+        row.addView(info);
+
+        // Click to detail
+        int itemId = 0;
+        try {
+            if (item.has("id") && !item.get("id").isJsonNull()) {
+                itemId = item.get("id").getAsInt();
+            }
+        } catch (Exception ignored) {}
+        if (itemId > 0) {
+            row.setClickable(true);
+            row.setFocusable(true);
+            final int finalItemId = itemId;
+            row.setOnClickListener(e -> {
+                Intent intent = new Intent(getActivity(), ItemDetailActivity.class);
+                intent.putExtra("goods_id", finalItemId);
+                startActivity(intent);
+            });
+        }
+
+        llExpiringList.addView(row);
+
+        // Divider (except last item)
+        View divider = new View(getActivity());
+        divider.setBackgroundColor(Color.parseColor("#E2E8F0"));
+        LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+        divider.setLayoutParams(divLp);
+        llExpiringList.addView(divider);
+    }
+
+    private void addBentoItem(LinearLayout parent, JsonObject item) {
+        if (getActivity() == null) return;
+
+        LinearLayout card = new LinearLayout(getActivity());
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_bento_item);
+        card.setPadding(dp(12), dp(12), dp(12), dp(12));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        card.setLayoutParams(cardLp);
+        card.setElevation(dp(2));
+
+        // Image
+        FrameLayout imgFrame = new FrameLayout(getActivity());
+        LinearLayout.LayoutParams imgLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(120));
+        imgFrame.setLayoutParams(imgLp);
+
+        android.widget.ImageView imgView = new android.widget.ImageView(getActivity());
+        imgView.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        imgView.setLayoutParams(new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        android.graphics.drawable.GradientDrawable imgBg = new android.graphics.drawable.GradientDrawable();
+        imgBg.setCornerRadius(dp(8));
+        imgBg.setColor(0xFFE7EEFF);
+        imgView.setBackground(imgBg);
+
+        String coverImage = item.has("cover_image") && !item.get("cover_image").isJsonNull()
+            ? item.get("cover_image").getAsString() : "";
+        if (!coverImage.isEmpty()) {
+            try {
+                com.bumptech.glide.Glide.with(getActivity())
+                    .load(coverImage)
+                    .centerCrop()
+                    .into(imgView);
+            } catch (Exception ignored) {}
+        }
+        imgFrame.addView(imgView);
+        card.addView(imgFrame);
+
+        // Name
+        TextView name = new TextView(getActivity());
+        name.setText(item.has("name") ? item.get("name").getAsString() : "");
+        name.setTextSize(16);
+        name.setTextColor(Color.parseColor("#121C2C"));
         name.setTypeface(null, Typeface.BOLD);
         name.setMaxLines(1);
         name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        info.addView(name);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        nameLp.topMargin = dp(12);
+        name.setLayoutParams(nameLp);
+        card.addView(name);
 
-        String spaceName = item.has("space_name") && !item.get("space_name").isJsonNull() ? item.get("space_name").getAsString() : "未分类";
-        TextView space = new TextView(getActivity());
-        space.setText(spaceName);
-        space.setTextSize(10);
-        space.setTextColor(Color.parseColor("#718096"));
-        info.addView(space);
+        // Location
+        String spaceName = item.has("space_name") && !item.get("space_name").isJsonNull()
+            ? item.get("space_name").getAsString() : "未分类";
+        TextView location = new TextView(getActivity());
+        location.setText("📍 " + spaceName);
+        location.setTextSize(12);
+        location.setTextColor(Color.parseColor("#564338"));
+        LinearLayout.LayoutParams locLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        locLp.topMargin = dp(4);
+        location.setLayoutParams(locLp);
+        card.addView(location);
 
-        card.addView(info);
-        // 点击打开物品详情
+        // Click to detail
         int itemId = 0;
         try {
             if (item.has("id") && !item.get("id").isJsonNull()) {
@@ -495,92 +617,13 @@ public class HomeFragment extends Fragment {
             card.setFocusable(true);
             final int finalItemId = itemId;
             card.setOnClickListener(e -> {
-                Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
+                Intent intent = new Intent(getActivity(), ItemDetailActivity.class);
                 intent.putExtra("goods_id", finalItemId);
                 startActivity(intent);
             });
         }
+
         parent.addView(card);
-    }
-
-    private void loadContributions(int houseId) {
-        if (llContributions == null || houseId <= 0) return;
-        llContributions.removeAllViews();
-        // 添加加载提示
-        TextView loadingTv = new TextView(getActivity());
-        loadingTv.setText("加载中...");
-        loadingTv.setTextSize(11);
-        loadingTv.setTextColor(0xFFA0AEC0);
-        llContributions.addView(loadingTv);
-
-        // 超时保护：10秒后如果还是加载中则显示暂无数据
-        llContributions.postDelayed(() -> {
-            if (getActivity() != null && llContributions.getChildCount() == 1) {
-                View child = llContributions.getChildAt(0);
-                if (child instanceof TextView && "加载中...".equals(((TextView) child).getText().toString())) {
-                    llContributions.removeAllViews();
-                    TextView tv = new TextView(getActivity());
-                    tv.setText("暂无数据");
-                    tv.setTextSize(11);
-                    tv.setTextColor(0xFFA0AEC0);
-                    llContributions.addView(tv);
-                }
-            }
-        }, 10000);
-
-        HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("house.php?action=contribution", params, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
-                if (getActivity() == null) return;
-                getActivity().runOnUiThread(() -> {
-                    try {
-                        llContributions.removeAllViews();
-                        JsonArray members = data.has("members") ? data.getAsJsonArray("members") : new JsonArray();
-                        if (members.size() == 0) {
-                            TextView tv = new TextView(getActivity());
-                            tv.setText("暂无数据");
-                            tv.setTextSize(11);
-                            tv.setTextColor(0xFFA0AEC0);
-                            llContributions.addView(tv);
-                            return;
-                        }
-                        int[] colors = {0xFFFFF0E6, 0xFFE6F0FF, 0xFFE6FFE6, 0xFFFFE6E6, 0xFFF0E6FF};
-                        int[] textColors = {0xFFC25A1E, 0xFF2C5282, 0xFF22543D, 0xFF9B2C2C, 0xFF553C9A};
-                        for (int i = 0; i < members.size(); i++) {
-                            JsonObject m = members.get(i).getAsJsonObject();
-                            String name = m.has("nickname") && !m.get("nickname").isJsonNull() ? m.get("nickname").getAsString() : "用户";
-                            int count = m.has("item_count") ? m.get("item_count").getAsInt() : 0;
-
-                            TextView tag = new TextView(getActivity());
-                            tag.setText(name + " " + count);
-                            tag.setTextSize(11);
-                            tag.setTextColor(textColors[i % textColors.length]);
-                            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-                            bg.setColor(colors[i % colors.length]);
-                            bg.setCornerRadius(dp(4));
-                            tag.setBackground(bg);
-                            tag.setPadding(dp(8), dp(3), dp(8), dp(3));
-                            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                            lp.setMarginEnd(dp(4));
-                            tag.setLayoutParams(lp);
-                            llContributions.addView(tag);
-                        }
-                    } catch (Exception e) {}
-                });
-            }
-            @Override public void onError(String msg) {
-                if (getActivity() != null) getActivity().runOnUiThread(() -> {
-                    llContributions.removeAllViews();
-                    TextView tv = new TextView(getActivity());
-                    tv.setText("暂无数据");
-                    tv.setTextSize(11);
-                    tv.setTextColor(0xFFA0AEC0);
-                    llContributions.addView(tv);
-                });
-            }
-        });
     }
 
     private void addEmptyHint(LinearLayout container, String text) {
@@ -589,103 +632,9 @@ public class HomeFragment extends Fragment {
         tv.setText(text);
         tv.setGravity(Gravity.CENTER);
         tv.setTextColor(Color.parseColor("#A0AEC0"));
-        tv.setTextSize(13);
-        tv.setPadding(0, dp(20), 0, dp(20));
+        tv.setTextSize(14);
+        tv.setPadding(0, dp(32), 0, dp(32));
         container.addView(tv);
-    }
-
-    private void showSearchDialog() {
-        if (getActivity() == null) return;
-
-        LinearLayout layout = new LinearLayout(getActivity());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(20), dp(16), dp(20), dp(8));
-
-        EditText etSearch = new EditText(getActivity());
-        etSearch.setHint("输入物品名称、条码、标签...");
-        etSearch.setTextSize(14);
-        etSearch.setPadding(dp(12), dp(10), dp(12), dp(10));
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setCornerRadius(dp(8));
-        bg.setColor(0xFFF7FAFC);
-        bg.setStroke(dp(1), 0xFFE2E8F0);
-        etSearch.setBackground(bg);
-        layout.addView(etSearch);
-
-        new androidx.appcompat.app.AlertDialog.Builder(getActivity())
-            .setTitle("🔍 搜索物品")
-            .setView(layout)
-            .setPositiveButton("搜索", (d, w) -> {
-                String keyword = etSearch.getText().toString().trim();
-                if (!keyword.isEmpty()) {
-                    doSearch(keyword);
-                }
-            })
-            .setNegativeButton("取消", null)
-            .show();
-
-        etSearch.requestFocus();
-    }
-
-    private void doSearch(String keyword) {
-        int houseId = App.getInstance().getCurrentHouseId();
-        java.util.HashMap<String, String> params = new java.util.HashMap<>();
-        params.put("action", "search");
-        params.put("keyword", keyword);
-        if (houseId > 0) params.put("house_id", String.valueOf(houseId));
-
-        ApiClient.get("goods.php?action=search", params, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
-                if (getActivity() == null) return;
-                getActivity().runOnUiThread(() -> {
-                    try {
-                        JsonArray list = data.has("list") && !data.get("list").isJsonNull()
-                            ? data.getAsJsonArray("list") : new JsonArray();
-                        showSearchResults(list, keyword);
-                    } catch (Exception e) {
-                        Toast.makeText(getContext(), "搜索失败", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-            @Override public void onError(String msg) {
-                if (getActivity() != null) getActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), "搜索失败: " + msg, Toast.LENGTH_SHORT).show()
-                );
-            }
-        });
-    }
-
-    private void showSearchResults(JsonArray results, String keyword) {
-        if (getActivity() == null) return;
-
-        StringBuilder sb = new StringBuilder();
-        if (results.size() == 0) {
-            sb.append("未找到与「").append(keyword).append("」相关的物品");
-        } else {
-            sb.append("找到 ").append(results.size()).append(" 件物品：\n\n");
-            for (int i = 0; i < results.size(); i++) {
-                JsonObject item = results.get(i).getAsJsonObject();
-                String name = item.has("name") ? item.get("name").getAsString() : "";
-                String space = item.has("space_name") && !item.get("space_name").isJsonNull()
-                    ? item.get("space_name").getAsString() : "未分类";
-                int qty = 0;
-                try {
-                    if (item.has("quantity") && !item.get("quantity").isJsonNull()) {
-                        qty = (int) Double.parseDouble(item.get("quantity").getAsString());
-                    }
-                } catch (Exception ignored) {}
-                String unit = item.has("unit") && !item.get("unit").isJsonNull()
-                    ? item.get("unit").getAsString() : "个";
-                sb.append("• ").append(name).append("  ×").append(qty).append(unit)
-                  .append("  📍").append(space).append("\n");
-            }
-        }
-
-        new androidx.appcompat.app.AlertDialog.Builder(getActivity())
-            .setTitle("搜索结果")
-            .setMessage(sb.toString())
-            .setPositiveButton("确定", null)
-            .show();
     }
 
     private int dp(int dp) {
