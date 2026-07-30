@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingTop="64dp"
+            android:paddingTop="8dp"
             android:paddingBottom="100dp">
 
             <!-- ===== 房屋选择 ===== -->
@@ -277,8 +277,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
                             android:padding="12dp">
 
                             <TextView
@@ -289,13 +289,27 @@
                                 android:text="📷"
                                 android:textSize="22sp" />
 
-                            <TextView
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="扫码"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="扫码录入"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="条码/二维码"
+                                    android:textColor="@color/text_hint"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
                         </LinearLayout>
 
                         <LinearLayout
@@ -303,25 +317,39 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
                             android:padding="12dp">
 
                             <TextView
                                 android:layout_width="48dp"
                                 android:layout_height="48dp"
-                                android:background="@drawable/bg_circle_warm"
+                                android:background="@drawable/bg_circle_green"
                                 android:gravity="center"
                                 android:text="📸"
                                 android:textSize="22sp" />
 
-                            <TextView
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="拍照"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="拍照识别"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="AI自动识别"
+                                    android:textColor="@color/text_hint"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
 
@@ -336,25 +364,39 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
                             android:padding="12dp">
 
                             <TextView
                                 android:layout_width="48dp"
                                 android:layout_height="48dp"
-                                android:background="@drawable/bg_circle_warm"
+                                android:background="@drawable/bg_icon_blue_light"
                                 android:gravity="center"
                                 android:text="✏️"
                                 android:textSize="22sp" />
 
-                            <TextView
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="手动"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="手动录入"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="自定义详情"
+                                    android:textColor="@color/text_hint"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
                         </LinearLayout>
 
                         <LinearLayout
@@ -362,25 +404,39 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
                             android:padding="12dp">
 
                             <TextView
                                 android:layout_width="48dp"
                                 android:layout_height="48dp"
-                                android:background="@drawable/bg_circle_warm"
+                                android:background="@drawable/bg_icon_purple_light"
                                 android:gravity="center"
                                 android:text="✨"
                                 android:textSize="22sp" />
 
-                            <TextView
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="AI识别"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="AI识别"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="智能填充"
+                                    android:textColor="@color/text_hint"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>

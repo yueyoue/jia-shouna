@@ -91,45 +91,16 @@ public class LoginActivity extends AppCompatActivity {
         app.setToken(token);
         app.setUserId(user.get("id").getAsInt());
 
-        // 设置当前房屋
+        // 设置当前房屋（不自动创建）
         if (data.has("houses") && !data.get("houses").isJsonNull()) {
             JsonArray houses = data.getAsJsonArray("houses");
             if (houses.size() > 0) {
                 JsonObject house = houses.get(0).getAsJsonObject();
                 app.setCurrentHouseId(house.get("id").getAsInt());
                 app.setCurrentHouseName(house.has("name") ? house.get("name").getAsString() : "我的家");
-                goToMain();
-            } else {
-                autoCreateHouse();
             }
-        } else {
-            autoCreateHouse();
         }
-    }
-
-    private void autoCreateHouse() {
-        JsonObject body = new JsonObject();
-        body.addProperty("name", "我的家");
-        ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
-                runOnUiThread(() -> {
-                    try {
-                        App app = App.getInstance();
-                        if (data.has("id")) {
-                            app.setCurrentHouseId(data.get("id").getAsInt());
-                            app.setCurrentHouseName(data.has("name") ? data.get("name").getAsString() : "我的家");
-                        }
-                    } catch (Exception ignored) {}
-                    goToMain();
-                });
-            }
-            @Override public void onError(String msg) {
-                runOnUiThread(() -> {
-                    Toast.makeText(LoginActivity.this, "登录成功，请创建一个家庭", Toast.LENGTH_SHORT).show();
-                    goToMain();
-                });
-            }
-        });
+        goToMain();
     }
 
     private void goToMain() {

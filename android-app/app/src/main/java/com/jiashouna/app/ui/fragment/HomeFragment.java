@@ -160,6 +160,13 @@ public class HomeFragment extends Fragment {
             addEmptyHint(llExpiringList, "暂无临期物品");
             llRecentList.removeAllViews();
             addEmptyHint(llRecentList, "暂无物品");
+
+            // 首次使用引导提示
+            new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("👋 欢迎使用家收纳")
+                .setMessage("您还没有创建家庭，请先前往「我的 → 我的家庭」创建一个家，然后在「空间」中创建收纳空间，就可以开始录入物品啦！")
+                .setPositiveButton("我知道了", null)
+                .show();
             return;
         }
 

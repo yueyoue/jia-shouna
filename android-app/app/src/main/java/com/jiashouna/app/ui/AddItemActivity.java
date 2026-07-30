@@ -35,7 +35,7 @@ public class AddItemActivity extends AppCompatActivity {
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
     private Switch swPrivate;
     private Button btnSave, btnSaveContinue;
-    private TextView btnStartScan, btnAddPhoto, btnAddTag;
+    private TextView btnStartScan, btnAddPhoto, btnAddTag, btnAlbum;
     private LinearLayout scanContainer, llPhotos, llTags;
     private TextView tabScan, tabPhoto, tabManual, tabAi;
 
@@ -113,6 +113,7 @@ public class AddItemActivity extends AppCompatActivity {
         tvScanHint = findViewById(R.id.tv_scan_hint);
         btnStartScan = findViewById(R.id.btn_start_scan);
         btnAddPhoto = findViewById(R.id.btn_add_photo);
+        btnAlbum = findViewById(R.id.btn_album);
         btnAddTag = findViewById(R.id.btn_add_tag);
         llPhotos = findViewById(R.id.ll_photos);
         llTags = findViewById(R.id.ll_tags);
@@ -163,6 +164,12 @@ public class AddItemActivity extends AppCompatActivity {
         tabAi.setOnClickListener(v -> switchTab("ai"));
 
         btnStartScan.setOnClickListener(v -> startBarcodeScan());
+
+        // 相册按钮
+        btnAlbum.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            startActivityForResult(intent, REQUEST_GALLERY);
+        });
 
         // 返回按钮
         View tvBack = findViewById(R.id.tv_back);
