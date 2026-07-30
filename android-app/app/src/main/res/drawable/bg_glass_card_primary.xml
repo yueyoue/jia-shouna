@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 左边框主色 -->
+    <item
+        android:gravity="left"
+        android:width="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#9B4500" />
+            <corners
+                android:topLeftRadius="12dp"
+                android:bottomLeftRadius="12dp" />
+        </shape>
+    </item>
+    <!-- 卡片背景 -->
+    <item
+        android:left="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#D9FFFFFF" />
+            <corners
+                android:topRightRadius="12dp"
+                android:bottomRightRadius="12dp" />
+        </shape>
+    </item>
+</layer-list>

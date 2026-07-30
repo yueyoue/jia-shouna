@@ -164,6 +164,12 @@ public class AddItemActivity extends AppCompatActivity {
 
         btnStartScan.setOnClickListener(v -> startBarcodeScan());
 
+        // 返回按钮
+        View tvBack = findViewById(R.id.tv_back);
+        if (tvBack != null) {
+            tvBack.setOnClickListener(v -> finish());
+        }
+
         switchTab(mode);
 
         // 空间选择
@@ -223,14 +229,14 @@ public class AddItemActivity extends AppCompatActivity {
     }
 
     private void switchTab(String mode) {
-        tabScan.setBackgroundResource(R.drawable.bg_tab_normal);
-        tabPhoto.setBackgroundResource(R.drawable.bg_tab_normal);
-        tabManual.setBackgroundResource(R.drawable.bg_tab_normal);
-        tabAi.setBackgroundResource(R.drawable.bg_tab_normal);
-        tabScan.setTextColor(Color.parseColor("#718096"));
-        tabPhoto.setTextColor(Color.parseColor("#718096"));
-        tabManual.setTextColor(Color.parseColor("#718096"));
-        tabAi.setTextColor(Color.parseColor("#718096"));
+        tabScan.setBackgroundResource(R.drawable.bg_tab_inactive_glass);
+        tabPhoto.setBackgroundResource(R.drawable.bg_tab_inactive_glass);
+        tabManual.setBackgroundResource(R.drawable.bg_tab_inactive_glass);
+        tabAi.setBackgroundResource(R.drawable.bg_tab_inactive_glass);
+        tabScan.setTextColor(Color.parseColor("#564338"));
+        tabPhoto.setTextColor(Color.parseColor("#564338"));
+        tabManual.setTextColor(Color.parseColor("#564338"));
+        tabAi.setTextColor(Color.parseColor("#564338"));
         tabScan.setTypeface(null, android.graphics.Typeface.NORMAL);
         tabPhoto.setTypeface(null, android.graphics.Typeface.NORMAL);
         tabManual.setTypeface(null, android.graphics.Typeface.NORMAL);
@@ -238,7 +244,7 @@ public class AddItemActivity extends AppCompatActivity {
 
         switch (mode) {
             case "scan":
-                tabScan.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabScan.setBackgroundResource(R.drawable.bg_tab_active_filled);
                 tabScan.setTextColor(Color.parseColor("#FFFFFF"));
                 tabScan.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
@@ -247,7 +253,7 @@ public class AddItemActivity extends AppCompatActivity {
                 btnStartScan.setOnClickListener(v -> startBarcodeScan());
                 break;
             case "photo":
-                tabPhoto.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabPhoto.setBackgroundResource(R.drawable.bg_tab_active_filled);
                 tabPhoto.setTextColor(Color.parseColor("#FFFFFF"));
                 tabPhoto.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
@@ -256,13 +262,13 @@ public class AddItemActivity extends AppCompatActivity {
                 btnStartScan.setOnClickListener(v -> startPhotoCapture());
                 break;
             case "manual":
-                tabManual.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabManual.setBackgroundResource(R.drawable.bg_tab_active_filled);
                 tabManual.setTextColor(Color.parseColor("#FFFFFF"));
                 tabManual.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.GONE);
                 break;
             case "ai":
-                tabAi.setBackgroundResource(R.drawable.bg_tab_selected);
+                tabAi.setBackgroundResource(R.drawable.bg_tab_active_filled);
                 tabAi.setTextColor(Color.parseColor("#FFFFFF"));
                 tabAi.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
