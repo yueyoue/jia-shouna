@@ -564,7 +564,7 @@ public class ItemDetailActivity extends AppCompatActivity {
                         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                         lp.setMarginEnd(dp(6));
-                        lp.setMarginBottom(dp(4));
+                        lp.bottomMargin = dp(4);
                         tv.setLayoutParams(lp);
                         layoutTags.addView(tv);
                     }

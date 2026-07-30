@@ -319,9 +319,10 @@ public class SpacesFragment extends Fragment {
         // For last item, don't extend to bottom
         if (isLast) {
             // Use a shorter line
-            verticalLine.setLayoutParams(new FrameLayout.LayoutParams(dp(2), dp(24)));
-            ((FrameLayout.LayoutParams) verticalLine.LayoutParams).leftMargin = dp(23);
-            ((FrameLayout.LayoutParams) verticalLine.LayoutParams).topMargin = dp(0);
+            FrameLayout.LayoutParams shortLineLp = new FrameLayout.LayoutParams(dp(2), dp(24));
+            shortLineLp.leftMargin = dp(23);
+            shortLineLp.topMargin = dp(0);
+            verticalLine.setLayoutParams(shortLineLp);
         } else {
             verticalLine.setLayoutParams(vertLp);
         }
