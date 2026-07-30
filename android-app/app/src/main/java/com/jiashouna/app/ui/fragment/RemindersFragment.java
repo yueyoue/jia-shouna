@@ -2,6 +2,8 @@ package com.jiashouna.app.ui.fragment;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.*;
@@ -14,278 +16,684 @@ import com.jiashouna.app.api.ApiClient;
 import java.util.HashMap;
 
 public class RemindersFragment extends Fragment {
-    private LinearLayout llList;
-    private TextView tvStats, tvExpiryWarning, tvWeekRange;
-    private TextView tvStatExpiry, tvStatLowstock, tvStatHandled;
-    private ProgressBar pbLoading;
+
+    // Filter tabs
+    private TextView tabAll, tabExpiring, tabLowstock, tabCustom;
+    private int currentTab = 0; // 0=all, 1=expiring, 2=lowstock, 3=custom
+
+    // Sections
+    private LinearLayout layoutExpiringSection, layoutLowstockSection, layoutCustomSection;
+
+    // Lists
+    private LinearLayout llExpiringList, llLowstockList, llCustomList;
+
+    // Count badge
+    private TextView tvExpiringCount;
+
+    // Data
+    private JsonArray allExpiring = new JsonArray();
+    private JsonArray allLowstock = new JsonArray();
+    private JsonArray allCustom = new JsonArray();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_reminders, container, false);
-        llList = v.findViewById(R.id.ll_reminder_list);
-        tvStats = v.findViewById(R.id.tv_stats);
-        tvExpiryWarning = v.findViewById(R.id.tv_expiry_warning);
-        tvWeekRange = v.findViewById(R.id.tv_week_range);
-        tvStatExpiry = v.findViewById(R.id.tv_stat_expiry);
-        tvStatLowstock = v.findViewById(R.id.tv_stat_lowstock);
-        tvStatHandled = v.findViewById(R.id.tv_stat_handled);
-        loadReminders();
+
+        // Filter tabs
+        tabAll = v.findViewById(R.id.tab_all);
+        tabExpiring = v.findViewById(R.id.tab_expiring);
+        tabLowstock = v.findViewById(R.id.tab_lowstock);
+        tabCustom = v.findViewById(R.id.tab_custom);
+
+        // Sections
+        layoutExpiringSection = v.findViewById(R.id.layout_expiring_section);
+        layoutLowstockSection = v.findViewById(R.id.layout_lowstock_section);
+        layoutCustomSection = v.findViewById(R.id.layout_custom_section);
+
+        // Lists
+        llExpiringList = v.findViewById(R.id.ll_expiring_list);
+        llLowstockList = v.findViewById(R.id.ll_lowstock_list);
+        llCustomList = v.findViewById(R.id.ll_custom_list);
+
+        // Count badge
+        tvExpiringCount = v.findViewById(R.id.tv_expiring_count);
+
+        // Tab click listeners
+        tabAll.setOnClickListener(view -> switchTab(0));
+        tabExpiring.setOnClickListener(view -> switchTab(1));
+        tabLowstock.setOnClickListener(view -> switchTab(2));
+        tabCustom.setOnClickListener(view -> switchTab(3));
+
         return v;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        loadReminders();
+        loadData();
     }
 
-    private void loadReminders() {
+    // ===== Tab Switching =====
+
+    private void switchTab(int tab) {
+        currentTab = tab;
+        updateTabStyles();
+        updateSectionVisibility();
+    }
+
+    private void updateTabStyles() {
+        TextView[] tabs = {tabAll, tabExpiring, tabLowstock, tabCustom};
+        for (int i = 0; i < tabs.length; i++) {
+            if (i == currentTab) {
+                tabs[i].setBackgroundResource(R.drawable.bg_filter_chip_active);
+                tabs[i].setTextColor(Color.WHITE);
+            } else {
+                tabs[i].setBackgroundResource(R.drawable.bg_filter_chip_inactive);
+                tabs[i].setTextColor(Color.parseColor("#718096"));
+            }
+        }
+    }
+
+    private void updateSectionVisibility() {
+        switch (currentTab) {
+            case 0: // All
+                layoutExpiringSection.setVisibility(View.VISIBLE);
+                layoutLowstockSection.setVisibility(View.VISIBLE);
+                layoutCustomSection.setVisibility(View.VISIBLE);
+                break;
+            case 1: // Expiring
+                layoutExpiringSection.setVisibility(View.VISIBLE);
+                layoutLowstockSection.setVisibility(View.GONE);
+                layoutCustomSection.setVisibility(View.GONE);
+                break;
+            case 2: // Low stock
+                layoutExpiringSection.setVisibility(View.GONE);
+                layoutLowstockSection.setVisibility(View.VISIBLE);
+                layoutCustomSection.setVisibility(View.GONE);
+                break;
+            case 3: // Custom
+                layoutExpiringSection.setVisibility(View.GONE);
+                layoutLowstockSection.setVisibility(View.GONE);
+                layoutCustomSection.setVisibility(View.VISIBLE);
+                break;
+        }
+    }
+
+    // ===== Data Loading =====
+
+    private void loadData() {
         int houseId = App.getInstance().getCurrentHouseId();
         if (houseId <= 0) {
-            tvStats.setText("暂无数据");
-            if (tvExpiryWarning != null) tvExpiryWarning.setText("请先创建或加入一个家庭");
-            llList.removeAllViews();
-            addEmptyHint("请先创建或加入一个家庭");
+            showEmptyInAll("请先创建或加入一个家庭");
             return;
         }
-
-        // 设置本周日期范围
-        if (tvWeekRange != null) {
-            try {
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM.dd", java.util.Locale.getDefault());
-                java.util.Calendar cal = java.util.Calendar.getInstance();
-                cal.set(java.util.Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
-                String start = sdf.format(cal.getTime());
-                cal.add(java.util.Calendar.DAY_OF_WEEK, 6);
-                String end = sdf.format(cal.getTime());
-                tvWeekRange.setText(start + " - " + end);
-            } catch (Exception ignored) {}
-        }
-
-        // 显示加载状态
-        llList.removeAllViews();
-        addLoadingHint();
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
 
-        // 获取统计
+        // Load stats
         ApiClient.get("reminder.php?action=stats", params, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
+            @Override
+            public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
                     try {
                         int expiry = 0;
-                        int lowStock = 0;
-                        int handled = 0;
-                        if (data.has("stats") && !data.get("stats").isJsonNull()) {
+                        if (data.has("expiring_count")) {
+                            expiry = data.get("expiring_count").getAsInt();
+                        } else if (data.has("stats") && !data.get("stats").isJsonNull()) {
                             JsonObject stats = data.getAsJsonObject("stats");
                             expiry = stats.has("expiring_7days") ? stats.get("expiring_7days").getAsInt() : 0;
-                            lowStock = stats.has("low_stock") ? stats.get("low_stock").getAsInt() : 0;
-                            handled = stats.has("handled") ? stats.get("handled").getAsInt() : 0;
                         }
-                        if (data.has("expiring_count")) {
-                            try { expiry = data.get("expiring_count").getAsInt(); } catch (Exception ignored) {}
-                        }
-                        tvStats.setText(expiry + " 件临期 · " + lowStock + " 件库存不足");
-                        if (tvExpiryWarning != null) {
-                            if (expiry > 0) {
-                                tvExpiryWarning.setText(expiry + " 件物品 7 天内过期");
-                            } else {
-                                tvExpiryWarning.setText("暂无临期物品 👍");
-                            }
-                        }
-                        if (tvStatExpiry != null) tvStatExpiry.setText(String.valueOf(expiry));
-                        if (tvStatLowstock != null) tvStatLowstock.setText(String.valueOf(lowStock));
-                        if (tvStatHandled != null) tvStatHandled.setText(String.valueOf(handled));
+                        tvExpiringCount.setText(String.valueOf(expiry));
                     } catch (Exception e) {
-                        tvStats.setText("0 件临期 · 0 件库存不足");
-                        if (tvExpiryWarning != null) tvExpiryWarning.setText("暂无临期物品");
-                        if (tvStatExpiry != null) tvStatExpiry.setText("0");
-                        if (tvStatLowstock != null) tvStatLowstock.setText("0");
-                        if (tvStatHandled != null) tvStatHandled.setText("0");
+                        tvExpiringCount.setText("0");
                     }
                 });
             }
-            @Override public void onError(String msg) {
-                if (getActivity() != null) getActivity().runOnUiThread(() -> {
-                    tvStats.setText("0 件临期 · 0 件库存不足");
-                    if (tvExpiryWarning != null) tvExpiryWarning.setText("暂无临期物品");
-                    if (tvStatExpiry != null) tvStatExpiry.setText("0");
-                    if (tvStatLowstock != null) tvStatLowstock.setText("0");
-                    if (tvStatHandled != null) tvStatHandled.setText("0");
-                });
+
+            @Override
+            public void onError(String msg) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> tvExpiringCount.setText("0"));
+                }
             }
         });
 
-        // 获取提醒列表
+        // Load reminder list
+        showLoading();
         ApiClient.get("reminder.php?action=list", params, new ApiClient.ApiCallback() {
-            @Override public void onSuccess(JsonObject data) {
+            @Override
+            public void onSuccess(JsonObject data) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
-                    llList.removeAllViews();
                     try {
+                        allExpiring = new JsonArray();
+                        allLowstock = new JsonArray();
+                        allCustom = new JsonArray();
+
                         if (data.has("list") && !data.get("list").isJsonNull()) {
                             JsonArray list = data.getAsJsonArray("list");
-                            if (list.size() == 0) {
-                                addEmptyHint("暂无提醒\n系统会在物品临期时自动提醒您");
-                            } else {
-                                for (int i = 0; i < list.size(); i++) {
-                                    JsonObject item = list.get(i).getAsJsonObject();
-                                    addReminderItem(item);
+                            for (int i = 0; i < list.size(); i++) {
+                                JsonObject item = list.get(i).getAsJsonObject();
+                                String type = item.has("type") ? item.get("type").getAsString() : "custom";
+                                switch (type) {
+                                    case "expiry":
+                                        allExpiring.add(item);
+                                        break;
+                                    case "low_stock":
+                                        allLowstock.add(item);
+                                        break;
+                                    default:
+                                        allCustom.add(item);
+                                        break;
                                 }
                             }
-                        } else {
-                            addEmptyHint("暂无提醒\n系统会在物品临期时自动提醒您");
                         }
+
+                        renderExpiring();
+                        renderLowstock();
+                        renderCustom();
+                        updateSectionVisibility();
                     } catch (Exception e) {
-                        addEmptyHint("暂无提醒");
+                        showEmptyInAll("加载失败，请重试");
                     }
                 });
             }
-            @Override public void onError(String msg) {
-                if (getActivity() != null) getActivity().runOnUiThread(() -> {
-                    llList.removeAllViews();
-                    addEmptyHint("暂无提醒\n系统会在物品临期时自动提醒您");
-                });
+
+            @Override
+            public void onError(String msg) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> showEmptyInAll("加载失败，请重试"));
+                }
             }
         });
     }
 
-    private void addReminderItem(JsonObject item) {
-        if (getActivity() == null) return;
+    private void showLoading() {
+        llExpiringList.removeAllViews();
+        llLowstockList.removeAllViews();
+        llCustomList.removeAllViews();
+        addLoadingHint(llExpiringList);
+        addLoadingHint(llLowstockList);
+        addLoadingHint(llCustomList);
+    }
 
-        LinearLayout row = new LinearLayout(getActivity());
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackgroundResource(R.drawable.bg_card_16);
-        row.setPadding(dp(16), dp(12), dp(16), dp(12));
-        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        rowLp.bottomMargin = dp(8);
-        row.setLayoutParams(rowLp);
+    private void showEmptyInAll(String msg) {
+        llExpiringList.removeAllViews();
+        llLowstockList.removeAllViews();
+        llCustomList.removeAllViews();
+        addEmptyHint(llExpiringList, msg);
+        addEmptyHint(llLowstockList, msg);
+        addEmptyHint(llCustomList, msg);
+    }
 
-        // 图标
-        TextView icon = new TextView(getActivity());
-        String type = item.has("type") ? item.get("type").getAsString() : "custom";
-        switch (type) {
-            case "expiry": icon.setText("⏰"); break;
-            case "low_stock": icon.setText("📉"); break;
-            case "tidy": icon.setText("🧹"); break;
-            default: icon.setText("📌"); break;
+    // ===== Render Expiring Section =====
+
+    private void renderExpiring() {
+        llExpiringList.removeAllViews();
+        if (allExpiring.size() == 0) {
+            addEmptyHint(llExpiringList, "暂无临期物品 👍");
+            return;
         }
-        icon.setTextSize(20);
-        row.addView(icon);
-
-        // 内容
-        LinearLayout content = new LinearLayout(getActivity());
-        content.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        contentLp.leftMargin = dp(12);
-        content.setLayoutParams(contentLp);
-
-        TextView title = new TextView(getActivity());
-        String titleText = item.has("title") && !item.get("title").isJsonNull() ? item.get("title").getAsString() : "";
-        title.setText(titleText);
-        title.setTextSize(14);
-        title.setTextColor(Color.parseColor("#2D3748"));
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        content.addView(title);
-
-        if (item.has("content") && !item.get("content").isJsonNull() && !item.get("content").getAsString().isEmpty()) {
-            TextView desc = new TextView(getActivity());
-            desc.setText(item.get("content").getAsString());
-            desc.setTextSize(12);
-            desc.setTextColor(Color.parseColor("#718096"));
-            desc.setMaxLines(2);
-            desc.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            content.addView(desc);
+        for (int i = 0; i < allExpiring.size(); i++) {
+            JsonObject item = allExpiring.get(i).getAsJsonObject();
+            llExpiringList.addView(createExpiringCard(item));
         }
+    }
 
-        if (item.has("goods_name") && !item.get("goods_name").isJsonNull()) {
-            String goodsName = item.get("goods_name").getAsString();
-            if (!goodsName.isEmpty()) {
-                TextView goods = new TextView(getActivity());
-                goods.setText("📦 " + goodsName);
-                goods.setTextSize(11);
-                goods.setTextColor(Color.parseColor("#A0AEC0"));
-                content.addView(goods);
+    private View createExpiringCard(JsonObject item) {
+        Context ctx = getActivity();
+        if (ctx == null) return new View(getContext());
+
+        int daysLeft = item.has("days_left") && !item.get("days_left").isJsonNull()
+                ? item.get("days_left").getAsInt() : 0;
+        boolean isExpired = daysLeft < 0;
+
+        // Card container with left border
+        LinearLayout cardWrapper = new LinearLayout(ctx);
+        cardWrapper.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams wrapperLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        wrapperLp.bottomMargin = dp(8);
+        cardWrapper.setLayoutParams(wrapperLp);
+        cardWrapper.setElevation(dp(2));
+        GradientDrawable wrapperBg = new GradientDrawable();
+        wrapperBg.setColor(Color.WHITE);
+        wrapperBg.setCornerRadius(dp(12));
+        cardWrapper.setBackground(wrapperBg);
+
+        // Left border strip
+        View leftBorder = new View(ctx);
+        LinearLayout.LayoutParams borderLp = new LinearLayout.LayoutParams(dp(4), LinearLayout.LayoutParams.MATCH_PARENT);
+        leftBorder.setLayoutParams(borderLp);
+        GradientDrawable borderDrawable = new GradientDrawable();
+        borderDrawable.setColor(isExpired ? Color.parseColor("#F56565") : Color.parseColor("#ED8936"));
+        float[] radii = {dp(12), dp(12), 0, 0, 0, 0, dp(12), dp(12)};
+        borderDrawable.setCornerRadii(radii);
+        leftBorder.setBackground(borderDrawable);
+        cardWrapper.addView(leftBorder);
+
+        // Inner content
+        LinearLayout card = new LinearLayout(ctx);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(12), dp(12), dp(14), dp(12));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        card.setLayoutParams(cardLp);
+
+        // Thumbnail / Emoji placeholder
+        TextView thumb = new TextView(ctx);
+        thumb.setWidth(dp(48));
+        thumb.setHeight(dp(48));
+        thumb.setGravity(Gravity.CENTER);
+        thumb.setTextSize(22);
+        String goodsName = item.has("goods_name") && !item.get("goods_name").isJsonNull()
+                ? item.get("goods_name").getAsString() : "";
+        String emoji = getCategoryEmoji(item);
+        thumb.setText(emoji);
+        GradientDrawable thumbBg = new GradientDrawable();
+        thumbBg.setColor(Color.parseColor("#FFF5F5"));
+        thumbBg.setCornerRadius(dp(8));
+        thumb.setBackground(thumbBg);
+        card.addView(thumb);
+
+        // Info column
+        LinearLayout info = new LinearLayout(ctx);
+        info.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        infoLp.leftMargin = dp(10);
+        info.setLayoutParams(infoLp);
+
+        // Name
+        TextView name = new TextView(ctx);
+        name.setText(goodsName);
+        name.setTextSize(14);
+        name.setTextColor(Color.parseColor("#2D3748"));
+        name.setTypeface(null, Typeface.BOLD);
+        name.setMaxLines(1);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        info.addView(name);
+
+        // Status tag
+        TextView status = new TextView(ctx);
+        if (isExpired) {
+            status.setText("已过期 " + Math.abs(daysLeft) + " 天");
+            status.setTextColor(Color.parseColor("#F56565"));
+        } else if (daysLeft == 0) {
+            status.setText("今天到期");
+            status.setTextColor(Color.parseColor("#F56565"));
+        } else {
+            status.setText(daysLeft + " 天后过期");
+            status.setTextColor(Color.parseColor("#ED8936"));
+        }
+        status.setTextSize(12);
+        status.setTypeface(null, Typeface.BOLD);
+        info.addView(status);
+
+        // Location
+        if (item.has("location") && !item.get("location").isJsonNull()) {
+            String loc = item.get("location").getAsString();
+            if (!loc.isEmpty()) {
+                TextView locTv = new TextView(ctx);
+                locTv.setText("📍 " + loc);
+                locTv.setTextSize(11);
+                locTv.setTextColor(Color.parseColor("#A0AEC0"));
+                info.addView(locTv);
             }
         }
 
-        // 显示剩余天数（临期提醒）
-        if ("expiry".equals(type) && item.has("days_left") && !item.get("days_left").isJsonNull()) {
-            try {
-                int daysLeft = item.get("days_left").getAsInt();
-                TextView daysTv = new TextView(getActivity());
-                if (daysLeft < 0) {
-                    daysTv.setText("已过期 " + Math.abs(daysLeft) + " 天");
-                    daysTv.setTextColor(Color.parseColor("#F56565"));
-                } else if (daysLeft == 0) {
-                    daysTv.setText("今天到期");
-                    daysTv.setTextColor(Color.parseColor("#F56565"));
-                } else if (daysLeft <= 3) {
-                    daysTv.setText("还剩 " + daysLeft + " 天");
-                    daysTv.setTextColor(Color.parseColor("#ED8936"));
-                } else {
-                    daysTv.setText("还剩 " + daysLeft + " 天");
-                    daysTv.setTextColor(Color.parseColor("#48BB78"));
-                }
-                daysTv.setTextSize(11);
-                daysTv.setTypeface(null, android.graphics.Typeface.BOLD);
-                content.addView(daysTv);
-            } catch (Exception ignored) {}
-        }
+        card.addView(info);
 
-        row.addView(content);
+        // Handle button
+        TextView btnHandle = new TextView(ctx);
+        btnHandle.setText("标记已处理");
+        btnHandle.setTextSize(11);
+        btnHandle.setTextColor(Color.parseColor("#9B4500"));
+        btnHandle.setPadding(dp(10), dp(6), dp(10), dp(6));
+        GradientDrawable handleBg = new GradientDrawable();
+        handleBg.setColor(Color.TRANSPARENT);
+        handleBg.setStroke(dp(1), Color.parseColor("#9B4500"));
+        handleBg.setCornerRadius(dp(16));
+        btnHandle.setBackground(handleBg);
+        card.addView(btnHandle);
 
-        // 状态 - 未读标记
-        boolean isRead = item.has("is_read") && !item.get("is_read").isJsonNull() && item.get("is_read").getAsInt() == 1;
-        if (!isRead) {
-            TextView dot = new TextView(getActivity());
-            dot.setText("●");
-            dot.setTextSize(12);
-            dot.setTextColor(Color.parseColor("#FF8C42"));
-            row.addView(dot);
-        }
-
-        // 点击跳转到物品详情
+        // Click to detail
         if (item.has("goods_id") && !item.get("goods_id").isJsonNull()) {
             try {
                 int goodsId = item.get("goods_id").getAsInt();
                 if (goodsId > 0) {
-                    row.setClickable(true);
-                    row.setFocusable(true);
-                    final int finalGoodsId = goodsId;
-                    row.setOnClickListener(v -> {
+                    cardWrapper.setClickable(true);
+                    cardWrapper.setFocusable(true);
+                    cardWrapper.setOnClickListener(v -> {
                         Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
-                        intent.putExtra("goods_id", finalGoodsId);
+                        intent.putExtra("goods_id", goodsId);
                         startActivity(intent);
                     });
                 }
             } catch (Exception ignored) {}
         }
 
-        llList.addView(row);
+        cardWrapper.addView(card);
+
+        // Handle button click
+        final int itemId = item.has("id") && !item.get("id").isJsonNull() ? item.get("id").getAsInt() : 0;
+        btnHandle.setOnClickListener(v -> {
+            if (itemId > 0) {
+                markHandled(itemId, cardWrapper, llExpiringList);
+            }
+        });
+
+        return cardWrapper;
     }
 
-    private void addEmptyHint(String text) {
+    // ===== Render Low Stock Section =====
+
+    private void renderLowstock() {
+        llLowstockList.removeAllViews();
+        if (allLowstock.size() == 0) {
+            addEmptyHint(llLowstockList, "库存充足 👍");
+            return;
+        }
+        for (int i = 0; i < allLowstock.size(); i++) {
+            JsonObject item = allLowstock.get(i).getAsJsonObject();
+            llLowstockList.addView(createLowstockCard(item));
+        }
+    }
+
+    private View createLowstockCard(JsonObject item) {
+        Context ctx = getActivity();
+        if (ctx == null) return new View(getContext());
+
+        // Card container
+        LinearLayout card = new LinearLayout(ctx);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_lowstock_card);
+        card.setPadding(dp(14), dp(12), dp(14), dp(12));
+        card.setElevation(dp(2));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        cardLp.bottomMargin = dp(8);
+        card.setLayoutParams(cardLp);
+
+        // Emoji icon
+        TextView icon = new TextView(ctx);
+        icon.setWidth(dp(48));
+        icon.setHeight(dp(48));
+        icon.setGravity(Gravity.CENTER);
+        icon.setTextSize(22);
+        icon.setText(getCategoryEmoji(item));
+        GradientDrawable iconBg = new GradientDrawable();
+        iconBg.setColor(Color.parseColor("#EBF8FF"));
+        iconBg.setCornerRadius(dp(8));
+        icon.setBackground(iconBg);
+        card.addView(icon);
+
+        // Info column
+        LinearLayout info = new LinearLayout(ctx);
+        info.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        infoLp.leftMargin = dp(10);
+        info.setLayoutParams(infoLp);
+
+        // Name
+        String goodsName = item.has("goods_name") && !item.get("goods_name").isJsonNull()
+                ? item.get("goods_name").getAsString() : "";
+        TextView name = new TextView(ctx);
+        name.setText(goodsName);
+        name.setTextSize(14);
+        name.setTextColor(Color.parseColor("#2D3748"));
+        name.setTypeface(null, Typeface.BOLD);
+        info.addView(name);
+
+        // Progress bar
+        int current = item.has("current_qty") && !item.get("current_qty").isJsonNull()
+                ? item.get("current_qty").getAsInt() : 0;
+        int threshold = item.has("threshold") && !item.get("threshold").isJsonNull()
+                ? item.get("threshold").getAsInt() : 1;
+        float ratio = threshold > 0 ? Math.min(1f, (float) current / threshold) : 0;
+
+        FrameLayout progressContainer = new FrameLayout(ctx);
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(8));
+        progressLp.topMargin = dp(6);
+        progressContainer.setLayoutParams(progressLp);
+
+        // Background bar
+        View bgBar = new View(ctx);
+        bgBar.setBackgroundResource(R.drawable.bg_progress_bar);
+        progressContainer.addView(bgBar, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+        // Fill bar
+        View fillBar = new View(ctx);
+        fillBar.setBackgroundResource(R.drawable.bg_progress_fill);
+        FrameLayout.LayoutParams fillLp = new FrameLayout.LayoutParams(0, FrameLayout.LayoutParams.MATCH_PARENT);
+        // We need to set width after layout, so use a runnable
+        final float finalRatio = ratio;
+        progressContainer.post(() -> {
+            int totalWidth = progressContainer.getWidth();
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) fillBar.getLayoutParams();
+            lp.width = (int) (totalWidth * finalRatio);
+            fillBar.setLayoutParams(lp);
+        });
+        progressContainer.addView(fillBar);
+
+        info.addView(progressContainer);
+
+        // Stock text
+        TextView stockText = new TextView(ctx);
+        stockText.setText("当前库存: " + current + " / 阈值: " + threshold);
+        stockText.setTextSize(11);
+        stockText.setTextColor(Color.parseColor("#718096"));
+        LinearLayout.LayoutParams stockLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        stockLp.topMargin = dp(4);
+        stockText.setLayoutParams(stockLp);
+        info.addView(stockText);
+
+        card.addView(info);
+
+        // Cart button
+        TextView btnCart = new TextView(ctx);
+        btnCart.setText("🛒");
+        btnCart.setTextSize(18);
+        btnCart.setGravity(Gravity.CENTER);
+        btnCart.setWidth(dp(40));
+        btnCart.setHeight(dp(40));
+        GradientDrawable cartBg = new GradientDrawable();
+        cartBg.setColor(Color.parseColor("#9B4500"));
+        cartBg.setCornerRadius(dp(20));
+        btnCart.setBackground(cartBg);
+        card.addView(btnCart);
+
+        // Click to detail
+        if (item.has("goods_id") && !item.get("goods_id").isJsonNull()) {
+            try {
+                int goodsId = item.get("goods_id").getAsInt();
+                if (goodsId > 0) {
+                    card.setClickable(true);
+                    card.setFocusable(true);
+                    card.setOnClickListener(v -> {
+                        Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
+                        intent.putExtra("goods_id", goodsId);
+                        startActivity(intent);
+                    });
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return card;
+    }
+
+    // ===== Render Custom Section =====
+
+    private void renderCustom() {
+        llCustomList.removeAllViews();
+        if (allCustom.size() == 0) {
+            addEmptyHint(llCustomList, "暂无自定义提醒\n点击「+ 新增提醒」创建");
+            return;
+        }
+        for (int i = 0; i < allCustom.size(); i++) {
+            JsonObject item = allCustom.get(i).getAsJsonObject();
+            llCustomList.addView(createCustomCard(item));
+        }
+    }
+
+    private View createCustomCard(JsonObject item) {
+        Context ctx = getActivity();
+        if (ctx == null) return new View(getContext());
+
+        LinearLayout card = new LinearLayout(ctx);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_lowstock_card);
+        card.setPadding(dp(14), dp(14), dp(14), dp(14));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        cardLp.bottomMargin = dp(8);
+        card.setLayoutParams(cardLp);
+        // Border
+        GradientDrawable border = new GradientDrawable();
+        border.setColor(Color.WHITE);
+        border.setCornerRadius(dp(12));
+        border.setStroke(dp(1), Color.parseColor("#E2E8F0"));
+        card.setBackground(border);
+
+        // Info column
+        LinearLayout info = new LinearLayout(ctx);
+        info.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        info.setLayoutParams(infoLp);
+
+        // Title
+        String title = item.has("title") && !item.get("title").isJsonNull()
+                ? item.get("title").getAsString() : "";
+        TextView titleTv = new TextView(ctx);
+        titleTv.setText(title);
+        titleTv.setTextSize(14);
+        titleTv.setTextColor(Color.parseColor("#2D3748"));
+        titleTv.setTypeface(null, Typeface.BOLD);
+        info.addView(titleTv);
+
+        // Time / repeat rule
+        String timeText = "";
+        if (item.has("remind_time") && !item.get("remind_time").isJsonNull()) {
+            timeText = item.get("remind_time").getAsString();
+        }
+        if (item.has("repeat_rule") && !item.get("repeat_rule").isJsonNull()) {
+            String rule = item.get("repeat_rule").getAsString();
+            if (!rule.isEmpty()) {
+                timeText = timeText.isEmpty() ? rule : timeText + " · " + rule;
+            }
+        }
+        if (timeText.isEmpty() && item.has("content") && !item.get("content").isJsonNull()) {
+            timeText = item.get("content").getAsString();
+        }
+        if (!timeText.isEmpty()) {
+            TextView timeTv = new TextView(ctx);
+            timeTv.setText("⏰ " + timeText);
+            timeTv.setTextSize(12);
+            timeTv.setTextColor(Color.parseColor("#718096"));
+            info.addView(timeTv);
+        }
+
+        card.addView(info);
+
+        // Arrow
+        TextView arrow = new TextView(ctx);
+        arrow.setText("›");
+        arrow.setTextSize(20);
+        arrow.setTextColor(Color.parseColor("#A0AEC0"));
+        card.addView(arrow);
+
+        // Click to detail if goods_id exists
+        if (item.has("goods_id") && !item.get("goods_id").isJsonNull()) {
+            try {
+                int goodsId = item.get("goods_id").getAsInt();
+                if (goodsId > 0) {
+                    card.setClickable(true);
+                    card.setFocusable(true);
+                    card.setOnClickListener(v -> {
+                        Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
+                        intent.putExtra("goods_id", goodsId);
+                        startActivity(intent);
+                    });
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return card;
+    }
+
+    // ===== Mark Handled =====
+
+    private void markHandled(int id, View card, LinearLayout parentList) {
+        JsonObject body = new JsonObject();
+        body.addProperty("id", id);
+
+        ApiClient.post("reminder.php?action=handle", body, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    // Fade out animation
+                    card.animate()
+                            .alpha(0f)
+                            .setDuration(300)
+                            .withEndAction(() -> {
+                                parentList.removeView(card);
+                                // Check if list is now empty
+                                if (parentList.getChildCount() == 0) {
+                                    if (parentList == llExpiringList) {
+                                        addEmptyHint(parentList, "暂无临期物品 👍");
+                                    }
+                                }
+                            })
+                            .start();
+                });
+            }
+
+            @Override
+            public void onError(String msg) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() ->
+                            Toast.makeText(getActivity(), "操作失败，请重试", Toast.LENGTH_SHORT).show());
+                }
+            }
+        });
+    }
+
+    // ===== Helpers =====
+
+    private String getCategoryEmoji(JsonObject item) {
+        String type = item.has("type") ? item.get("type").getAsString() : "";
+        switch (type) {
+            case "expiry": return "⏰";
+            case "low_stock": return "📉";
+            case "tidy": return "🧹";
+            default: return "📌";
+        }
+    }
+
+    private void addEmptyHint(LinearLayout parent, String text) {
         if (getActivity() == null) return;
         TextView tv = new TextView(getActivity());
         tv.setText(text);
         tv.setGravity(Gravity.CENTER);
         tv.setTextColor(Color.parseColor("#A0AEC0"));
         tv.setTextSize(14);
-        tv.setPadding(0, dp(60), 0, dp(60));
-        llList.addView(tv);
+        tv.setPadding(0, dp(40), 0, dp(40));
+        parent.addView(tv);
     }
 
-    private void addLoadingHint() {
+    private void addLoadingHint(LinearLayout parent) {
         if (getActivity() == null) return;
         LinearLayout layout = new LinearLayout(getActivity());
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER);
-        layout.setPadding(0, dp(40), 0, dp(40));
+        layout.setPadding(0, dp(30), 0, dp(30));
         ProgressBar pb = new ProgressBar(getActivity());
         layout.addView(pb);
         TextView tv = new TextView(getActivity());
@@ -295,7 +703,7 @@ public class RemindersFragment extends Fragment {
         tv.setTextSize(13);
         tv.setPadding(0, dp(8), 0, 0);
         layout.addView(tv);
-        llList.addView(layout);
+        parent.addView(layout);
     }
 
     private int dp(int dp) {
