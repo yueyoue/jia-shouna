@@ -1,26 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#FF8C42</color>
-    <color name="primary_dark">#E6732A</color>
-    <color name="primary_light">#FFB07A</color>
-    <color name="secondary">#4ECDC4</color>
-    <color name="secondary_dark">#0E9F8E</color>
+    <!-- 主色 - 暖木色系 -->
+    <color name="primary">#C48F4E</color>
+    <color name="primary_dark">#A07232</color>
+    <color name="primary_light">#D4A86A</color>
+    <color name="primary_lightest">#FFF3E6</color>
+
+    <!-- 辅助色 -->
+    <color name="secondary">#6B8E57</color>
+    <color name="secondary_dark">#4A6B3A</color>
     <color name="accent">#5B9FED</color>
-    <color name="background">#F7FAFC</color>
+
+    <!-- 功能色 -->
+    <color name="purple">#7B6BA5</color>
+    <color name="purple_dark">#5A4B8A</color>
+    <color name="purple_light">#F0E8FF</color>
+    <color name="danger">#D4574E</color>
+    <color name="danger_light">#FFF0ED</color>
+    <color name="warning">#ED8936</color>
+    <color name="success">#6B8E57</color>
+    <color name="info">#5B9FED</color>
+
+    <!-- 背景 -->
+    <color name="background">#FBF9F6</color>
     <color name="white">#FFFFFF</color>
     <color name="card">#FFFFFF</color>
-    <color name="text_primary">#2D3748</color>
-    <color name="text_secondary">#4A5568</color>
-    <color name="text_hint">#718096</color>
-    <color name="text_disabled">#A0AEC0</color>
-    <color name="border">#E2E8F0</color>
-    <color name="border_light">#EDF2F7</color>
-    <color name="danger">#F56565</color>
-    <color name="warning">#ED8936</color>
-    <color name="success">#48BB78</color>
-    <color name="info">#5B9FED</color>
-    <color name="purple">#9F7AEA</color>
-    <color name="purple_dark">#553C9A</color>
-    <color name="orange_light">#FFF7F0</color>
-    <color name="teal_light">#F0FBFA</color>
+
+    <!-- 文字 -->
+    <color name="text_primary">#2D2A26</color>
+    <color name="text_secondary">#8B7355</color>
+    <color name="text_hint">#B8A88A</color>
+    <color name="text_disabled">#D4CFC5</color>
+
+    <!-- 边框 -->
+    <color name="border">#F0EBE3</color>
+    <color name="border_light">#F5F0E8</color>
+    <color name="border_focus">#C48F4E</color>
+
+    <!-- 输入框 -->
+    <color name="input_bg">#FAF8F5</color>
+    <color name="input_bg_focus">#FFFFFF</color>
+    <color name="input_bg_highlight">#FFF8F0</color>
+
+    <!-- 旧兼容色名 -->
+    <color name="orange_light">#FFF3E6</color>
+    <color name="teal_light">#EFF8E8</color>
 </resources>

@@ -4,33 +4,22 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_splash_gradient">
 
-    <!-- Background atmospheric elements -->
+    <!-- 右上装饰小圆 -->
     <View
-        android:layout_width="300dp"
-        android:layout_height="300dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_gravity="top|end"
-        android:layout_marginTop="-80dp"
-        android:layout_marginEnd="-60dp"
-        android:alpha="0.15"
-        android:background="@drawable/bg_circle_orange" />
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="40dp"
+        android:alpha="0.2"
+        android:background="@drawable/bg_circle_warm" />
 
-    <View
-        android:layout_width="260dp"
-        android:layout_height="260dp"
-        android:layout_gravity="bottom|start"
-        android:layout_marginBottom="-60dp"
-        android:layout_marginStart="-40dp"
-        android:alpha="0.10"
-        android:background="@drawable/bg_circle_teal" />
-
-    <!-- Main content -->
+    <!-- 主内容 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:paddingTop="120dp"
-        android:paddingBottom="80dp">
+        android:orientation="vertical">
 
         <!-- Spacer -->
         <View
@@ -38,7 +27,7 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Icon Container -->
+        <!-- Logo方块 120dp 圆角32dp -->
         <FrameLayout
             android:layout_width="120dp"
             android:layout_height="120dp"
@@ -47,13 +36,13 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_icon_container"
+                android:background="@drawable/bg_icon_warm_round"
                 android:elevation="8dp"
                 android:gravity="center"
                 android:text="📦"
                 android:textSize="56sp" />
 
-            <!-- Corner sparkle -->
+            <!-- 右上✨小圆 -->
             <TextView
                 android:layout_width="28dp"
                 android:layout_height="28dp"
@@ -67,17 +56,18 @@
                 android:textSize="14sp" />
         </FrameLayout>
 
-        <!-- Brand Name -->
+        <!-- 家收纳 32sp bold -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_marginTop="28dp"
             android:text="家收纳"
-            android:textColor="#121C2C"
-            android:textSize="28sp"
+            android:textColor="@color/text_primary"
+            android:textSize="32sp"
             android:textStyle="bold" />
 
+        <!-- HOME STORAGE 11sp -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -85,8 +75,8 @@
             android:layout_marginTop="4dp"
             android:letterSpacing="0.15"
             android:text="HOME STORAGE"
-            android:textColor="#FF8C42"
-            android:textSize="12sp"
+            android:textColor="@color/primary"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
         <!-- Spacer -->
@@ -95,51 +85,42 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Slogan -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="开启智慧收纳生活"
-            android:textColor="#564338"
-            android:textSize="16sp" />
-
-        <!-- Bouncing dots -->
+        <!-- 三圆点加载 -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="16dp"
+            android:layout_marginBottom="32dp"
             android:gravity="center"
             android:orientation="horizontal">
 
             <View
                 android:layout_width="6dp"
                 android:layout_height="6dp"
-                android:background="@drawable/bg_circle_orange"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_circle_warm" />
 
             <View
                 android:layout_width="6dp"
                 android:layout_height="6dp"
-                android:background="@drawable/bg_circle_orange"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_circle_warm" />
 
             <View
                 android:layout_width="6dp"
                 android:layout_height="6dp"
-                android:background="@drawable/bg_circle_orange" />
+                android:background="@drawable/bg_circle_warm" />
         </LinearLayout>
 
-        <!-- Footer -->
+        <!-- 底部版权 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="32dp"
-            android:alpha="0.4"
+            android:layout_marginBottom="40dp"
+            android:alpha="0.5"
             android:text="© 2024 家收纳 · 让生活井然有序"
-            android:textColor="#564338"
+            android:textColor="@color/text_secondary"
             android:textSize="11sp" />
     </LinearLayout>
 </FrameLayout>

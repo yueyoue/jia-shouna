@@ -2,17 +2,21 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7FAFC"
+    android:background="@color/background"
     android:orientation="vertical">
 
-    <!-- Header -->
+    <!-- 顶部导航 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/card"
+        android:elevation="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingTop="14dp" android:paddingBottom="14dp" android:paddingLeft="20dp" android:paddingRight="20dp">
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
         <TextView
             android:id="@+id/btn_back"
@@ -20,8 +24,8 @@
             android:layout_height="32dp"
             android:background="@drawable/bg_icon_btn_rounded"
             android:gravity="center"
-            android:text="‹"
-            android:textColor="#4A5568"
+            android:text="←"
+            android:textColor="@color/text_primary"
             android:textSize="18sp" />
 
         <TextView
@@ -31,7 +35,7 @@
             android:layout_weight="1"
             android:paddingStart="12dp"
             android:text="所有物品"
-            android:textColor="#2D3748"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -40,20 +44,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0 件"
-            android:textColor="#A0AEC0"
+            android:textColor="@color/text_hint"
             android:textSize="12sp" />
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#EDF2F7" />
+        android:background="@color/border" />
 
-    <!-- Search Bar -->
+    <!-- 搜索栏 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/card"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="12dp">
@@ -63,17 +67,35 @@
             android:layout_width="0dp"
             android:layout_height="40dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_search_bar"
+            android:background="@drawable/bg_input_warm"
             android:drawableStart="@android:drawable/ic_menu_search"
             android:drawablePadding="8dp"
             android:hint="搜索物品名称..."
             android:inputType="text"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
+            android:textColorHint="@color/text_hint"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Items List -->
+    <!-- 分类chips -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:id="@+id/layout_category_chips"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
+    </HorizontalScrollView>
+
+    <!-- 物品列表 -->
     <ProgressBar
         android:id="@+id/progress"
         android:layout_width="wrap_content"
@@ -108,7 +130,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="暂无物品"
-            android:textColor="#4A5568"
+            android:textColor="@color/text_primary"
             android:textSize="14sp" />
     </LinearLayout>
 </LinearLayout>

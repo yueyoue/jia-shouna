@@ -2,9 +2,8 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7FAFC">
+    android:background="@color/background">
 
-    <!-- Scrollable Content -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -16,65 +15,60 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Hero Image Area -->
+            <!-- 大图 220dp -->
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
-                android:background="@drawable/bg_gradient_header_full">
+                android:layout_height="220dp"
+                android:background="@drawable/bg_gradient_warm_no_radius">
 
-                <!-- Photo gallery -->
                 <androidx.viewpager2.widget.ViewPager2
                     android:id="@+id/viewpager_photos"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:visibility="gone" />
 
-                <!-- Default category emoji icon -->
                 <TextView
                     android:id="@+id/tv_default_icon"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="📦"
-                    android:textSize="100sp" />
+                    android:textSize="80sp" />
 
-                <!-- Back button -->
                 <TextView
                     android:id="@+id/btn_back"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:layout_gravity="top|start"
                     android:layout_marginStart="16dp"
-                    android:layout_marginTop="50dp"
+                    android:layout_marginTop="44dp"
                     android:background="@drawable/bg_circle_white_20"
                     android:gravity="center"
-                    android:text="‹"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp" />
+                    android:text="←"
+                    android:textColor="@color/white"
+                    android:textSize="18sp" />
 
-                <!-- More button -->
                 <TextView
                     android:id="@+id/btn_more"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:layout_gravity="top|end"
                     android:layout_marginEnd="16dp"
-                    android:layout_marginTop="50dp"
+                    android:layout_marginTop="44dp"
                     android:background="@drawable/bg_circle_white_20"
                     android:gravity="center"
                     android:text="⋯"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/white"
                     android:textSize="16sp" />
 
-                <!-- Category badge (top right) -->
                 <LinearLayout
                     android:id="@+id/layout_category_badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="top|end"
                     android:layout_marginEnd="16dp"
-                    android:layout_marginTop="94dp"
-                    android:background="@drawable/bg_category_badge"
+                    android:layout_marginTop="88dp"
+                    android:background="@drawable/bg_circle_white_20"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingStart="10dp"
@@ -96,55 +90,53 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:text="其他"
-                        android:textColor="#2D3748"
+                        android:textColor="@color/white"
                         android:textSize="12sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Gallery dots -->
                 <LinearLayout
                     android:id="@+id/gallery_dots"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom|center_horizontal"
-                    android:layout_marginBottom="20dp"
+                    android:layout_marginBottom="16dp"
                     android:gravity="center"
                     android:orientation="horizontal" />
 
-                <!-- Photo counter -->
                 <TextView
                     android:id="@+id/tv_photo_counter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom|end"
                     android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="16dp"
+                    android:layout_marginBottom="12dp"
                     android:background="@drawable/bg_circle_white_20"
                     android:paddingStart="8dp"
                     android:paddingEnd="8dp"
                     android:paddingTop="3dp"
                     android:paddingBottom="3dp"
                     android:text="1/3"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/white"
                     android:textSize="11sp"
                     android:visibility="gone" />
             </FrameLayout>
 
-            <!-- Content below hero -->
+            <!-- 内容卡片 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingBottom="100dp">
 
-                <!-- Title + Brand Card -->
+                <!-- 名称 + 标签 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="16dp"
-                    android:background="@drawable/bg_detail_info_row"
+                    android:background="@drawable/bg_detail_info_row_warm"
                     android:orientation="vertical"
                     android:padding="16dp">
 
@@ -153,11 +145,10 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="物品名称"
-                        android:textColor="#2D3748"
+                        android:textColor="@color/text_primary"
                         android:textSize="20sp"
                         android:textStyle="bold" />
 
-                    <!-- Brand row -->
                     <LinearLayout
                         android:id="@+id/row_brand"
                         android:layout_width="wrap_content"
@@ -179,11 +170,10 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
                             android:text=""
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Barcode row -->
                     <LinearLayout
                         android:id="@+id/row_barcode"
                         android:layout_width="wrap_content"
@@ -206,11 +196,10 @@
                             android:layout_marginStart="4dp"
                             android:fontFamily="monospace"
                             android:text=""
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Status badges -->
                     <LinearLayout
                         android:id="@+id/layout_status_badges"
                         android:layout_width="wrap_content"
@@ -228,7 +217,7 @@
                             android:paddingTop="4dp"
                             android:paddingBottom="4dp"
                             android:text="⚠ 明天过期"
-                            android:textColor="#9B2C2C"
+                            android:textColor="@color/danger"
                             android:textSize="12sp"
                             android:visibility="gone" />
 
@@ -242,13 +231,13 @@
                             android:paddingTop="4dp"
                             android:paddingBottom="4dp"
                             android:text="🔒 仅自己可见"
-                            android:textColor="#553C9A"
+                            android:textColor="@color/purple"
                             android:textSize="12sp"
                             android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Quantity + Unit Stats -->
+                <!-- 信息网格8格: 数量 + 单位 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -257,13 +246,12 @@
                     android:layout_marginTop="12dp"
                     android:orientation="horizontal">
 
-                    <!-- Quantity card -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="6dp"
-                        android:background="@drawable/bg_detail_stat_card"
+                        android:background="@drawable/bg_detail_stat_card_warm"
                         android:gravity="center"
                         android:orientation="vertical"
                         android:paddingTop="14dp"
@@ -274,7 +262,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="1"
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="24sp"
                             android:textStyle="bold" />
 
@@ -284,17 +272,16 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="个"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Unit card -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="6dp"
-                        android:background="@drawable/bg_detail_stat_card"
+                        android:background="@drawable/bg_detail_stat_card_warm"
                         android:gravity="center"
                         android:orientation="vertical"
                         android:paddingTop="14dp"
@@ -305,7 +292,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="—"
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="24sp"
                             android:textStyle="bold" />
 
@@ -314,12 +301,12 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="单位"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Location Row -->
+                <!-- 存放位置 -->
                 <LinearLayout
                     android:id="@+id/location_card"
                     android:layout_width="match_parent"
@@ -327,7 +314,7 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_detail_info_row"
+                    android:background="@drawable/bg_detail_info_row_warm"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="14dp">
@@ -349,7 +336,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="存放位置"
-                            android:textColor="#A0AEC0"
+                            android:textColor="@color/text_hint"
                             android:textSize="11sp" />
 
                         <TextView
@@ -358,7 +345,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="未分类"
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="14sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -367,11 +354,11 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="›"
-                        android:textColor="#A0AEC0"
+                        android:textColor="@color/text_hint"
                         android:textSize="18sp" />
                 </LinearLayout>
 
-                <!-- Expiry Banner -->
+                <!-- 临期横幅 -->
                 <LinearLayout
                     android:id="@+id/layout_expiry_banner"
                     android:layout_width="match_parent"
@@ -379,6 +366,7 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_detail_stat_card_warm"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="14dp"
@@ -397,11 +385,12 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:text=""
+                        android:textColor="@color/danger"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Extended Info Card (category-specific fields) -->
+                <!-- 扩展信息 -->
                 <LinearLayout
                     android:id="@+id/layout_extended_info"
                     android:layout_width="match_parent"
@@ -409,11 +398,11 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_detail_info_row"
+                    android:background="@drawable/bg_detail_info_row_warm"
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <!-- Expiry Days row (食品/药品) -->
+                    <!-- 保质期 -->
                     <LinearLayout
                         android:id="@+id/row_expiry_days"
                         android:layout_width="match_parent"
@@ -436,7 +425,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="保质期"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -444,11 +433,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Expiry Reminder row -->
+                    <!-- 过期提醒 -->
                     <LinearLayout
                         android:id="@+id/row_expiry_reminder"
                         android:layout_width="match_parent"
@@ -471,7 +460,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="过期提醒"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -479,11 +468,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Size row (服装/鞋帽) -->
+                    <!-- 尺码 -->
                     <LinearLayout
                         android:id="@+id/row_size"
                         android:layout_width="match_parent"
@@ -506,7 +495,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="尺码"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -514,11 +503,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Color row -->
+                    <!-- 颜色 -->
                     <LinearLayout
                         android:id="@+id/row_color"
                         android:layout_width="match_parent"
@@ -541,7 +530,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="颜色"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -549,11 +538,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Material row -->
+                    <!-- 材质 -->
                     <LinearLayout
                         android:id="@+id/row_material"
                         android:layout_width="match_parent"
@@ -576,7 +565,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="材质"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -584,11 +573,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Shoe Size row (鞋帽) -->
+                    <!-- 鞋码 -->
                     <LinearLayout
                         android:id="@+id/row_shoe_size"
                         android:layout_width="match_parent"
@@ -611,7 +600,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="鞋码"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -619,11 +608,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Model row (数码) -->
+                    <!-- 型号 -->
                     <LinearLayout
                         android:id="@+id/row_model"
                         android:layout_width="match_parent"
@@ -646,7 +635,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="型号"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -654,11 +643,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Serial Number row (数码) -->
+                    <!-- 序列号 -->
                     <LinearLayout
                         android:id="@+id/row_serial_number"
                         android:layout_width="match_parent"
@@ -681,7 +670,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="序列号"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -690,11 +679,11 @@
                             android:layout_height="wrap_content"
                             android:fontFamily="monospace"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Warranty row (数码) -->
+                    <!-- 保修期 -->
                     <LinearLayout
                         android:id="@+id/row_warranty"
                         android:layout_width="match_parent"
@@ -717,7 +706,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="保修期"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -725,11 +714,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Effect row (化妆品) -->
+                    <!-- 功效 -->
                     <LinearLayout
                         android:id="@+id/row_effect"
                         android:layout_width="match_parent"
@@ -752,7 +741,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="功效"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -760,11 +749,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Skin Type row (化妆品) -->
+                    <!-- 适合肤质 -->
                     <LinearLayout
                         android:id="@+id/row_skin_type"
                         android:layout_width="match_parent"
@@ -787,7 +776,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="适合肤质"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -795,11 +784,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Spec row -->
+                    <!-- 规格 -->
                     <LinearLayout
                         android:id="@+id/row_spec"
                         android:layout_width="match_parent"
@@ -822,7 +811,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="规格"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -830,11 +819,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Threshold row -->
+                    <!-- 库存阈值 -->
                     <LinearLayout
                         android:id="@+id/row_threshold"
                         android:layout_width="match_parent"
@@ -857,7 +846,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="库存阈值"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -865,11 +854,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Price row -->
+                    <!-- 单价 -->
                     <LinearLayout
                         android:id="@+id/row_price"
                         android:layout_width="match_parent"
@@ -892,7 +881,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="单价"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -900,11 +889,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Purchase Date row -->
+                    <!-- 购买日期 -->
                     <LinearLayout
                         android:id="@+id/row_purchase_date"
                         android:layout_width="match_parent"
@@ -927,7 +916,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="购买日期"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -935,11 +924,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Expiry Date row -->
+                    <!-- 过期日期 -->
                     <LinearLayout
                         android:id="@+id/row_expiry"
                         android:layout_width="match_parent"
@@ -962,7 +951,7 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:text="过期日期"
-                            android:textColor="#718096"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <TextView
@@ -970,12 +959,12 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=""
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Tags Section -->
+                <!-- 标签 -->
                 <LinearLayout
                     android:id="@+id/layout_tags_section"
                     android:layout_width="match_parent"
@@ -983,7 +972,7 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_detail_info_row"
+                    android:background="@drawable/bg_detail_info_row_warm"
                     android:orientation="vertical"
                     android:padding="14dp"
                     android:visibility="gone">
@@ -992,7 +981,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="标签"
-                        android:textColor="#A0AEC0"
+                        android:textColor="@color/text_hint"
                         android:textSize="11sp" />
 
                     <LinearLayout
@@ -1004,7 +993,7 @@
                         android:visibility="gone" />
                 </LinearLayout>
 
-                <!-- Note Section -->
+                <!-- 备注 -->
                 <LinearLayout
                     android:id="@+id/layout_note_section"
                     android:layout_width="match_parent"
@@ -1012,7 +1001,7 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_detail_info_row"
+                    android:background="@drawable/bg_detail_info_row_warm"
                     android:orientation="vertical"
                     android:padding="14dp"
                     android:visibility="gone">
@@ -1021,7 +1010,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="备注"
-                        android:textColor="#A0AEC0"
+                        android:textColor="@color/text_hint"
                         android:textSize="11sp" />
 
                     <TextView
@@ -1030,12 +1019,12 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:text=""
-                        android:textColor="#4A5568"
+                        android:textColor="@color/text_secondary"
                         android:textSize="13sp"
                         android:lineSpacingExtra="4dp" />
                 </LinearLayout>
 
-                <!-- Creator Info -->
+                <!-- 录入信息 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -1050,7 +1039,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="录入者: 未知"
-                        android:textColor="#A0AEC0"
+                        android:textColor="@color/text_hint"
                         android:textSize="11sp" />
 
                     <View
@@ -1063,11 +1052,11 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=""
-                        android:textColor="#A0AEC0"
+                        android:textColor="@color/text_hint"
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <!-- Borrow History Section -->
+                <!-- 领用记录 -->
                 <LinearLayout
                     android:id="@+id/layout_borrow_section"
                     android:layout_width="match_parent"
@@ -1089,7 +1078,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="📋 领用记录"
-                            android:textColor="#2D3748"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -1098,7 +1087,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="查看全部"
-                            android:textColor="#FF8C42"
+                            android:textColor="@color/primary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -1107,19 +1096,20 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_detail_info_row"
+                        android:background="@drawable/bg_detail_info_row_warm"
                         android:orientation="vertical" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
-    <!-- Bottom Action Bar (frosted glass) -->
+    <!-- 底部操作栏 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="#F2FFFFFF"
+        android:background="@color/card"
+        android:elevation="8dp"
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
@@ -1132,10 +1122,10 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_button_outline"
+            android:background="@drawable/bg_button_outline_warm"
             android:gravity="center"
             android:text="✏️ 编辑"
-            android:textColor="#FF8C42"
+            android:textColor="@color/primary"
             android:textSize="14sp" />
 
         <TextView
@@ -1144,10 +1134,10 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:background="@drawable/bg_button_primary"
+            android:background="@drawable/bg_button_primary_warm"
             android:gravity="center"
             android:text="📤 领用"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/white"
             android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>

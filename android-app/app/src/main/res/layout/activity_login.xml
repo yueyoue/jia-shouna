@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7FAFC"
+    android:background="@color/background"
     android:fillViewport="true">
 
     <LinearLayout
@@ -15,22 +15,23 @@
         android:paddingTop="60dp"
         android:paddingBottom="40dp">
 
-        <!-- Header / Logo -->
+        <!-- Logo -->
         <TextView
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:background="@drawable/bg_icon_container"
+            android:background="@drawable/bg_icon_warm_round"
             android:elevation="6dp"
             android:gravity="center"
             android:text="📦"
             android:textSize="28sp" />
 
+        <!-- 欢迎回来 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="欢迎回来"
-            android:textColor="#121C2C"
+            android:textColor="@color/text_primary"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -39,26 +40,25 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="家收纳 Home Storage"
-            android:textColor="#FF8C42"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textColor="@color/primary"
+            android:textSize="14sp" />
 
-        <!-- Form Card -->
+        <!-- 表单卡片 白圆角24dp -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
-            android:background="@drawable/bg_card_12"
+            android:background="@drawable/bg_card_warm_round24"
             android:elevation="3dp"
             android:orientation="vertical"
             android:padding="20dp">
 
-            <!-- Username -->
+            <!-- 用户名 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="用户名 / 手机号"
-                android:textColor="#564338"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -67,7 +67,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
-                android:background="@drawable/bg_input_login"
+                android:background="@drawable/bg_input_warm"
                 android:drawableStart="@android:drawable/ic_menu_myplaces"
                 android:drawablePadding="12dp"
                 android:hint="请输入您的账号"
@@ -75,17 +75,17 @@
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:singleLine="true"
-                android:textColor="#121C2C"
-                android:textColorHint="#A0AEC0"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
                 android:textSize="14sp" />
 
-            <!-- Password -->
+            <!-- 密码 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="密码"
-                android:textColor="#564338"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -94,7 +94,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
-                android:background="@drawable/bg_input_login"
+                android:background="@drawable/bg_input_warm"
                 android:drawableStart="@android:drawable/ic_lock_idle_lock"
                 android:drawablePadding="12dp"
                 android:hint="请输入登录密码"
@@ -102,11 +102,11 @@
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:singleLine="true"
-                android:textColor="#121C2C"
-                android:textColorHint="#A0AEC0"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
                 android:textSize="14sp" />
 
-            <!-- Secondary actions row -->
+            <!-- 忘记密码 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -120,24 +120,24 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="忘记密码？"
-                    android:textColor="#718096"
+                    android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <!-- Login Button -->
+            <!-- 登录按钮 暖木渐变52dp圆角16dp -->
             <Button
                 android:id="@+id/btn_login"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="20dp"
-                android:background="@drawable/bg_button_orange_full"
+                android:background="@drawable/bg_button_primary_warm"
                 android:text="立即登录"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Register Link -->
+        <!-- 注册链接 -->
         <TextView
             android:id="@+id/tv_register"
             android:layout_width="wrap_content"
@@ -146,10 +146,10 @@
             android:gravity="center"
             android:padding="8dp"
             android:text="还没有账号？ 立即注册"
-            android:textColor="#564338"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
-        <!-- Social Login Divider -->
+        <!-- 分隔线 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -161,8 +161,7 @@
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1"
-                android:background="#897266"
-                android:alpha="0.3" />
+                android:background="@color/border" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -170,18 +169,17 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:text="更多登录方式"
-                android:textColor="#897266"
+                android:textColor="@color/text_hint"
                 android:textSize="12sp" />
 
             <View
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1"
-                android:background="#897266"
-                android:alpha="0.3" />
+                android:background="@color/border" />
         </LinearLayout>
 
-        <!-- WeChat Login -->
+        <!-- 微信登录 -->
         <LinearLayout
             android:id="@+id/btn_wechat_login"
             android:layout_width="wrap_content"
@@ -204,18 +202,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:text="微信登录"
-                android:textColor="#564338"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- Terms -->
+        <!-- 协议 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:gravity="center"
             android:text="登录即代表您已同意 服务协议 和 隐私政策"
-            android:textColor="#897266"
+            android:textColor="@color/text_hint"
             android:textSize="11sp" />
     </LinearLayout>
 </ScrollView>

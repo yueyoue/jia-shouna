@@ -3,7 +3,7 @@
     android:shape="oval">
     <gradient
         android:angle="135"
-        android:startColor="#9F7AEA"
-        android:endColor="#553C9A"
+        android:startColor="#7B6BA5"
+        android:endColor="#5A4B8A"
         android:type="linear" />
 </shape>
