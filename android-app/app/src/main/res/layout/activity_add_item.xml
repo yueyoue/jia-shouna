@@ -363,110 +363,6 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Purchase Date & Expiry -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="horizontal">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="生产日期"
-                            android:textColor="#718096"
-                            android:textSize="11sp" />
-
-                        <EditText
-                            android:id="@+id/et_purchase_date"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginTop="4dp"
-                            android:background="@drawable/bg_input_new"
-                            android:clickable="true"
-                            android:focusable="false"
-                            android:hint="点击选择日期"
-                            android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="10dp"
-                        android:layout_height="0dp" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="保质期"
-                            android:textColor="#718096"
-                            android:textSize="11sp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:orientation="horizontal">
-
-                            <EditText
-                                android:id="@+id/et_expiry_days"
-                                android:layout_width="0dp"
-                                android:layout_height="44dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_input_new"
-                                android:hint="如 365"
-                                android:inputType="number"
-                                android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
-                                android:textSize="13sp" />
-
-                            <Spinner
-                                android:id="@+id/sp_expiry_unit"
-                                android:layout_width="72dp"
-                                android:layout_height="44dp"
-                                android:layout_marginStart="6dp"
-                                android:background="@drawable/bg_input_new" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Auto-calculated Expiry Date -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="过期日期（自动计算）"
-                        android:textColor="#718096"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:id="@+id/tv_expiry_date_auto"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:layout_marginTop="4dp"
-                        android:background="@drawable/bg_input_new"
-                        android:gravity="center_vertical"
-                        android:hint="输入生产日期和保质期后自动计算"
-                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
-                        android:textColor="#2D3748"
-                        android:textSize="13sp" />
-                </LinearLayout>
-
                 <!-- Price & Threshold -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -547,6 +443,22 @@
                     android:hint="输入物品名称"
                     android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
                     android:textSize="13sp" />
+
+                <!-- Category -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="物品分类"
+                    android:textColor="#718096"
+                    android:textSize="11sp" />
+
+                <Spinner
+                    android:id="@+id/sp_category"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_input_new" />
 
                 <!-- Barcode -->
                 <TextView
@@ -711,6 +623,388 @@
                     android:hint="选填，例如：明天早餐用"
                     android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
                     android:textSize="13sp" />
+
+                <!-- ==================== 分类扩展信息区域 ==================== -->
+
+                <!-- 食品/药品 特有字段 -->
+                <LinearLayout
+                    android:id="@+id/layout_fields_food"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="4dp"
+                        android:background="#E2E8F0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="🏷 食品/药品信息"
+                        android:textColor="#4A5568"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- 生产日期 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="生产日期"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_purchase_date"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:hint="点击选择日期"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+
+                    <!-- 保质期 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="保质期"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:orientation="horizontal">
+
+                        <EditText
+                            android:id="@+id/et_expiry_days"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_input_new"
+                            android:hint="如 365"
+                            android:inputType="number"
+                            android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                            android:textSize="13sp" />
+
+                        <Spinner
+                            android:id="@+id/sp_expiry_unit"
+                            android:layout_width="72dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/bg_input_new" />
+                    </LinearLayout>
+
+                    <!-- 过期提醒 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="过期提醒"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <Spinner
+                        android:id="@+id/sp_expiry_reminder"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new" />
+
+                    <!-- 过期日期（自动计算） -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="过期日期（自动计算）"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tv_expiry_date_auto"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:gravity="center_vertical"
+                        android:hint="输入生产日期和保质期后自动计算"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textColor="#2D3748"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- 服装/鞋帽 特有字段 -->
+                <LinearLayout
+                    android:id="@+id/layout_fields_clothing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="4dp"
+                        android:background="#E2E8F0" />
+
+                    <TextView
+                        android:id="@+id/tv_clothing_header"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="👔 服装/鞋帽信息"
+                        android:textColor="#4A5568"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- 尺码（仅服装/鞋帽） -->
+                    <LinearLayout
+                        android:id="@+id/layout_size_only"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="尺码"
+                            android:textColor="#718096"
+                            android:textSize="11sp" />
+
+                        <EditText
+                            android:id="@+id/et_size"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="4dp"
+                            android:background="@drawable/bg_input_new"
+                            android:hint="如: L, 175/96A"
+                            android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- 颜色 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="颜色"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_color"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:hint="如: 白色"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+
+                    <!-- 材质 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="材质"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_material"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:hint="如: 纯棉"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+
+                    <!-- 鞋码（仅鞋帽） -->
+                    <LinearLayout
+                        android:id="@+id/layout_shoe_size"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="鞋码"
+                            android:textColor="#718096"
+                            android:textSize="11sp" />
+
+                        <EditText
+                            android:id="@+id/et_shoe_size"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="4dp"
+                            android:background="@drawable/bg_input_new"
+                            android:hint="如: 42"
+                            android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 数码 特有字段 -->
+                <LinearLayout
+                    android:id="@+id/layout_fields_digital"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="4dp"
+                        android:background="#E2E8F0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="📱 数码信息"
+                        android:textColor="#4A5568"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- 型号 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="型号"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_model"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:hint="如: iPhone 15 Pro"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+
+                    <!-- 序列号 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="序列号"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_serial_number"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:hint="序列号"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+
+                    <!-- 保修期 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="保修期"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_warranty"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:hint="如: 12个月"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- 化妆品 特有字段 -->
+                <LinearLayout
+                    android:id="@+id/layout_fields_cosmetics"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="4dp"
+                        android:background="#E2E8F0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="💄 化妆品信息"
+                        android:textColor="#4A5568"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- 功效 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="功效"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_effect"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:hint="如: 保湿、防晒"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+
+                    <!-- 适合肤质 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="适合肤质"
+                        android:textColor="#718096"
+                        android:textSize="11sp" />
+
+                    <EditText
+                        android:id="@+id/et_skin_type"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_input_new"
+                        android:hint="如: 干性肌肤"
+                        android:paddingTop="10dp" android:paddingBottom="10dp" android:paddingLeft="12dp" android:paddingRight="12dp"
+                        android:textSize="13sp" />
+                </LinearLayout>
 
                 <!-- Privacy Toggle -->
                 <LinearLayout

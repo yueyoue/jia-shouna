@@ -29,7 +29,7 @@ public class AddItemActivity extends AppCompatActivity {
     private Spinner etUnit;
     private EditText etPurchaseDate;
     private TextView tvExpiryDateAuto;
-    private Spinner spExpiryUnit;
+    private Spinner spExpiryUnit, spCategory, spExpiryReminder;
     private String selectedPurchaseDate = "";
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
@@ -38,6 +38,15 @@ public class AddItemActivity extends AppCompatActivity {
     private TextView btnStartScan, btnAddPhoto, btnAddTag;
     private LinearLayout scanContainer, llPhotos, llTags;
     private TextView tabScan, tabPhoto, tabManual, tabAi;
+
+    // 分类相关容器
+    private LinearLayout layoutFieldsFood, layoutFieldsClothing, layoutFieldsDigital, layoutFieldsCosmetics;
+    private View layoutShoeSize, layoutSizeOnly;
+
+    // 分类扩展字段
+    private EditText etSize, etColor, etMaterial, etShoeSize;
+    private EditText etModel, etSerialNumber, etWarranty;
+    private EditText etEffect, etSkinType;
     private int selectedSpaceId = 0;
     private LocalDb localDb;
     private JsonArray spaceList = new JsonArray();
@@ -107,6 +116,45 @@ public class AddItemActivity extends AppCompatActivity {
         btnAddTag = findViewById(R.id.btn_add_tag);
         llPhotos = findViewById(R.id.ll_photos);
         llTags = findViewById(R.id.ll_tags);
+
+        // 分类相关容器和字段
+        layoutFieldsFood = findViewById(R.id.layout_fields_food);
+        layoutFieldsClothing = findViewById(R.id.layout_fields_clothing);
+        layoutFieldsDigital = findViewById(R.id.layout_fields_digital);
+        layoutFieldsCosmetics = findViewById(R.id.layout_fields_cosmetics);
+        layoutShoeSize = findViewById(R.id.layout_shoe_size);
+        layoutSizeOnly = findViewById(R.id.layout_size_only);
+        etSize = findViewById(R.id.et_size);
+        etColor = findViewById(R.id.et_color);
+        etMaterial = findViewById(R.id.et_material);
+        etShoeSize = findViewById(R.id.et_shoe_size);
+        etModel = findViewById(R.id.et_model);
+        etSerialNumber = findViewById(R.id.et_serial_number);
+        etWarranty = findViewById(R.id.et_warranty);
+        etEffect = findViewById(R.id.et_effect);
+        etSkinType = findViewById(R.id.et_skin_type);
+
+        // 初始化分类 Spinner
+        spCategory = findViewById(R.id.sp_category);
+        String[] categoryOptions = {"食品", "药品", "日用品", "数码", "化妆品", "服装", "鞋帽", "其他"};
+        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryOptions);
+        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spCategory.setAdapter(categoryAdapter);
+        spCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateCategoryFields(position);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        // 初始化过期提醒 Spinner
+        spExpiryReminder = findViewById(R.id.sp_expiry_reminder);
+        if (spExpiryReminder != null) {
+            String[] reminderOptions = {"不提醒", "过期前3天", "过期前7天", "过期前14天", "过期前30天"};
+            ArrayAdapter<String> reminderAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, reminderOptions);
+            reminderAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spExpiryReminder.setAdapter(reminderAdapter);
+        }
 
         // 选项卡
         tabScan.setOnClickListener(v -> switchTab("scan"));
@@ -225,6 +273,97 @@ public class AddItemActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 根据分类选择更新字段显示/隐藏
+     */
+    private void updateCategoryFields(int categoryPosition) {
+        // 先全部隐藏
+        if (layoutFieldsFood != null) layoutFieldsFood.setVisibility(View.GONE);
+        if (layoutFieldsClothing != null) layoutFieldsClothing.setVisibility(View.GONE);
+        if (layoutFieldsDigital != null) layoutFieldsDigital.setVisibility(View.GONE);
+        if (layoutFieldsCosmetics != null) layoutFieldsCosmetics.setVisibility(View.GONE);
+        if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.GONE);
+        if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.GONE);
+
+        // 更新容器标题
+        TextView tvClothingHeader = findViewById(R.id.tv_clothing_header);
+
+        // 分类选项: 0=食品, 1=药品, 2=日用品, 3=数码, 4=化妆品, 5=服装, 6=鞋帽, 7=其他
+        switch (categoryPosition) {
+            case 0: // 食品
+            case 1: // 药品
+                if (layoutFieldsFood != null) layoutFieldsFood.setVisibility(View.VISIBLE);
+                break;
+            case 2: // 日用品
+                if (layoutFieldsClothing != null) {
+                    layoutFieldsClothing.setVisibility(View.VISIBLE);
+                    if (tvClothingHeader != null) tvClothingHeader.setText("📦 日用品信息");
+                }
+                // 日用品不显示尺码和鞋码
+                if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.GONE);
+                if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.GONE);
+                break;
+            case 3: // 数码
+                if (layoutFieldsDigital != null) layoutFieldsDigital.setVisibility(View.VISIBLE);
+                break;
+            case 4: // 化妆品
+                if (layoutFieldsCosmetics != null) layoutFieldsCosmetics.setVisibility(View.VISIBLE);
+                break;
+            case 5: // 服装
+                if (layoutFieldsClothing != null) {
+                    layoutFieldsClothing.setVisibility(View.VISIBLE);
+                    if (tvClothingHeader != null) tvClothingHeader.setText("👔 服装信息");
+                }
+                if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.VISIBLE);
+                if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.GONE);
+                break;
+            case 6: // 鞋帽
+                if (layoutFieldsClothing != null) {
+                    layoutFieldsClothing.setVisibility(View.VISIBLE);
+                    if (tvClothingHeader != null) tvClothingHeader.setText("👟 鞋帽信息");
+                }
+                if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.VISIBLE);
+                if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.VISIBLE);
+                break;
+            case 7: // 其他
+                if (layoutFieldsClothing != null) {
+                    layoutFieldsClothing.setVisibility(View.VISIBLE);
+                    if (tvClothingHeader != null) tvClothingHeader.setText("📦 其他信息");
+                }
+                // 其他不显示尺码和鞋码
+                if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.GONE);
+                if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.GONE);
+                break;
+        }
+    }
+
+    /**
+     * 将分类名称映射到 Spinner 位置
+     */
+    private int getCategoryPosition(String category) {
+        if (category == null || category.isEmpty()) return -1;
+        switch (category) {
+            case "食品": return 0;
+            case "药品": return 1;
+            case "日用品": return 2;
+            case "数码": return 3;
+            case "化妆品": return 4;
+            case "服装": return 5;
+            case "鞋帽": return 6;
+            case "其他": return 7;
+            default:
+                // 尝试模糊匹配
+                if (category.contains("食") || category.contains("饮") || category.contains("奶") || category.contains("粮")) return 0;
+                if (category.contains("药") || category.contains("医")) return 1;
+                if (category.contains("日用") || category.contains("清洁") || category.contains("洗")) return 2;
+                if (category.contains("数码") || category.contains("电子") || category.contains("手机") || category.contains("电脑")) return 3;
+                if (category.contains("化妆") || category.contains("护肤") || category.contains("美容")) return 4;
+                if (category.contains("服装") || category.contains("衣") || category.contains("裤")) return 5;
+                if (category.contains("鞋") || category.contains("帽")) return 6;
+                return 7; // 默认“其他”
+        }
+    }
+
     private void startAiRecognize() {
         if (checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
@@ -248,7 +387,8 @@ public class AddItemActivity extends AppCompatActivity {
         okhttp3.MultipartBody.Builder builder = new okhttp3.MultipartBody.Builder()
             .setType(okhttp3.MultipartBody.FORM)
             .addFormDataPart("image", "photo.jpg",
-                okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
+                okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes))
+            .addFormDataPart("prompt", "请识别图片中的物品，返回物品名称、品牌、条形码、分类（食品/药品/日用品/数码/化妆品/服装/鞋帽/其他）等信息");
         int houseId = App.getInstance().getCurrentHouseId();
         if (selectedSpaceId > 0) builder.addFormDataPart("space_id", String.valueOf(selectedSpaceId));
         if (houseId > 0) builder.addFormDataPart("house_id", String.valueOf(houseId));
@@ -314,16 +454,18 @@ public class AddItemActivity extends AppCompatActivity {
             if (!category.isEmpty()) msg += "\n分类: " + category;
             msg += "\n置信度: " + String.format(Locale.getDefault(), "%.0f%%", confidence * 100);
 
+            // 计算分类Spinner位置
+            final int categoryPos = getCategoryPosition(category);
+
             new AlertDialog.Builder(this).setTitle("AI 识别结果").setMessage(msg)
                 .setPositiveButton("确认填入", (d, w) -> {
                     // 填入识别结果
                     if (!name.isEmpty()) etName.setText(name);
                     if (!barcode.isEmpty()) etBarcode.setText(barcode);
                     if (!brand.isEmpty()) etBrand.setText(brand);
-                    // 问题5: 分类作为标签
-                    if (!category.isEmpty() && !selectedTagNames.contains(category)) {
-                        selectedTagNames.add(category);
-                        updateTagDisplay();
+                    // 自动设置分类 Spinner
+                    if (categoryPos >= 0) {
+                        spCategory.setSelection(categoryPos);
                     }
                     // 问题4: 将AI识别的照片添加到物品图片
                     if (cameraImageUri != null) {
@@ -648,6 +790,7 @@ public class AddItemActivity extends AppCompatActivity {
                     updateTagDisplay();
                 }
 
+                final int catPos = getCategoryPosition(category);
                 new AlertDialog.Builder(this)
                     .setTitle("✅ 识别结果")
                     .setMessage(msg.toString() + "\n是否填入表单？")
@@ -655,10 +798,9 @@ public class AddItemActivity extends AppCompatActivity {
                         if (!name.isEmpty()) etName.setText(name);
                         if (!barcode.isEmpty()) etBarcode.setText(barcode);
                         if (!brand.isEmpty()) etBrand.setText(brand);
-                        // 问题5: 分类作为标签
-                        if (!category.isEmpty() && !selectedTagNames.contains(category)) {
-                            selectedTagNames.add(category);
-                            updateTagDisplay();
+                        // 自动设置分类 Spinner
+                        if (catPos >= 0) {
+                            spCategory.setSelection(catPos);
                         }
                         Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
                     })
@@ -1138,6 +1280,59 @@ public class AddItemActivity extends AppCompatActivity {
                             tvSpaceName.setText(item.get("space_name").getAsString());
                         }
 
+                        // 加载分类
+                        if (item.has("category") && !item.get("category").isJsonNull()) {
+                            String cat = item.get("category").getAsString();
+                            int catPos = getCategoryPosition(cat);
+                            if (catPos >= 0 && spCategory != null) {
+                                spCategory.setSelection(catPos);
+                            }
+                        }
+
+                        // 加载库存阈值
+                        if (item.has("stock_threshold") && !item.get("stock_threshold").isJsonNull()) {
+                            try { etThreshold.setText(String.valueOf((int) item.get("stock_threshold").getAsDouble())); } catch (Exception ignored) {}
+                        }
+
+                        // 加载过期提醒
+                        if (item.has("expiry_reminder") && !item.get("expiry_reminder").isJsonNull() && spExpiryReminder != null) {
+                            String reminder = item.get("expiry_reminder").getAsString();
+                            ArrayAdapter<String> adapter = (ArrayAdapter<String>) spExpiryReminder.getAdapter();
+                            if (adapter != null) {
+                                int pos = adapter.getPosition(reminder);
+                                if (pos >= 0) spExpiryReminder.setSelection(pos);
+                            }
+                        }
+
+                        // 加载分类扩展字段
+                        if (item.has("size") && !item.get("size").isJsonNull() && etSize != null) {
+                            etSize.setText(item.get("size").getAsString());
+                        }
+                        if (item.has("color") && !item.get("color").isJsonNull() && etColor != null) {
+                            etColor.setText(item.get("color").getAsString());
+                        }
+                        if (item.has("material") && !item.get("material").isJsonNull() && etMaterial != null) {
+                            etMaterial.setText(item.get("material").getAsString());
+                        }
+                        if (item.has("shoe_size") && !item.get("shoe_size").isJsonNull() && etShoeSize != null) {
+                            etShoeSize.setText(item.get("shoe_size").getAsString());
+                        }
+                        if (item.has("model") && !item.get("model").isJsonNull() && etModel != null) {
+                            etModel.setText(item.get("model").getAsString());
+                        }
+                        if (item.has("serial_number") && !item.get("serial_number").isJsonNull() && etSerialNumber != null) {
+                            etSerialNumber.setText(item.get("serial_number").getAsString());
+                        }
+                        if (item.has("warranty") && !item.get("warranty").isJsonNull() && etWarranty != null) {
+                            etWarranty.setText(item.get("warranty").getAsString());
+                        }
+                        if (item.has("effect") && !item.get("effect").isJsonNull() && etEffect != null) {
+                            etEffect.setText(item.get("effect").getAsString());
+                        }
+                        if (item.has("skin_type") && !item.get("skin_type").isJsonNull() && etSkinType != null) {
+                            etSkinType.setText(item.get("skin_type").getAsString());
+                        }
+
                         // 加载已有标签
                         if (item.has("tags") && !item.get("tags").isJsonNull()) {
                             JsonArray tags = item.getAsJsonArray("tags");
@@ -1255,6 +1450,22 @@ public class AddItemActivity extends AppCompatActivity {
         String priceStr = etPrice.getText().toString().trim();
         goods.purchasePrice = priceStr.isEmpty() ? 0 : Double.parseDouble(priceStr);
 
+        // 获取选中的分类
+        String selectedCategory = "";
+        if (spCategory != null && spCategory.getSelectedItem() != null) {
+            selectedCategory = spCategory.getSelectedItem().toString();
+        }
+
+        // 获取阈值
+        String thresholdStr = etThreshold.getText().toString().trim();
+        double threshold = thresholdStr.isEmpty() ? 0 : Double.parseDouble(thresholdStr);
+
+        // 获取过期提醒
+        String expiryReminder = "";
+        if (spExpiryReminder != null && spExpiryReminder.getSelectedItem() != null) {
+            expiryReminder = spExpiryReminder.getSelectedItem().toString();
+        }
+
         btnSave.setEnabled(false);
         btnSave.setText("保存中...");
         btnSaveContinue.setEnabled(false);
@@ -1266,7 +1477,7 @@ public class AddItemActivity extends AppCompatActivity {
             body.addProperty("space_id", goods.spaceId);
             body.addProperty("name", goods.name);
             body.addProperty("barcode", goods.barcode);
-            body.addProperty("category", goods.category);
+            body.addProperty("category", selectedCategory);
             body.addProperty("brand", etBrand.getText().toString().trim());
             body.addProperty("manufacturer", etManufacturer != null ? etManufacturer.getText().toString().trim() : "");
             body.addProperty("spec", etSpec != null ? etSpec.getText().toString().trim() : "");
@@ -1275,8 +1486,26 @@ public class AddItemActivity extends AppCompatActivity {
             body.addProperty("purchase_date", selectedPurchaseDate);
             body.addProperty("expiry_date", goods.expiryDate);
             body.addProperty("purchase_price", goods.purchasePrice);
+            body.addProperty("stock_threshold", threshold);
             body.addProperty("note", goods.note);
             body.addProperty("is_private", goods.isPrivate);
+
+            // 分类特有字段
+            if (spExpiryReminder != null) {
+                body.addProperty("expiry_reminder", expiryReminder);
+            }
+            // 服装/鞋帽字段
+            if (etSize != null) body.addProperty("size", etSize.getText().toString().trim());
+            if (etColor != null) body.addProperty("color", etColor.getText().toString().trim());
+            if (etMaterial != null) body.addProperty("material", etMaterial.getText().toString().trim());
+            if (etShoeSize != null) body.addProperty("shoe_size", etShoeSize.getText().toString().trim());
+            // 数码字段
+            if (etModel != null) body.addProperty("model", etModel.getText().toString().trim());
+            if (etSerialNumber != null) body.addProperty("serial_number", etSerialNumber.getText().toString().trim());
+            if (etWarranty != null) body.addProperty("warranty", etWarranty.getText().toString().trim());
+            // 化妆品字段
+            if (etEffect != null) body.addProperty("effect", etEffect.getText().toString().trim());
+            if (etSkinType != null) body.addProperty("skin_type", etSkinType.getText().toString().trim());
 
             // 添加标签
             if (!selectedTagIds.isEmpty()) {
@@ -1344,6 +1573,21 @@ public class AddItemActivity extends AppCompatActivity {
         tvExpiryDateAuto.setTextColor(Color.parseColor("#2D3748"));
         swPrivate.setChecked(false);
 
+        // 重置分类
+        if (spCategory != null) spCategory.setSelection(0);
+        if (spExpiryReminder != null) spExpiryReminder.setSelection(0);
+
+        // 重置分类扩展字段
+        if (etSize != null) etSize.setText("");
+        if (etColor != null) etColor.setText("");
+        if (etMaterial != null) etMaterial.setText("");
+        if (etShoeSize != null) etShoeSize.setText("");
+        if (etModel != null) etModel.setText("");
+        if (etSerialNumber != null) etSerialNumber.setText("");
+        if (etWarranty != null) etWarranty.setText("");
+        if (etEffect != null) etEffect.setText("");
+        if (etSkinType != null) etSkinType.setText("");
+
         // 清空照片和标签
         photos.clear();
         existingImagePaths.clear();
@@ -1407,12 +1651,27 @@ public class AddItemActivity extends AppCompatActivity {
         String priceStr = etPrice.getText().toString().trim();
         goods.purchasePrice = priceStr.isEmpty() ? 0 : Double.parseDouble(priceStr);
 
+        // 获取选中的分类
+        String selectedCategory = "";
+        if (spCategory != null && spCategory.getSelectedItem() != null) {
+            selectedCategory = spCategory.getSelectedItem().toString();
+        }
+
+        String thresholdStr = etThreshold.getText().toString().trim();
+        double threshold = thresholdStr.isEmpty() ? 0 : Double.parseDouble(thresholdStr);
+
+        String expiryReminder = "";
+        if (spExpiryReminder != null && spExpiryReminder.getSelectedItem() != null) {
+            expiryReminder = spExpiryReminder.getSelectedItem().toString();
+        }
+
         JsonObject body = new JsonObject();
         body.addProperty("house_id", goods.houseId);
         body.addProperty("space_id", goods.spaceId);
         body.addProperty("name", goods.name);
         body.addProperty("barcode", goods.barcode);
-        body.addProperty("category", goods.category);
+        body.addProperty("category", selectedCategory);
+        body.addProperty("brand", etBrand.getText().toString().trim());
         body.addProperty("manufacturer", etManufacturer != null ? etManufacturer.getText().toString().trim() : "");
         body.addProperty("spec", etSpec != null ? etSpec.getText().toString().trim() : "");
         body.addProperty("quantity", goods.quantity);
@@ -1420,8 +1679,21 @@ public class AddItemActivity extends AppCompatActivity {
         body.addProperty("purchase_date", selectedPurchaseDate);
         body.addProperty("expiry_date", goods.expiryDate);
         body.addProperty("purchase_price", goods.purchasePrice);
+        body.addProperty("stock_threshold", threshold);
         body.addProperty("note", goods.note);
         body.addProperty("is_private", goods.isPrivate);
+
+        // 分类特有字段
+        if (spExpiryReminder != null) body.addProperty("expiry_reminder", expiryReminder);
+        if (etSize != null) body.addProperty("size", etSize.getText().toString().trim());
+        if (etColor != null) body.addProperty("color", etColor.getText().toString().trim());
+        if (etMaterial != null) body.addProperty("material", etMaterial.getText().toString().trim());
+        if (etShoeSize != null) body.addProperty("shoe_size", etShoeSize.getText().toString().trim());
+        if (etModel != null) body.addProperty("model", etModel.getText().toString().trim());
+        if (etSerialNumber != null) body.addProperty("serial_number", etSerialNumber.getText().toString().trim());
+        if (etWarranty != null) body.addProperty("warranty", etWarranty.getText().toString().trim());
+        if (etEffect != null) body.addProperty("effect", etEffect.getText().toString().trim());
+        if (etSkinType != null) body.addProperty("skin_type", etSkinType.getText().toString().trim());
 
         if (!selectedTagIds.isEmpty()) {
             JsonArray tagsArray = new JsonArray();
