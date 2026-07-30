@@ -11,123 +11,163 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- ===== Profile Gradient Header ===== -->
+        <!-- ===== Top Bar ===== -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_gradient_header_full"
-            android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="50dp">
+            android:layout_height="56dp"
+            android:background="#FFFFFF"
+            android:elevation="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
-            <!-- Top bar -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:text="🏠"
+                android:textSize="22sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_circle_white_20"
-                    android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingLeft="10dp" android:paddingRight="10dp"
-                    android:text="🏠 我的家 ⇅"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12sp" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-                <TextView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/bg_circle_white_20"
-                    android:gravity="center"
-                    android:text="⚙"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-            <!-- User info -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="我的"
+                android:textColor="#2D3748"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tv_avatar"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:background="@drawable/bg_circle_gold"
-                    android:gravity="center"
-                    android:text="妈"
-                    android:textColor="#FFFFFF"
-                    android:textSize="26sp"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/tv_nickname"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="妈妈"
-                            android:textColor="#FFFFFF"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/bg_circle_white_20"
-                            android:paddingTop="2dp" android:paddingBottom="2dp" android:paddingLeft="8dp" android:paddingRight="8dp"
-                            android:text="编辑成员"
-                            android:textColor="#FFFFFF"
-                            android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tv_user_id"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="ID: --"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </LinearLayout>
+            <TextView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_icon_orange_light"
+                android:gravity="center"
+                android:text="🔔"
+                android:textSize="16sp" />
         </LinearLayout>
 
-        <!-- ===== Stats Card (overlaps header) ===== -->
+        <!-- ===== Profile Card ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginTop="-32dp"
-            android:background="@drawable/bg_card_16"
-            android:elevation="4dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card_12"
+            android:elevation="2dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="16dp">
+
+            <!-- Avatar -->
+            <TextView
+                android:id="@+id/tv_avatar"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_avatar_primary"
+                android:gravity="center"
+                android:text="用"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <!-- Name + ID -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_nickname"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="用户"
+                    android:textColor="#2D3748"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_user_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="ID: --"
+                    android:textColor="#A0AEC0"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Edit button -->
+            <TextView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_edit_button"
+                android:gravity="center"
+                android:text="✏️"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- ===== House Switcher ===== -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_house_switcher"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🏡"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="当前房屋："
+                android:textColor="#718096"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tv_house_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="我的家"
+                android:textColor="#4A6CF7"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="▼"
+                android:textColor="#A0AEC0"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- ===== Stats Card ===== -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_12"
+            android:elevation="2dp"
+            android:orientation="horizontal"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -142,15 +182,16 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="#FF8C42"
-                    android:textSize="20sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="录入物品"
+                    android:layout_marginTop="2dp"
+                    android:text="录入(件)"
                     android:textColor="#718096"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <View
@@ -171,15 +212,16 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="#5B9FED"
-                    android:textSize="20sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="创建空间"
+                    android:layout_marginTop="2dp"
+                    android:text="空间(个)"
                     android:textColor="#718096"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <View
@@ -200,55 +242,32 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="#48BB78"
-                    android:textSize="20sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="总操作"
+                    android:layout_marginTop="2dp"
+                    android:text="操作(次)"
                     android:textColor="#718096"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:background="#EDF2F7" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="3"
-                    android:textColor="#ED8936"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="收藏"
-                    android:textColor="#718096"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ===== Family Card ===== -->
+        <!-- ===== Family Info Card ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" android:layout_marginBottom="12dp" android:layout_marginLeft="16dp" android:layout_marginRight="16dp"
-            android:background="@drawable/bg_card_16"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_12"
+            android:elevation="2dp"
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -256,10 +275,17 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏠"
+                    android:textSize="16sp" />
+
+                <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="🏠 我的家"
+                    android:text="我的家庭"
                     android:textColor="#2D3748"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -273,6 +299,7 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
+            <!-- Invite code row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -281,37 +308,11 @@
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/bg_gradient_orange"
-                    android:gravity="center"
-                    android:text="🏠"
-                    android:textSize="20sp" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tv_house_name"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="我的家"
-                        android:textColor="#2D3748"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_member_count"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0 位成员"
-                        android:textColor="#718096"
-                        android:textSize="11sp" />
-                </LinearLayout>
+                    android:text="邀请码："
+                    android:textColor="#718096"
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/tv_invite_code"
@@ -319,66 +320,72 @@
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_tag_orange"
                     android:fontFamily="monospace"
-                    android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingLeft="10dp" android:paddingRight="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
                     android:text="HOME-XXXX"
                     android:textColor="#C25A1E"
-                    android:textSize="11sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Member avatars -->
+            <!-- Members row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingTop="12dp">
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_member_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 位成员"
+                    android:textColor="#718096"
+                    android:textSize="12sp" />
 
                 <LinearLayout
                     android:id="@+id/layout_members"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical|end"
                     android:orientation="horizontal" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ===== Menu Section: Data ===== -->
+        <!-- ===== Function List: Data ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_card_16"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_12"
+            android:elevation="2dp"
             android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="10dp" android:paddingBottom="6dp" android:paddingLeft="16dp" android:paddingRight="16dp"
-                android:text="📊 数据"
-                android:textColor="#A0AEC0"
-                android:textSize="11sp"
-                android:textStyle="bold" />
 
             <!-- 物品盘点 -->
             <LinearLayout
                 android:id="@+id/menu_inventory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_orange_light"
-                    android:gravity="center"
-                    android:text="📋"
-                    android:textSize="16sp" />
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📦"
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -397,6 +404,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="逐项核对，更新物品状态"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -407,31 +415,33 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
             <!-- 数据统计 -->
             <LinearLayout
                 android:id="@+id/menu_stats"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_green_light"
-                    android:gravity="center"
-                    android:text="📈"
-                    android:textSize="16sp" />
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📊"
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -450,6 +460,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="按分类/空间查看占比"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -460,31 +471,33 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
             <!-- 数据导出 -->
             <LinearLayout
                 android:id="@+id/menu_export"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_blue_light"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="📤"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -503,6 +516,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="导出全量数据为 Excel"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -513,45 +527,39 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ===== Menu Section: Collaboration ===== -->
+        <!-- ===== Function List: Collaboration ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_card_16"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_12"
+            android:elevation="2dp"
             android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="10dp" android:paddingBottom="6dp" android:paddingLeft="16dp" android:paddingRight="16dp"
-                android:text="👨‍👩‍👧 协作"
-                android:textColor="#A0AEC0"
-                android:textSize="11sp"
-                android:textStyle="bold" />
 
             <!-- 家庭成员 -->
             <LinearLayout
                 android:id="@+id/menu_members"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_purple_light"
-                    android:gravity="center"
-                    android:text="👥"
-                    android:textSize="16sp" />
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="👨‍👩‍👧‍👦"
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -570,6 +578,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="邀请/管理家人 · 权限分配"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -578,41 +587,35 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="5 人"
-                    android:textColor="#718096"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
             <!-- 分享邀请 -->
             <LinearLayout
                 android:id="@+id/menu_invite"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_blue_light"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="🔗"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -631,6 +634,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="邀请码 / 微信分享链接"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -641,31 +645,33 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
             <!-- 标签管理 -->
             <LinearLayout
                 android:id="@+id/menu_tags"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_orange_light"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="🏷"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -684,6 +690,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="添加、删除自定义标签"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -694,31 +701,33 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
             <!-- 操作日志 -->
             <LinearLayout
                 android:id="@+id/menu_logs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_green_light"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="📋"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -737,6 +746,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="查看我的所有操作记录"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -747,45 +757,39 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ===== Menu Section: Settings ===== -->
+        <!-- ===== Function List: Settings ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_card_16"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_12"
+            android:elevation="2dp"
             android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="10dp" android:paddingBottom="6dp" android:paddingLeft="16dp" android:paddingRight="16dp"
-                android:text="⚙ 设置"
-                android:textColor="#A0AEC0"
-                android:textSize="11sp"
-                android:textStyle="bold" />
 
             <!-- 提醒设置 -->
             <LinearLayout
                 android:id="@+id/menu_reminder_settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_orange_light"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="🔔"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -804,6 +808,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="临期/库存提醒规则"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -814,31 +819,33 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
-            <!-- 版本更新 -->
+            <!-- 检查更新 -->
             <LinearLayout
                 android:id="@+id/menu_version_update"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_btn_rounded"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="🔄"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -847,17 +854,39 @@
                     android:layout_weight="1"
                     android:orientation="vertical">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="版本更新"
-                        android:textColor="#2D3748"
-                        android:textSize="14sp" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="检查更新"
+                            android:textColor="#2D3748"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/bg_tag_orange"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="1dp"
+                            android:paddingBottom="1dp"
+                            android:text="NEW"
+                            android:textColor="#FFFFFF"
+                            android:textSize="9sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/tv_version"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="检查新版本"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -868,31 +897,33 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
             <!-- 账号安全 -->
             <LinearLayout
                 android:id="@+id/menu_security"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_blue_light"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="🛡"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -911,6 +942,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="密码 · 生物识别 · 设备管理"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -921,31 +953,33 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
+                android:background="#F0F3F7" />
 
             <!-- 帮助与反馈 -->
             <LinearLayout
                 android:id="@+id/menu_help"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
 
                 <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_btn_rounded"
-                    android:gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="❓"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -964,6 +998,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
                         android:text="使用文档 · 提交问题"
                         android:textColor="#A0AEC0"
                         android:textSize="11sp" />
@@ -974,58 +1009,49 @@
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="#EDF2F7" />
-
-            <!-- 退出登录 -->
-            <LinearLayout
-                android:id="@+id/btn_logout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingTop="12dp" android:paddingBottom="12dp" android:paddingLeft="16dp" android:paddingRight="16dp">
-
-                <TextView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_icon_red_light"
-                    android:gravity="center"
-                    android:text="🚪"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:text="退出登录"
-                    android:textColor="#F56565"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="›"
-                    android:textColor="#CBD5E0"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Version -->
+        <!-- ===== Logout Button ===== -->
+        <LinearLayout
+            android:id="@+id/btn_logout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_12"
+            android:elevation="2dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🚪"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="退出登录"
+                android:textColor="#F56565"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Version Info -->
         <TextView
-            android:id="@+id/tv_version"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:padding="16dp"
-            android:text="家收纳 v1.0.2 · 已是最新版本"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:text="家收纳 v1.0.2"
             android:textColor="#A0AEC0"
             android:textSize="11sp" />
 
