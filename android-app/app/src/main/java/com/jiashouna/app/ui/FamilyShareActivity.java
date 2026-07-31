@@ -28,23 +28,40 @@ public class FamilyShareActivity extends AppCompatActivity {
         btnCopyCode = findViewById(R.id.btn_copy_code);
         btnJoin = findViewById(R.id.btn_join);
 
-        btnCopyCode.setOnClickListener(v -> {
-            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            cm.setPrimaryClip(android.content.ClipData.newPlainText("invite_code", tvInviteCode.getText().toString()));
-            Toast.makeText(this, "已复制邀请码", Toast.LENGTH_SHORT).show();
-        });
+        // 返回按钮
+        View btnBack = findViewById(R.id.btn_back);
+        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
 
-        btnJoin.setOnClickListener(v -> joinHouse());
-        loadMembers();
+        if (btnCopyCode != null) {
+            btnCopyCode.setOnClickListener(v -> {
+                try {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    String code = tvInviteCode != null ? tvInviteCode.getText().toString() : "";
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("invite_code", code));
+                    Toast.makeText(this, "已复制邀请码", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "复制失败", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        if (btnJoin != null) btnJoin.setOnClickListener(v -> joinHouse());
+
+        try {
+            loadMembers();
+        } catch (Exception e) {
+            android.util.Log.e("FamilyShare", "loadMembers crash", e);
+            Toast.makeText(this, "加载失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void loadMembers() {
         int houseId = App.getInstance().getCurrentHouseId();
         if (houseId <= 0) {
-            runOnUiThread(() -> {
-                tvHouseName.setText("暂无家庭");
-                tvMemberCount.setText("0 位成员");
-                tvInviteCode.setText("");
+            if (tvHouseName != null) tvHouseName.setText("暂无家庭");
+            if (tvMemberCount != null) tvMemberCount.setText("0 位成员");
+            if (tvInviteCode != null) tvInviteCode.setText("");
+            if (llMembers != null) {
                 llMembers.removeAllViews();
 
                 // 显示创建家庭按钮
@@ -60,7 +77,7 @@ public class FamilyShareActivity extends AppCompatActivity {
                 createBtn.setLayoutParams(lp);
                 createBtn.setOnClickListener(v -> showCreateHouseDialog());
                 llMembers.addView(createBtn);
-            });
+            }
             return;
         }
 
