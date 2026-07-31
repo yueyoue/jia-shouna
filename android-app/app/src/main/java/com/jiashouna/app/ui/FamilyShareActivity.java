@@ -126,10 +126,10 @@ public class FamilyShareActivity extends AppCompatActivity {
             .setMessage("给你的家庭取个名字吧")
             .setView(et)
             .setPositiveButton("创建", (d, w) -> {
-                String name = et.getText().toString().trim();
-                if (name.isEmpty()) name = "我的家";
+                String input = et.getText().toString().trim();
+                final String houseName = input.isEmpty() ? "我的家" : input;
                 JsonObject body = new JsonObject();
-                body.addProperty("name", name);
+                body.addProperty("name", houseName);
                 ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
                     @Override public void onSuccess(JsonObject data) {
                         runOnUiThread(() -> {
@@ -137,7 +137,7 @@ public class FamilyShareActivity extends AppCompatActivity {
                                 if (data.has("id")) {
                                     int newHouseId = data.get("id").getAsInt();
                                     App.getInstance().setCurrentHouseId(newHouseId);
-                                    App.getInstance().setCurrentHouseName(name);
+                                    App.getInstance().setCurrentHouseName(houseName);
                                     Toast.makeText(FamilyShareActivity.this, "创建成功", Toast.LENGTH_SHORT).show();
                                     loadMembers();
                                 }
