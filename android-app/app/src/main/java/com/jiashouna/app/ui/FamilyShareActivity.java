@@ -130,17 +130,16 @@ public class FamilyShareActivity extends AppCompatActivity {
                 final String houseName = input.isEmpty() ? "我的家" : input;
                 JsonObject body = new JsonObject();
                 body.addProperty("name", houseName);
+                Toast.makeText(this, "正在创建...", Toast.LENGTH_SHORT).show();
                 ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
                     @Override public void onSuccess(JsonObject data) {
                         runOnUiThread(() -> {
                             try {
-                                if (data.has("id")) {
-                                    int newHouseId = data.get("id").getAsInt();
-                                    App.getInstance().setCurrentHouseId(newHouseId);
-                                    App.getInstance().setCurrentHouseName(houseName);
-                                    Toast.makeText(FamilyShareActivity.this, "创建成功", Toast.LENGTH_SHORT).show();
-                                    loadMembers();
-                                }
+                                int newHouseId = data.has("id") ? data.get("id").getAsInt() : 0;
+                                App.getInstance().setCurrentHouseId(newHouseId);
+                                App.getInstance().setCurrentHouseName(houseName);
+                                Toast.makeText(FamilyShareActivity.this, "创建成功！", Toast.LENGTH_SHORT).show();
+                                loadMembers();
                             } catch (Exception e) {
                                 Toast.makeText(FamilyShareActivity.this, "创建成功", Toast.LENGTH_SHORT).show();
                                 loadMembers();
@@ -148,7 +147,10 @@ public class FamilyShareActivity extends AppCompatActivity {
                         });
                     }
                     @Override public void onError(String msg) {
-                        runOnUiThread(() -> Toast.makeText(FamilyShareActivity.this, "创建失败: " + msg, Toast.LENGTH_SHORT).show());
+                        runOnUiThread(() -> {
+                            Toast.makeText(FamilyShareActivity.this, "创建失败: " + msg, Toast.LENGTH_LONG).show();
+                            android.util.Log.e("FamilyShare", "创建家庭失败: " + msg);
+                        });
                     }
                 });
             })
