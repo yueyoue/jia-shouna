@@ -86,7 +86,7 @@ public class AddSpaceActivity extends AppCompatActivity {
 
         btnSave.setOnClickListener(v -> saveSpace());
         btnCancel.setOnClickListener(v -> finish());
-        btnCreateHouse.setOnClickListener(v -> showCreateHouseDialog());
+        if (btnCreateHouse != null) btnCreateHouse.setOnClickListener(v -> showCreateHouseDialog());
         btnSelectParent.setOnClickListener(v -> loadParentSpaces());
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
