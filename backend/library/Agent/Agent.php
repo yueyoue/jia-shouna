@@ -36,7 +36,7 @@ class Agent {
 
     /**
      * 执行 AI 识别
-     * @param string $imageUrl 图片URL
+     * @param string $imageUrl 图片URL或本地路径
      * @return array 结构化识别结果
      */
     public function recognize($imageUrl) {
@@ -48,12 +48,45 @@ class Agent {
         try {
             $systemPrompt = get_ai_system_prompt();
 
+            // 将图片转为 base64 data URL（确保AI模型能访问）
+            $imageDataUrl = $imageUrl;
+            if (strpos($imageUrl, 'http') === 0) {
+                // 是URL，尝试下载转base64
+                $localPath = null;
+                // 尝试从URL中提取本地路径
+                $uploadPrefix = IMAGE_URL_PREFIX ?? '';
+                if (!empty($uploadPrefix) && strpos($imageUrl, $uploadPrefix) === 0) {
+                    $relative = substr($imageUrl, strlen($uploadPrefix));
+                    $localPath = UPLOAD_PATH . $relative;
+                }
+                if ($localPath && file_exists($localPath)) {
+                    // 本地文件直接读取
+                    $imgData = file_get_contents($localPath);
+                } else {
+                    // 下载远程图片
+                    $imgData = @file_get_contents($imageUrl);
+                }
+                if ($imgData) {
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo->buffer($imgData) ?: 'image/jpeg';
+                    $imageDataUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
+                }
+            } elseif (file_exists($imageUrl)) {
+                // 是本地文件路径
+                $imgData = file_get_contents($imageUrl);
+                if ($imgData) {
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo->buffer($imgData) ?: 'image/jpeg';
+                    $imageDataUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
+                }
+            }
+
             $messages = [
                 ['role' => 'system', 'content' => $systemPrompt],
                 [
                     'role' => 'user',
                     'content' => [
-                        ['type' => 'image_url', 'image_url' => ['url' => $imageUrl]],
+                        ['type' => 'image_url', 'image_url' => ['url' => $imageDataUrl]],
                         ['type' => 'text', 'text' => '请识别这张图片中的物品信息，优先解析条码。'],
                     ]
                 ]
