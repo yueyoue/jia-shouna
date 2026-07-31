@@ -121,14 +121,7 @@ switch ($action) {
                 'avatar' => '',
                 'role' => 2
             ],
-            'houses' => [[
-                'id' => $houseId,
-                'name' => $houseName,
-                'invite_code' => $inviteCode,
-                'creator_id' => $userId,
-                'member_role' => 1,
-                'is_current' => 1
-            ]]
+            'houses' => []
         ], '注册成功');
         break;
 
