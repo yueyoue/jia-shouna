@@ -400,13 +400,12 @@ public class AddItemActivity extends AppCompatActivity {
         okhttp3.MultipartBody.Builder builder = new okhttp3.MultipartBody.Builder()
             .setType(okhttp3.MultipartBody.FORM)
             .addFormDataPart("image", "photo.jpg",
-                okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes))
-            .addFormDataPart("prompt", "请识别图片中的物品，返回物品名称、品牌、条形码、分类（食品/药品/日用品/数码/化妆品/服装/鞋帽/其他）等信息");
+                okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), imageBytes));
         int houseId = App.getInstance().getCurrentHouseId();
         if (selectedSpaceId > 0) builder.addFormDataPart("space_id", String.valueOf(selectedSpaceId));
         if (houseId > 0) builder.addFormDataPart("house_id", String.valueOf(houseId));
         okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
-            .url(App.BASE_URL + "ai/recognize.php?action=recognize")
+            .url(App.BASE_URL + "image-recognize.php?action=recognize")
             .post(builder.build());
         String token = App.getInstance().getToken();
         if (token != null && !token.isEmpty()) reqBuilder.addHeader("Authorization", "Bearer " + token);
@@ -434,8 +433,19 @@ public class AddItemActivity extends AppCompatActivity {
                 return;
             }
             JsonObject data = json.getAsJsonObject("data");
-            String name = data.has("goods_name") ? data.get("goods_name").getAsString() : "";
-            String brand = data.has("brand") ? data.get("brand").getAsString() : "";
+            // 兼容两种返回格式: image-recognize.php 和 ai/recognize.php
+            String name = "";
+            if (data.has("suggested_name") && !data.get("suggested_name").getAsString().isEmpty()) {
+                name = data.get("suggested_name").getAsString();
+            } else if (data.has("goods_name")) {
+                name = data.get("goods_name").getAsString();
+            }
+            String brand = "";
+            if (data.has("suggested_brand") && !data.get("suggested_brand").getAsString().isEmpty()) {
+                brand = data.get("suggested_brand").getAsString();
+            } else if (data.has("brand")) {
+                brand = data.get("brand").getAsString();
+            }
             String barcode = data.has("barcode") ? data.get("barcode").getAsString() : "";
             String expireDate = data.has("expire_date") ? data.get("expire_date").getAsString() : "";
             double confidence = data.has("confidence") ? data.get("confidence").getAsDouble() : 0;
@@ -460,8 +470,13 @@ public class AddItemActivity extends AppCompatActivity {
                     }
                 } catch (Exception ignored) {}
             }
-            // 问题5: 提取分类
-            String category = data.has("category") ? data.get("category").getAsString() : "";
+            // 问题5: 提取分类（兼容两种格式）
+            String category = "";
+            if (data.has("suggested_category") && !data.get("suggested_category").getAsString().isEmpty()) {
+                category = data.get("suggested_category").getAsString();
+            } else if (data.has("category")) {
+                category = data.get("category").getAsString();
+            }
             String msg = "名称: " + name;
             if (!brand.isEmpty()) msg += "\n品牌: " + brand;
             if (!category.isEmpty()) msg += "\n分类: " + category;
