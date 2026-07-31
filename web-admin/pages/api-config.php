@@ -15,11 +15,31 @@ foreach ($recommended as $r) {
     }
 }
 
-// 自动补充缺失的面壁智能 AI 接口
+// 自动补充缺失的 AI 大模型接口（来源：nestback 项目）
 $recommended_ai = [
-    ['ai', '面壁智能 MiniCPM-V-4.6-Instruct', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Instruct","provider":"modelbest"}', 0, 50],
-    ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
-    ['ai', '面壁智能 MiniCPM-o-4.5', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-o-4.5","provider":"modelbest"}', 0, 40],
+    // === 面壁智能 / OpenBMB（公开免费Key） ===
+    ['ai', '面壁智能 MiniCPM-V-4.6-Instruct', 'https://api.modelbest.co/v1/chat/completions', 'lis_sk_298cf78155f231c7_DkrDcNLHnK8dJRnfFrJCd4JGDbBLMkHrC3T-wLpvC9zy0BPemsyFuQ', '', '{"model":"MiniCPM-V-4.6-Instruct","provider":"modelbest"}', 0, 50],
+    ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.co/v1/chat/completions', 'lis_sk_298cf78155f231c7_DkrDcNLHnK8dJRnfFrJCd4JGDbBLMkHrC3T-wLpvC9zy0BPemsyFuQ', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
+    ['ai', '面壁智能 MiniCPM-o-4.5', 'https://api.modelbest.co/v1/chat/completions', 'lis_sk_298cf78155f231c7_DkrDcNLHnK8dJRnfFrJCd4JGDbBLMkHrC3T-wLpvC9zy0BPemsyFuQ', '', '{"model":"MiniCPM-o-4.5","provider":"modelbest"}', 0, 40],
+    // === 智谱AI / Bigmodel（免费Flash模型） ===
+    ['ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100],
+    ['ai', '智谱 GLM-4.1V-Thinking-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4.1v-thinking-flash","provider":"zhipu"}', 0, 95],
+    ['ai', '智谱 GLM-4.6V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4.6v-flash","provider":"zhipu"}', 0, 90],
+    // === 硅基流动 / SiliconFlow（免费9B以下模型） ===
+    ['ai', '硅基流动 Qwen3.5-4B（免费）', 'https://api.siliconflow.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3.5-4B","provider":"siliconflow"}', 0, 35],
+    // === 魔搭社区 / ModelScope（每天2000次免费） ===
+    ['ai', '魔搭 Kimi-K2.6（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"moonshotai/Kimi-K2.6","provider":"modelscope"}', 0, 70],
+    ['ai', '魔搭 Qwen3.5-397B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3.5-397B-A17B","provider":"modelscope"}', 0, 65],
+    ['ai', '魔搭 Kimi-K2.5（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"moonshotai/Kimi-K2.5","provider":"modelscope"}', 0, 60],
+    ['ai', '魔搭 Qwen3.5-35B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3.5-35B-A3B","provider":"modelscope"}', 0, 55],
+    // === AIHubMix（免费模型，每天500次） ===
+    ['ai', 'AIHubMix GPT-4o（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gpt-4o-free","provider":"aihubmix"}', 0, 85],
+    ['ai', 'AIHubMix Gemini-3-Flash（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gemini-3-flash-preview-free","provider":"aihubmix"}', 0, 80],
+    ['ai', 'AIHubMix 小米MiMo（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"xiaomi-mimo-v2.5-pro-free","provider":"aihubmix"}', 0, 75],
+    ['ai', 'AIHubMix Step-3.7-Flash（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"step-3.7-flash-free","provider":"aihubmix"}', 0, 58],
+    // === OpenRouter（免费模型） ===
+    ['ai', 'OpenRouter Kimi-K2.6（免费）', 'https://openrouter.ai/api/v1/chat/completions', '', '', '{"model":"moonshotai/kimi-k2.6:free","provider":"openrouter"}', 0, 72],
+    ['ai', 'OpenRouter Gemma-4-31B（免费）', 'https://openrouter.ai/api/v1/chat/completions', '', '', '{"model":"google/gemma-4-31b-it:free","provider":"openrouter"}', 0, 68],
 ];
 foreach ($recommended_ai as $r) {
     $check = $db->prepare('SELECT id FROM api_config WHERE type = ? AND name = ? LIMIT 1');
