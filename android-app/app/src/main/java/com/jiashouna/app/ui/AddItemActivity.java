@@ -434,19 +434,21 @@ public class AddItemActivity extends AppCompatActivity {
             }
             JsonObject data = json.getAsJsonObject("data");
             // 兼容两种返回格式: image-recognize.php 和 ai/recognize.php
-            String name = "";
+            String tmpName = "";
             if (data.has("suggested_name") && !data.get("suggested_name").getAsString().isEmpty()) {
-                name = data.get("suggested_name").getAsString();
+                tmpName = data.get("suggested_name").getAsString();
             } else if (data.has("goods_name")) {
-                name = data.get("goods_name").getAsString();
+                tmpName = data.get("goods_name").getAsString();
             }
-            String brand = "";
+            final String name = tmpName;
+            String tmpBrand = "";
             if (data.has("suggested_brand") && !data.get("suggested_brand").getAsString().isEmpty()) {
-                brand = data.get("suggested_brand").getAsString();
+                tmpBrand = data.get("suggested_brand").getAsString();
             } else if (data.has("brand")) {
-                brand = data.get("brand").getAsString();
+                tmpBrand = data.get("brand").getAsString();
             }
-            String barcode = data.has("barcode") ? data.get("barcode").getAsString() : "";
+            final String brand = tmpBrand;
+            final String barcode = data.has("barcode") ? data.get("barcode").getAsString() : "";
             String expireDate = data.has("expire_date") ? data.get("expire_date").getAsString() : "";
             double confidence = data.has("confidence") ? data.get("confidence").getAsDouble() : 0;
             if (data.has("suggested_space_id") && !data.get("suggested_space_id").isJsonNull()) {
