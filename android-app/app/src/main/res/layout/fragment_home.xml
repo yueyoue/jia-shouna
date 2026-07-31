@@ -257,186 +257,192 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- 2×2 Grid -->
+                <!-- Row 1 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card_round20"
-                    android:elevation="2dp"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="horizontal">
 
-                    <!-- Row 1 -->
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:id="@+id/btn_scan"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_weight="1"
+                        android:layout_marginEnd="5dp"
+                        android:background="@drawable/bg_card_round20"
+                        android:elevation="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_circle_warm"
+                            android:gravity="center"
+                            android:text="📷"
+                            android:textSize="20sp" />
 
                         <LinearLayout
-                            android:id="@+id/btn_scan"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="12dp">
+                            android:layout_marginStart="10dp"
+                            android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:background="@drawable/bg_circle_warm"
-                                android:gravity="center"
-                                android:text="📷"
-                                android:textSize="22sp" />
-
-                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="扫码录入"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="条码/二维码"
-                                    android:textColor="@color/text_hint"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/btn_photo"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="12dp">
+                                android:text="扫码录入"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
 
                             <TextView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:background="@drawable/bg_circle_green"
-                                android:gravity="center"
-                                android:text="📸"
-                                android:textSize="22sp" />
-
-                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="拍照识别"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="AI自动识别"
-                                    android:textColor="@color/text_hint"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
+                                android:text="条码/二维码"
+                                android:textColor="@color/text_hint"
+                                android:textSize="11sp" />
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Row 2 -->
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:id="@+id/btn_photo"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_weight="1"
+                        android:layout_marginStart="5dp"
+                        android:background="@drawable/bg_card_round20"
+                        android:elevation="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_circle_green"
+                            android:gravity="center"
+                            android:text="📸"
+                            android:textSize="20sp" />
 
                         <LinearLayout
-                            android:id="@+id/btn_manual"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="12dp">
+                            android:layout_marginStart="10dp"
+                            android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:background="@drawable/bg_icon_blue_light"
-                                android:gravity="center"
-                                android:text="✏️"
-                                android:textSize="22sp" />
-
-                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:orientation="vertical">
+                                android:text="拍照识别"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="手动录入"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="自定义详情"
-                                    android:textColor="@color/text_hint"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="AI自动识别"
+                                android:textColor="@color/text_hint"
+                                android:textSize="11sp" />
                         </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="10dp" />
+
+                <!-- Row 2 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/btn_manual"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="5dp"
+                        android:background="@drawable/bg_card_round20"
+                        android:elevation="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_icon_blue_light"
+                            android:gravity="center"
+                            android:text="✏️"
+                            android:textSize="20sp" />
 
                         <LinearLayout
-                            android:id="@+id/btn_ai_scan"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="12dp">
+                            android:layout_marginStart="10dp"
+                            android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:background="@drawable/bg_icon_purple_light"
-                                android:gravity="center"
-                                android:text="✨"
-                                android:textSize="22sp" />
-
-                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:orientation="vertical">
+                                android:text="手动录入"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="AI识别"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="自定义详情"
+                                android:textColor="@color/text_hint"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </LinearLayout>
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="智能填充"
-                                    android:textColor="@color/text_hint"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/btn_ai_scan"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="5dp"
+                        android:background="@drawable/bg_card_round20"
+                        android:elevation="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_icon_purple_light"
+                            android:gravity="center"
+                            android:text="✨"
+                            android:textSize="20sp" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="AI识别"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="智能填充"
+                                android:textColor="@color/text_hint"
+                                android:textSize="11sp" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>

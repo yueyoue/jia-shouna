@@ -101,17 +101,7 @@ switch ($action) {
         $stmt->execute([$username, $hashedPassword, $nickname, $phone, $now, $now]);
         $userId = $db->lastInsertId();
 
-        // 创建默认房屋
-        $inviteCode = generateInviteCode();
-        $stmt = $db->prepare("INSERT INTO house (name, invite_code, creator_id, member_count, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)");
-        $stmt->execute([$houseName, $inviteCode, $userId, $now, $now]);
-        $houseId = $db->lastInsertId();
-
-        // 加入房屋成员
-        $stmt = $db->prepare("INSERT INTO house_member (house_id, user_id, role, is_current, joined_at) VALUES (?, ?, 1, 1, ?)");
-        $stmt->execute([$houseId, $userId, $now]);
-
-        // 生成Token
+        // 生成Token（不自动创建房屋，用户需手动在“我的-我的家庭”中创建）
         $token = JWT::encode([
             'user_id' => $userId,
             'username' => $username,
