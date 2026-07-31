@@ -397,6 +397,7 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void callAiRecognize(byte[] imageBytes) {
         Toast.makeText(this, "AI 正在识别...", Toast.LENGTH_SHORT).show();
+        android.util.Log.d("AddItem", "callAiRecognize: imageBytes.length=" + imageBytes.length);
         okhttp3.MultipartBody.Builder builder = new okhttp3.MultipartBody.Builder()
             .setType(okhttp3.MultipartBody.FORM)
             .addFormDataPart("image", "photo.jpg",
@@ -420,6 +421,7 @@ public class AddItemActivity extends AppCompatActivity {
                 }
                 @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
                     String body = response.body() != null ? response.body().string() : "";
+                    android.util.Log.d("AddItem", "AI response code=" + response.code() + " body=" + body.substring(0, Math.min(200, body.length())));
                     runOnUiThread(() -> handleAiResult(body));
                 }
             });
@@ -626,7 +628,7 @@ public class AddItemActivity extends AppCompatActivity {
             try {
                 Bitmap bitmap = null;
                 if (cameraImageUri != null) {
-                    try { bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri); } catch (Exception ignored) {}
+                    try { bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri); } catch (Exception e) { android.util.Log.e("AddItem", "load from URI failed", e); }
                 }
                 if (bitmap == null && data != null) {
                     Bundle extras = data.getExtras();
@@ -636,17 +638,26 @@ public class AddItemActivity extends AppCompatActivity {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
                     callAiRecognize(baos.toByteArray());
+                } else {
+                    Toast.makeText(this, "拍照获取失败，请重试", Toast.LENGTH_SHORT).show();
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                Toast.makeText(this, "拍照处理失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                android.util.Log.e("AddItem", "AI photo error", e);
+            }
         } else if (requestCode == REQUEST_GALLERY && data != null) {
             try {
                 Uri imageUri = data.getData();
                 if (imageUri != null) {
                     Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
                     addPhotoToList(bitmap);
+                    // 从相册选取后也调用AI识别
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+                    callAiRecognize(baos.toByteArray());
                 }
             } catch (Exception e) {
-                Toast.makeText(this, "图片加载失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "图片加载失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }
     }
