@@ -434,6 +434,9 @@ CREATE TABLE IF NOT EXISTS `ai_tool_call_log` (
 INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `api_secret`, `extra_params`, `is_active`, `priority`, `total_calls`, `success_calls`, `created_at`, `updated_at`) VALUES
 ('ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('ai', '火山引擎 豆包 Vision', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', '', '', '{"model":"doubao-vision-pro-32k","provider":"doubao"}', 0, 80, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('ai', '百度文心 ERNIE-Speed', 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/ernie-speed-128k', '', '', '{"model":"ernie-speed-128k","provider":"ernie"}', 0, 60, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+('ai', '百度文心 ERNIE-Speed', 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/ernie-speed-128k', '', '', '{"model":"ernie-speed-128k","provider":"ernie"}', 0, 60, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '面壁智能 MiniCPM-V-4.6-Instruct', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Instruct","provider":"modelbest"}', 0, 50, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '面壁智能 MiniCPM-o-4.5', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-o-4.5","provider":"modelbest"}', 0, 40, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -200,20 +200,29 @@ public class SpacesFragment extends Fragment {
                 }
             });
 
+            // Single click: navigate to space detail
+            roomHeader.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
+                intent.putExtra("space_id", finalRoomId);
+                intent.putExtra("space_name", room.has("name") ? room.get("name").getAsString() : "");
+                intent.putExtra("house_id", selectedHouseId);
+                startActivity(intent);
+            });
+
             if (hasChildren) {
-                roomHeader.setOnClickListener(v -> {
+                // Long click: toggle expand/collapse
+                roomHeader.setOnLongClickListener(v -> {
                     boolean currentlyExpanded = finalSubItems.getVisibility() == View.VISIBLE;
                     if (currentlyExpanded) {
                         finalSubItems.setVisibility(View.GONE);
                         expandedState.put(finalRoomId, false);
-                        // Animate arrow
                         if (arrowRef[0] != null) arrowRef[0].setText("▶");
                     } else {
                         finalSubItems.setVisibility(View.VISIBLE);
                         expandedState.put(finalRoomId, true);
-                        // Animate arrow
                         if (arrowRef[0] != null) arrowRef[0].setText("▼");
                     }
+                    return true;
                 });
             }
 
@@ -285,16 +294,6 @@ public class SpacesFragment extends Fragment {
             arrow.setLayoutParams(arrowLp);
             header.addView(arrow);
         }
-
-        // Click to navigate to space detail
-        header.setOnLongClickListener(v -> {
-            Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
-            intent.putExtra("space_id", id);
-            intent.putExtra("space_name", name);
-            intent.putExtra("house_id", selectedHouseId);
-            startActivity(intent);
-            return true;
-        });
 
         return header;
     }

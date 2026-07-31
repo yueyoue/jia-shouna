@@ -15,6 +15,22 @@ foreach ($recommended as $r) {
     }
 }
 
+// 自动补充缺失的面壁智能 AI 接口
+$recommended_ai = [
+    ['ai', '面壁智能 MiniCPM-V-4.6-Instruct', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Instruct","provider":"modelbest"}', 0, 50],
+    ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
+    ['ai', '面壁智能 MiniCPM-o-4.5', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-o-4.5","provider":"modelbest"}', 0, 40],
+];
+foreach ($recommended_ai as $r) {
+    $check = $db->prepare('SELECT id FROM api_config WHERE type = ? AND name = ? LIMIT 1');
+    $check->execute([$r[0], $r[1]]);
+    if (!$check->fetch()) {
+        $extraJson = $r[5];
+        $ins = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, api_secret, extra_params, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
+        $ins->execute([$r[0], $r[1], $r[2], $r[3], $r[4], $extraJson, $r[6], $r[7], time(), time()]);
+    }
+}
+
 // 处理POST操作
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -30,8 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $apiKey = trim($_POST['api_key'] ?? '');
         $apiSecret = trim($_POST['api_secret'] ?? '');
         if ($name && $apiUrl) {
-            $stmt = $db->prepare("INSERT INTO api_config (type, name, api_url, api_key, api_secret, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, 1, 0, 0, ?, ?)");
-            $stmt->execute([$type, $name, $apiUrl, $apiKey, $apiSecret, time(), time()]);
+            $extraParams = '';
+            if ($type === 'ai') {
+                $model = trim($_POST['ai_model'] ?? '');
+                $provider = trim($_POST['ai_provider'] ?? 'custom');
+                if ($model) {
+                    $extraParams = json_encode(['model' => $model, 'provider' => $provider], JSON_UNESCAPED_UNICODE);
+                }
+            }
+            $stmt = $db->prepare("INSERT INTO api_config (type, name, api_url, api_key, api_secret, extra_params, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 1, 0, 0, ?, ?)");
+            $stmt->execute([$type, $name, $apiUrl, $apiKey, $apiSecret, $extraParams, time(), time()]);
             $msg = '接口添加成功';
         } else {
             $error = '请填写接口名称和地址';
@@ -58,6 +82,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
         foreach ($defaults as $d) {
             $stmt->execute([$d[0], $d[1], $d[2], $d[3], $d[4], $d[5], $now, $now]);
+        }
+        // AI 服务商默认配置
+        $aiDefaults = [
+            ['ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100],
+            ['ai', '火山引擎 豆包 Vision', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', '', '', '{"model":"doubao-vision-pro-32k","provider":"doubao"}', 0, 80],
+            ['ai', '百度文心 ERNIE-Speed', 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/ernie-speed-128k', '', '', '{"model":"ernie-speed-128k","provider":"ernie"}', 0, 60],
+            ['ai', '面壁智能 MiniCPM-V-4.6-Instruct', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Instruct","provider":"modelbest"}', 0, 50],
+            ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
+            ['ai', '面壁智能 MiniCPM-o-4.5', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-o-4.5","provider":"modelbest"}', 0, 40],
+        ];
+        $aiStmt = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, api_secret, extra_params, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
+        foreach ($aiDefaults as $d) {
+            $aiStmt->execute([$d[0], $d[1], $d[2], $d[3], $d[4], $d[5], $d[6], $d[7], $now, $now]);
         }
         $msg = '已恢复默认接口配置';
     } elseif ($action === 'test') {
@@ -466,6 +503,8 @@ function toggleEdit(id) {
 }
 function showAddApi(type) {
     document.getElementById('add-api-type').value = type;
+    var aiFields = document.getElementById('ai-fields');
+    if (aiFields) aiFields.style.display = (type === 'ai') ? 'block' : 'none';
     document.getElementById('add-api-modal').style.display = 'flex';
 }
 function hideAddApi() {
@@ -487,6 +526,10 @@ function hideAddApi() {
             <div class="form-group"><label class="form-label">接口地址 *</label><input name="api_url" class="form-control" placeholder="如：https://api.example.com/barcode/{barcode}  ({barcode}会被替换为实际条码)" required></div>
             <div class="form-group"><label class="form-label">API Key</label><input name="api_key" class="form-control" placeholder="可选"></div>
             <div class="form-group"><label class="form-label">Secret Key</label><input name="api_secret" class="form-control" placeholder="可选"></div>
+            <div id="ai-fields" style="display:none">
+                <div class="form-group"><label class="form-label">模型名称 *</label><input name="ai_model" class="form-control" placeholder="如：MiniCPM-V-4.6-Instruct、glm-4v-flash"></div>
+                <div class="form-group"><label class="form-label">Provider 标识</label><input name="ai_provider" class="form-control" placeholder="如：modelbest、zhipu（用于区分服务商）" value="custom"></div>
+            </div>
             <button type="submit" class="btn btn-primary btn-lg" style="width:100%">添加接口</button>
         </form>
     </div>

@@ -106,6 +106,27 @@ public class FamilyShareActivity extends AppCompatActivity {
             }
             @Override public void onError(String msg) {}
         });
+
+        // 加载邀请码
+        HashMap<String, String> codeParams = new HashMap<>();
+        codeParams.put("house_id", String.valueOf(houseId));
+        ApiClient.get("house.php?action=invite_code", codeParams, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        if (data.has("code")) {
+                            String code = data.get("code").getAsString();
+                            if (tvInviteCode != null) tvInviteCode.setText(code);
+                        }
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                // 邀请码加载失败时保持默认显示
+            }
+        });
     }
 
     private void joinHouse() {
