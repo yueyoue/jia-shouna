@@ -29,7 +29,71 @@ switch ($action) {
         $imageData = file_get_contents($tmpPath);
         $base64Image = base64_encode($imageData);
 
-        // 获取已启用的图像识别API配置
+        // 优先获取已启用的 AI 大模型配置（type='ai'）
+        $aiConfig = null;
+        try {
+            require_once __DIR__ . '/../config/ai.php';
+            $aiConfig = get_ai_config();
+        } catch (Exception $e) {
+            // AI 配置不可用，忽略
+        }
+
+        // 如果有 AI 大模型配置，走 Agent 类识别
+        if ($aiConfig) {
+            // 保存图片到服务器
+            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $dir = UPLOAD_PATH . 'images/' . date('Ym') . '/';
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
+            $filename = generateFileName($ext);
+            $filepath = $dir . $filename;
+            $relativePath = 'images/' . date('Ym') . '/' . $filename;
+            move_uploaded_file($tmpPath, $filepath);
+
+            $imageUrl = IMAGE_URL_PREFIX . $relativePath;
+
+            try {
+                require_once __DIR__ . '/../library/Agent/Agent.php';
+                require_once __DIR__ . '/../library/Agent/Tools/BarcodeTool.php';
+                require_once __DIR__ . '/../library/Agent/Tools/MatchGoodsTool.php';
+                require_once __DIR__ . '/../library/Agent/Tools/SpacesTool.php';
+
+                $agent = new Agent($user['id']);
+                register_barcode_tool($agent);
+                register_match_goods_tool($agent);
+                register_spaces_tool($agent);
+
+                $startTime = microtime(true);
+                $aiResult = $agent->recognize($imageUrl);
+                $duration = intval((microtime(true) - $startTime) * 1000);
+
+                // 更新 API 调用统计
+                $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
+                    ->execute([time(), $aiConfig['id']]);
+                $db->prepare("UPDATE api_config SET success_calls = success_calls + 1 WHERE id = ?")
+                    ->execute([time(), $aiConfig['id']]);
+
+                success([
+                    'recognized' => true,
+                    'suggested_name' => $aiResult['goods_name'] ?? '',
+                    'suggested_category' => $aiResult['category'] ?? '',
+                    'suggested_brand' => $aiResult['brand'] ?? '',
+                    'suggested_tags' => [],
+                    'barcode' => $aiResult['barcode'] ?? '',
+                    'confidence' => $aiResult['confidence'] ?? 0,
+                    'image_path' => $relativePath,
+                    'image_url' => $imageUrl
+                ]);
+                break;
+
+            } catch (Exception $e) {
+                // AI 识别失败，记录错误并降级到传统图像识别
+                $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
+                    ->execute([time(), $aiConfig['id']]);
+                // 继续走传统图像识别
+            }
+        }
+
+        // 降级：获取已启用的传统图像识别API配置（type='image'）
         $stmt = $db->prepare("SELECT * FROM api_config WHERE type = 'image' AND is_active = 1 ORDER BY priority DESC LIMIT 1");
         $stmt->execute();
         $apiConfig = $stmt->fetch();
@@ -38,7 +102,7 @@ switch ($action) {
             // 没有配置图像识别API，返回提示让用户手动输入
             success([
                 'recognized' => false,
-                'message' => '图像识别API未配置，请手动输入物品信息',
+                'message' => '图像识别API未配置，请在管理后台配置 AI 识别或图像识别接口',
                 'suggested_name' => '',
                 'suggested_category' => '',
                 'barcode' => ''
