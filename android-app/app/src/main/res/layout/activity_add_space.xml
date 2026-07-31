@@ -87,6 +87,13 @@
                         android:text="所属房屋"
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/btn_create_house"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        android:text="+ 新建家" />
                 </LinearLayout>
 
                 <!-- 房屋列表 RadioGroup -->
