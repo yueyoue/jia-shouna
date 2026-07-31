@@ -39,8 +39,33 @@ public class FamilyShareActivity extends AppCompatActivity {
     }
 
     private void loadMembers() {
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (houseId <= 0) {
+            runOnUiThread(() -> {
+                tvHouseName.setText("暂无家庭");
+                tvMemberCount.setText("0 位成员");
+                tvInviteCode.setText("");
+                llMembers.removeAllViews();
+
+                // 显示创建家庭按钮
+                TextView createBtn = new TextView(this);
+                createBtn.setText("+ 创建家庭");
+                createBtn.setTextSize(15);
+                createBtn.setTextColor(0xFFFFFFFF);
+                createBtn.setGravity(android.view.Gravity.CENTER);
+                createBtn.setBackgroundResource(R.drawable.bg_button_primary_warm);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
+                lp.setMargins(dp(16), dp(20), dp(16), 0);
+                createBtn.setLayoutParams(lp);
+                createBtn.setOnClickListener(v -> showCreateHouseDialog());
+                llMembers.addView(createBtn);
+            });
+            return;
+        }
+
         HashMap<String, String> params = new HashMap<>();
-        params.put("house_id", String.valueOf(App.getInstance().getCurrentHouseId()));
+        params.put("house_id", String.valueOf(houseId));
 
         ApiClient.get("house.php?action=members", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
@@ -91,5 +116,47 @@ public class FamilyShareActivity extends AppCompatActivity {
             })
             .setNegativeButton("取消", null)
             .show();
+    }
+
+    private void showCreateHouseDialog() {
+        EditText et = new EditText(this);
+        et.setHint("例如：我的家");
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("创建家庭")
+            .setMessage("给你的家庭取个名字吧")
+            .setView(et)
+            .setPositiveButton("创建", (d, w) -> {
+                String name = et.getText().toString().trim();
+                if (name.isEmpty()) name = "我的家";
+                JsonObject body = new JsonObject();
+                body.addProperty("name", name);
+                ApiClient.post("house.php?action=create", body, new ApiClient.ApiCallback() {
+                    @Override public void onSuccess(JsonObject data) {
+                        runOnUiThread(() -> {
+                            try {
+                                if (data.has("id")) {
+                                    int newHouseId = data.get("id").getAsInt();
+                                    App.getInstance().setCurrentHouseId(newHouseId);
+                                    App.getInstance().setCurrentHouseName(name);
+                                    Toast.makeText(FamilyShareActivity.this, "创建成功", Toast.LENGTH_SHORT).show();
+                                    loadMembers();
+                                }
+                            } catch (Exception e) {
+                                Toast.makeText(FamilyShareActivity.this, "创建成功", Toast.LENGTH_SHORT).show();
+                                loadMembers();
+                            }
+                        });
+                    }
+                    @Override public void onError(String msg) {
+                        runOnUiThread(() -> Toast.makeText(FamilyShareActivity.this, "创建失败: " + msg, Toast.LENGTH_SHORT).show());
+                    }
+                });
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 }

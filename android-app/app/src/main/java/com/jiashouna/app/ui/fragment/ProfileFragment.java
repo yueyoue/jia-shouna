@@ -237,7 +237,15 @@ public class ProfileFragment extends Fragment {
                                 }
                             } else {
                                 if (tvHouseName != null) tvHouseName.setText("暂无家庭");
-                                if (tvMemberCount != null) tvMemberCount.setText("点击创建家庭");
+                                if (tvMemberCount != null) {
+                                    tvMemberCount.setText("点击创建家庭");
+                                    tvMemberCount.setTextColor(0xFFC48F4E);
+                                    tvMemberCount.setOnClickListener(e -> {
+                                        try {
+                                            startActivity(new Intent(getActivity(), FamilyShareActivity.class));
+                                        } catch (Exception ex) {}
+                                    });
+                                }
                                 if (tvInviteCode != null) tvInviteCode.setText("");
                             }
                         }
