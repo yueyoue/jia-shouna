@@ -17,10 +17,10 @@ foreach ($recommended as $r) {
 
 // 自动补充缺失的 AI 大模型接口（来源：nestback 项目）
 $recommended_ai = [
-    // === 面壁智能 / OpenBMB（公开免费Key） ===
-    ['ai', '面壁智能 MiniCPM-V-4.6-Instruct', 'https://api.modelbest.co/v1/chat/completions', 'lis_sk_298cf78155f231c7_DkrDcNLHnK8dJRnfFrJCd4JGDbBLMkHrC3T-wLpvC9zy0BPemsyFuQ', '', '{"model":"MiniCPM-V-4.6-Instruct","provider":"modelbest"}', 0, 50],
-    ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.co/v1/chat/completions', 'lis_sk_298cf78155f231c7_DkrDcNLHnK8dJRnfFrJCd4JGDbBLMkHrC3T-wLpvC9zy0BPemsyFuQ', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
-    ['ai', '面壁智能 MiniCPM-o-4.5', 'https://api.modelbest.co/v1/chat/completions', 'lis_sk_298cf78155f231c7_DkrDcNLHnK8dJRnfFrJCd4JGDbBLMkHrC3T-wLpvC9zy0BPemsyFuQ', '', '{"model":"MiniCPM-o-4.5","provider":"modelbest"}', 0, 40],
+    // === 面壁智能 / OpenBMB（官方公开免费Key） ===
+    ['ai', '面壁智能 MiniCPM-V-4.6-1B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-1B","provider":"modelbest"}', 0, 50],
+    ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
+    ['ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 40],
     // === 智谱AI / Bigmodel（免费Flash模型） ===
     ['ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100],
     ['ai', '智谱 GLM-4.1V-Thinking-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4.1v-thinking-flash","provider":"zhipu"}', 0, 95],
@@ -108,9 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ['ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100],
             ['ai', '火山引擎 豆包 Vision', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', '', '', '{"model":"doubao-vision-pro-32k","provider":"doubao"}', 0, 80],
             ['ai', '百度文心 ERNIE-Speed', 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/ernie-speed-128k', '', '', '{"model":"ernie-speed-128k","provider":"ernie"}', 0, 60],
-            ['ai', '面壁智能 MiniCPM-V-4.6-Instruct', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Instruct","provider":"modelbest"}', 0, 50],
-            ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
-            ['ai', '面壁智能 MiniCPM-o-4.5', 'https://api.modelbest.co/v1/chat/completions', '', '', '{"model":"MiniCPM-o-4.5","provider":"modelbest"}', 0, 40],
+            ['ai', '面壁智能 MiniCPM-V-4.6-1B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-1B","provider":"modelbest"}', 0, 50],
+            ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
+            ['ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 40],
         ];
         $aiStmt = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, api_secret, extra_params, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
         foreach ($aiDefaults as $d) {
@@ -551,7 +551,7 @@ function hideAddApi() {
             <div class="form-group"><label class="form-label">API Key</label><input name="api_key" class="form-control" placeholder="可选"></div>
             <div class="form-group"><label class="form-label">Secret Key</label><input name="api_secret" class="form-control" placeholder="可选"></div>
             <div id="ai-fields" style="display:none">
-                <div class="form-group"><label class="form-label">模型名称 *</label><input name="ai_model" class="form-control" placeholder="如：MiniCPM-V-4.6-Instruct、glm-4v-flash"></div>
+                <div class="form-group"><label class="form-label">模型名称 *</label><input name="ai_model" class="form-control" placeholder="如：MiniCPM-V-4.6-1B、glm-4v-flash"></div>
                 <div class="form-group"><label class="form-label">Provider 标识</label><input name="ai_provider" class="form-control" placeholder="如：modelbest、zhipu（用于区分服务商）" value="custom"></div>
             </div>
             <button type="submit" class="btn btn-primary btn-lg" style="width:100%">添加接口</button>
