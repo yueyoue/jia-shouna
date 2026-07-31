@@ -442,6 +442,10 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
                         <input type="text" name="api_key" class="form-control" value="<?= htmlspecialchars($api['api_key']) ?>" placeholder="输入 AI 服务商的 API Key">
                     </div>
                 </div>
+                <div class="form-group" style="margin-top:12px;margin-bottom:0">
+                    <label class="form-label">优先级 <span style="font-size:10px;color:#A0AEC0">（越大越优先，相同优先级启用多个时按创建顺序）</span></label>
+                    <input type="number" name="priority" class="form-control" value="<?= intval($api['priority']) ?>" min="0" max="100" style="width:120px">
+                </div>
                 <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
                     <label class="switch">
                         <input type="checkbox" name="is_active" <?= $api['is_active'] ? 'checked' : '' ?>>
