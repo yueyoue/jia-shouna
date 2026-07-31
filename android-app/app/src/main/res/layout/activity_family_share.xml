@@ -214,12 +214,13 @@
             </LinearLayout>
 
             <!-- 加入其他房屋 -->
-            <Button
+            <TextView
                 android:id="@+id/btn_join"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_button_outline_warm"
+                android:gravity="center"
                 android:text="🔗 加入其他房屋"
                 android:textColor="@color/primary"
                 android:textSize="13sp" />

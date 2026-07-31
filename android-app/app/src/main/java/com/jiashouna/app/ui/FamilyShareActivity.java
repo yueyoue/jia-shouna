@@ -14,7 +14,7 @@ import java.util.HashMap;
 public class FamilyShareActivity extends AppCompatActivity {
     private TextView tvHouseName, tvInviteCode, tvMemberCount;
     private LinearLayout llMembers;
-    private Button btnCopyCode, btnJoin;
+    private TextView btnCopyCode, btnJoin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
