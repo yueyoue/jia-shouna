@@ -268,9 +268,85 @@ curl -L -o /path/to/file https://ghp.ci/https://raw.githubusercontent.com/yueyou
 
 ## 八、当前已知未解决问题
 
-1. **APP 端识别结果解析偶尔失败** — 后端返回正确结果，但 APP 的 `handleAiResult()` 偶尔抛异常。原因待查（已加详细错误弹窗，下次复发可看到具体异常）
-2. **Agent.php 的 SQL 日志操作** — `createCallLog`/`updateCallLog` 有参数不匹配问题，已用 try-catch 兜底，不影响识别功能，但日志记录不完整
-3. **面壁智能公开 Key 已失效** — 需要注册自己的 Key 或换平台
+### 🔴 严重：APP 端识别结果解析失败（后端已成功，APP 解析崩）
+
+**状态**：未解决
+**优先级**：高
+**影响**：AI 识别功能在 APP 端完全不可用
+
+**现象**：
+- 后端日志显示 Agent 成功返回了完整识别结果（如：蓝芩口服液、龙凤堂、药品）
+- nginx 错误日志无新错误
+- APP 弹出「识别结果解析失败」
+- 后端返回的 JSON 格式完全正确
+
+**后端返回示例（已验证正确）**：
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "recognized": true,
+    "suggested_name": "蓝芩口服液",
+    "suggested_category": "药品",
+    "suggested_brand": "龙凤堂",
+    "barcode": "8441682 034805288453",
+    "confidence": 0.9
+  }
+}
+```
+
+**涉及文件**：
+- `android-app/app/src/main/java/com/jiashouna/app/ui/AddItemActivity.java`
+  - `handleAiResult()` 方法（约第 430 行）
+  - `handleRecognizeResult()` 方法（约第 793 行）
+  - `callAiRecognize()` 方法（约第 398 行）
+
+**排查方向**：
+1. APP 端有两个识别结果处理方法：`handleAiResult()` 和 `handleRecognizeResult()`，需确认哪个被调用
+2. catch 块只显示 `"识别结果解析失败"` 没有具体异常信息，已改为弹窗显示异常详情（见提交 `41ae09a`），重新编译 APP 后可看到具体报错
+3. 可能的原因：
+   - `data.get("confidence").getAsDouble()` 类型转换失败（后端返回整数 0 而非浮点数 0.9）
+   - `data.getAsJsonObject("data")` 返回 null
+   - APP 端 Gson 版本与 JSON 格式不兼容
+   - `response.body().string()` 被调用两次导致第二次为空（OkHttp 限制）
+4. 建议先重新编译 APP 获取详细异常信息，再定位具体代码行
+
+**调试步骤**：
+```bash
+# 1. 确认后端正常（用 curl 测试）
+curl -s 'https://sn.tthsdd.top/backend/api/auth.php?action=login' -H 'Content-Type: application/json' -d '{"username":"admin","password":"***"}'
+# 用返回的 token 测试
+python3 -c "... 见上方 Python 测试代码 ..."
+
+# 2. 查看后端日志
+tail -5 /www/wwwlogs/sn.tthsdd.top.error.log
+tail -10 /www/wwwroot/sn.tthsdd.top/backend/api/debug_ai.log
+
+# 3. 重新编译 APP 后查看 Logcat
+adb logcat -s AddItem
+```
+
+---
+
+### 🟡 中等：Agent.php 的 SQL 日志操作报错
+
+**状态**：已用 try-catch 兜底
+**影响**：不影响识别功能，但 ai_call_log 表日志记录不完整
+
+**原因**：`createCallLog` / `updateCallLog` / `updateApiStats` 的 SQL 语句参数与 ai_call_log 表结构不匹配
+**临时修复**：三个方法都加了 try-catch，异常只写 error_log 不阻塞主流程
+**正式修复**：需检查 ai_call_log 表的实际结构，修正 INSERT/UPDATE 语句
+
+---
+
+### 🟡 中等：面壁智能公开 Key 失效
+
+**状态**：未解决
+**原因**：公开 Key（`sk-liv…TsXw`）调用次数过多被面壁智能封禁，返回 `invalid_api_key`
+**解决方案**：
+- 注册面壁智能开放平台获取自己的 Key
+- 或使用其他平台（智谱/魔搭/AIHubMix）
 
 ---
 
