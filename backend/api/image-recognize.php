@@ -1,7 +1,17 @@
 <?php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
+ini_set('log_errors', 0);
 error_reporting(E_ALL);
+header('Content-Type: application/json; charset=utf-8');
+
+// 临时调试：记录到文件
+function debug_log($msg) {
+    file_put_contents(__DIR__ . '/debug_ai.log', date('H:i:s') . ' ' . $msg . "\n", FILE_APPEND);
+}
+debug_log('=== 新请求 ===');
+
+try {
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/helpers.php';
 /**
@@ -55,16 +65,18 @@ switch ($action) {
             $imageUrl = IMAGE_URL_PREFIX . $relativePath;
 
             try {
+                debug_log('开始AI识别, imageUrl=' . $imageUrl);
+                debug_log('aiConfig=' . json_encode($aiConfig, JSON_UNESCAPED_UNICODE));
+
                 require_once __DIR__ . '/../library/Agent/Agent.php';
-                require_once __DIR__ . '/../library/Agent/Tools/BarcodeTool.php';
-                require_once __DIR__ . '/../library/Agent/Tools/MatchGoodsTool.php';
-                require_once __DIR__ . '/../library/Agent/Tools/SpacesTool.php';
+                debug_log('Agent.php loaded');
 
                 $agent = new Agent($user['id']);
-                // 不注册 tools，避免免费模型不支持 function calling 导致报错
+                debug_log('Agent created');
 
                 $startTime = microtime(true);
                 $aiResult = $agent->recognize($imageUrl);
+                debug_log('Agent result: ' . json_encode($aiResult, JSON_UNESCAPED_UNICODE));
                 $duration = intval((microtime(true) - $startTime) * 1000);
 
                 // 更新 API 调用统计
@@ -541,4 +553,11 @@ function mapCategory($name) {
         }
     }
     return '其他';
+}
+
+} catch (Throwable $e) {
+    debug_log('致命错误: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    http_response_code(500);
+    echo json_encode(['code' => 500, 'msg' => '服务器错误: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    exit;
 }
