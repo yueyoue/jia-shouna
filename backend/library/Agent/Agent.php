@@ -67,16 +67,14 @@ class Agent {
                     $imgData = @file_get_contents($imageUrl);
                 }
                 if ($imgData) {
-                    $finfo = new finfo(FILEINFO_MIME_TYPE);
-                    $mime = $finfo->buffer($imgData) ?: 'image/jpeg';
+                    $mime = $this->detectMime($imgData, $imageUrl);
                     $imageDataUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
                 }
             } elseif (file_exists($imageUrl)) {
                 // 是本地文件路径
                 $imgData = file_get_contents($imageUrl);
                 if ($imgData) {
-                    $finfo = new finfo(FILEINFO_MIME_TYPE);
-                    $mime = $finfo->buffer($imgData) ?: 'image/jpeg';
+                    $mime = $this->detectMime($imgData, $imageUrl);
                     $imageDataUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
                 }
             }
@@ -323,6 +321,22 @@ class Agent {
             'storage_tip'  => trim($result['storage_tip'] ?? $result['storage_suggestion'] ?? ''),
             'confidence'   => floatval($result['confidence'] ?? 0.8),
         ];
+    }
+
+    /**
+     * 检测图片MIME类型（不依赖finfo扩展）
+     */
+    private function detectMime($data, $path = '') {
+        // 通过文件头魔数检测
+        $header = substr($data, 0, 4);
+        if (substr($header, 0, 3) === "\xFF\xD8\xFF") return 'image/jpeg';
+        if (substr($header, 0, 8) === "\x89PNG\r\n\x1a\n") return 'image/png';
+        if (substr($header, 0, 4) === 'GIF8') return 'image/gif';
+        if (substr($header, 0, 4) === 'RIFF') return 'image/webp';
+        // 通过扩展名检测
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $map = ['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','gif'=>'image/gif','webp'=>'image/webp','bmp'=>'image/bmp'];
+        return $map[$ext] ?? 'image/jpeg';
     }
 
     // ========== 日志方法 ==========
