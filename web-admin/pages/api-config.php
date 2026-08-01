@@ -25,20 +25,15 @@ $recommended_ai = [
     ['ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100],
     ['ai', '智谱 GLM-4.1V-Thinking-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4.1v-thinking-flash","provider":"zhipu"}', 0, 95],
     ['ai', '智谱 GLM-4.6V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4.6v-flash","provider":"zhipu"}', 0, 90],
-    // === 硅基流动 / SiliconFlow（免费9B以下模型） ===
-    ['ai', '硅基流动 Qwen3.5-4B（免费）', 'https://api.siliconflow.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3.5-4B","provider":"siliconflow"}', 0, 35],
-    // === 魔搭社区 / ModelScope（每天2000次免费） ===
-    ['ai', '魔搭 Kimi-K2.6（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"moonshotai/Kimi-K2.6","provider":"modelscope"}', 0, 70],
-    ['ai', '魔搭 Qwen3.5-397B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3.5-397B-A17B","provider":"modelscope"}', 0, 65],
-    ['ai', '魔搭 Kimi-K2.5（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"moonshotai/Kimi-K2.5","provider":"modelscope"}', 0, 60],
-    ['ai', '魔搭 Qwen3.5-35B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3.5-35B-A3B","provider":"modelscope"}', 0, 55],
+    // === 魔搭社区 / ModelScope（每天2000次免费，仅保留支持识图的模型） ===
+    ['ai', '魔搭 Qwen3-VL-235B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-235B-A22B-Instruct","provider":"modelscope"}', 0, 70],
+    ['ai', '魔搭 Qwen3-VL-8B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-8B-Instruct","provider":"modelscope"}', 0, 65],
+    ['ai', '魔搭 InternVL3.5-241B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"OpenGVLab/InternVL3_5-241B-A28B","provider":"modelscope"}', 0, 60],
     // === AIHubMix（免费模型，每天500次） ===
     ['ai', 'AIHubMix GPT-4o（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gpt-4o-free","provider":"aihubmix"}', 0, 85],
     ['ai', 'AIHubMix Gemini-3-Flash（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gemini-3-flash-preview-free","provider":"aihubmix"}', 0, 80],
-    ['ai', 'AIHubMix 小米MiMo（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"xiaomi-mimo-v2.5-pro-free","provider":"aihubmix"}', 0, 75],
-    ['ai', 'AIHubMix Step-3.7-Flash（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"step-3.7-flash-free","provider":"aihubmix"}', 0, 58],
+    ['ai', 'AIHubMix 小米MiMo-VL（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"xiaomi-mimo-v2.5-pro-free","provider":"aihubmix"}', 0, 75],
     // === OpenRouter（免费模型） ===
-    ['ai', 'OpenRouter Kimi-K2.6（免费）', 'https://openrouter.ai/api/v1/chat/completions', '', '', '{"model":"moonshotai/kimi-k2.6:free","provider":"openrouter"}', 0, 72],
     ['ai', 'OpenRouter Gemma-4-31B（免费）', 'https://openrouter.ai/api/v1/chat/completions', '', '', '{"model":"google/gemma-4-31b-it:free","provider":"openrouter"}', 0, 68],
 ];
 foreach ($recommended_ai as $r) {
@@ -106,11 +101,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // AI 服务商默认配置
         $aiDefaults = [
             ['ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100],
-            ['ai', '火山引擎 豆包 Vision', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', '', '', '{"model":"doubao-vision-pro-32k","provider":"doubao"}', 0, 80],
-            ['ai', '百度文心 ERNIE-Speed', 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/ernie-speed-128k', '', '', '{"model":"ernie-speed-128k","provider":"ernie"}', 0, 60],
             ['ai', '面壁智能 MiniCPM-V-4.6-1B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-1B","provider":"modelbest"}', 0, 50],
-            ['ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45],
-            ['ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 40],
+            ['ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 45],
+            ['ai', '魔搭 Qwen3-VL-235B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-235B-A22B-Instruct","provider":"modelscope"}', 0, 70],
+            ['ai', '魔搭 Qwen3-VL-8B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-8B-Instruct","provider":"modelscope"}', 0, 65],
+            ['ai', '魔搭 InternVL3.5-241B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"OpenGVLab/InternVL3_5-241B-A28B","provider":"modelscope"}', 0, 60],
+            ['ai', 'AIHubMix GPT-4o（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gpt-4o-free","provider":"aihubmix"}', 0, 85],
+            ['ai', 'AIHubMix Gemini-3-Flash（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gemini-3-flash-preview-free","provider":"aihubmix"}', 0, 80],
+            ['ai', 'OpenRouter Gemma-4-31B（免费）', 'https://openrouter.ai/api/v1/chat/completions', '', '', '{"model":"google/gemma-4-31b-it:free","provider":"openrouter"}', 0, 68],
         ];
         $aiStmt = $db->prepare('INSERT INTO api_config (type, name, api_url, api_key, api_secret, extra_params, is_active, priority, total_calls, success_calls, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)');
         foreach ($aiDefaults as $d) {

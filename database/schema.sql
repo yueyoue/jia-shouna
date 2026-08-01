@@ -433,10 +433,13 @@ CREATE TABLE IF NOT EXISTS `ai_tool_call_log` (
 -- -------------------------------------------
 INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `api_secret`, `extra_params`, `is_active`, `priority`, `total_calls`, `success_calls`, `created_at`, `updated_at`) VALUES
 ('ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('ai', '火山引擎 豆包 Vision', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', '', '', '{"model":"doubao-vision-pro-32k","provider":"doubao"}', 0, 80, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('ai', '百度文心 ERNIE-Speed', 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/ernie-speed-128k', '', '', '{"model":"ernie-speed-128k","provider":"ernie"}', 0, 60, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('ai', '面壁智能 MiniCPM-V-4.6-1B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-1B","provider":"modelbest"}', 0, 50, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('ai', '面壁智能 MiniCPM-V-4.6-Thinking', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-Thinking","provider":"modelbest"}', 0, 45, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 40, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+('ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 45, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '魔搭 Qwen3-VL-235B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-235B-A22B-Instruct","provider":"modelscope"}', 0, 70, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '魔搭 Qwen3-VL-8B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-8B-Instruct","provider":"modelscope"}', 0, 65, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '魔搭 InternVL3.5-241B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"OpenGVLab/InternVL3_5-241B-A28B","provider":"modelscope"}', 0, 60, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', 'AIHubMix GPT-4o（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gpt-4o-free","provider":"aihubmix"}', 0, 85, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', 'AIHubMix Gemini-3-Flash（免费）', 'https://aihubmix.com/v1/chat/completions', '', 'KHYF5028', '{"model":"gemini-3-flash-preview-free","provider":"aihubmix"}', 0, 80, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', 'OpenRouter Gemma-4-31B（免费）', 'https://openrouter.ai/api/v1/chat/completions', '', '', '{"model":"google/gemma-4-31b-it:free","provider":"openrouter"}', 0, 68, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 SET FOREIGN_KEY_CHECKS = 1;
