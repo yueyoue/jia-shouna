@@ -342,23 +342,33 @@ class Agent {
     // ========== 日志方法 ==========
 
     private function createCallLog($imageUrl) {
-        $db = getDB();
-        $now = time();
-        $stmt = $db->prepare("INSERT INTO ai_call_log (user_id, type, image_url, ai_provider, ai_model, created_at) VALUES (?, 'recognize', ?, ?, ?, ?)");
-        $stmt->execute([$this->userId, $imageUrl, $this->config['provider'], $this->config['model'], $now]);
-        return $db->lastInsertId();
+        try {
+            $db = getDB();
+            $now = time();
+            $stmt = $db->prepare("INSERT INTO ai_call_log (user_id, type, image_url, ai_provider, ai_model, created_at) VALUES (?, 'recognize', ?, ?, ?, ?)");
+            $stmt->execute([$this->userId, $imageUrl, $this->config['provider'], $this->config['model'], $now]);
+            return $db->lastInsertId();
+        } catch (Exception $e) {
+            error_log('createCallLog error: ' . $e->getMessage());
+            return 0;
+        }
     }
 
     private function updateCallLog($logId, $data) {
-        $db = getDB();
-        $sets = [];
-        $params = [];
-        foreach ($data as $k => $v) {
-            $sets[] = "$k = ?";
-            $params[] = $v;
+        try {
+            if (!$logId) return;
+            $db = getDB();
+            $sets = [];
+            $params = [];
+            foreach ($data as $k => $v) {
+                $sets[] = "$k = ?";
+                $params[] = $v;
+            }
+            $params[] = $logId;
+            $db->prepare("UPDATE ai_call_log SET " . implode(', ', $sets) . " WHERE id = ?")->execute($params);
+        } catch (Exception $e) {
+            error_log('updateCallLog error: ' . $e->getMessage());
         }
-        $params[] = $logId;
-        $db->prepare("UPDATE ai_call_log SET " . implode(', ', $sets) . " WHERE id = ?")->execute($params);
     }
 
     private function logToolCall($callId, $toolName, $params, $result, $duration) {
@@ -377,12 +387,16 @@ class Agent {
     }
 
     private function updateApiStats($apiId, $success) {
-        $db = getDB();
-        $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
-            ->execute([time(), $apiId]);
-        if ($success) {
-            $db->prepare("UPDATE api_config SET success_calls = success_calls + 1 WHERE id = ?")
-                ->execute([$apiId]);
+        try {
+            $db = getDB();
+            $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
+                ->execute([time(), $apiId]);
+            if ($success) {
+                $db->prepare("UPDATE api_config SET success_calls = success_calls + 1 WHERE id = ?")
+                    ->execute([$apiId]);
+            }
+        } catch (Exception $e) {
+            error_log('updateApiStats error: ' . $e->getMessage());
         }
     }
 
