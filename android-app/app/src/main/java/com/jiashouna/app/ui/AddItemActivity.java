@@ -514,7 +514,12 @@ public class AddItemActivity extends AppCompatActivity {
                 .show();
         } catch (Exception e) {
             android.util.Log.e("AddItem", "AI result parse error: " + e.getMessage(), e);
-            Toast.makeText(this, "识别结果解析失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            String detail = e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "null");
+            new AlertDialog.Builder(this)
+                .setTitle("解析失败")
+                .setMessage("错误: " + detail + "\n\n原始数据:\n" + (responseBody != null ? responseBody.substring(0, Math.min(300, responseBody.length())) : "null"))
+                .setPositiveButton("确定", null)
+                .show();
         }
     }
 
