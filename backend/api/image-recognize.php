@@ -9,24 +9,30 @@ header('Content-Type: application/json; charset=utf-8');
 function debug_log($msg) {
     file_put_contents(__DIR__ . '/debug_ai.log', date('H:i:s') . ' ' . $msg . "\n", FILE_APPEND);
 }
-debug_log('=== 新请求 ===');
+debug_log('=== 新请求 === METHOD=' . $_SERVER['REQUEST_METHOD'] . ' FILES=' . json_encode(array_keys($_FILES)) . ' GET=' . json_encode($_GET));
 
 try {
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/helpers.php';
+debug_log('DB/Helpers loaded');
 /**
  * 图像识别接口 - 拍照识物
  */
 $action = $_GET['action'] ?? '';
 $db = getDB();
+debug_log('DB connected, action=' . $action);
 $user = requireLogin();
+debug_log('User logged in, user_id=' . ($user['id'] ?? 'null'));
 
 switch ($action) {
     case 'recognize':
+        debug_log('进入recognize分支');
         // 接收上传的图片
         if (empty($_FILES['image'])) {
+            debug_log('没有图片文件');
             error('请上传图片');
         }
+        debug_log('图片文件存在, name=' . $_FILES['image']['name'] . ' size=' . $_FILES['image']['size'] . ' error=' . $_FILES['image']['error']);
 
         $file = $_FILES['image'];
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
