@@ -138,7 +138,17 @@ class Agent {
             }
 
             $duration = intval((microtime(true) - $startTime) * 1000);
-            $content = $response['choices'][0]['message']['content'] ?? '';
+            $message = $response['choices'][0]['message'] ?? [];
+            $content = $message['content'] ?? '';
+
+            // 如果 content 为空，尝试从 reasoning_content 提取
+            if (empty($content) && !empty($message['reasoning_content'])) {
+                $content = $message['reasoning_content'];
+            }
+
+            // 移除 <think>...</think> 标签及其内容
+            $content = preg_replace('/<think>[\s\S]*?<\/think>/i', '', $content);
+            $content = trim($content);
 
             // 解析 JSON 结果
             $result = $this->parseResult($content);

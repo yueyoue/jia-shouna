@@ -87,6 +87,7 @@ switch ($action) {
 
             } catch (Exception $e) {
                 // AI 识别失败，记录错误并降级到传统图像识别
+                error_log('AI Agent recognize failed: ' . $e->getMessage());
                 $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
                     ->execute([time(), $aiConfig['id']]);
                 // 继续走传统图像识别
