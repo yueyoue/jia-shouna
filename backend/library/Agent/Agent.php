@@ -95,10 +95,15 @@ class Agent {
             $payload = [
                 'model' => $this->config['model'],
                 'messages' => $messages,
-                'tools' => $this->tools,
-                'tool_choice' => 'auto',
                 'temperature' => 0.2,
+                'max_tokens' => 500,
             ];
+
+            // 只有配置了 tools 且模型可能支持时才发送
+            if (!empty($this->tools)) {
+                $payload['tools'] = $this->tools;
+                $payload['tool_choice'] = 'auto';
+            }
 
             // 第一次调用大模型
             $response = $this->callApi($payload);

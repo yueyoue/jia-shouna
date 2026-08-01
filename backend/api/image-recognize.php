@@ -58,9 +58,7 @@ switch ($action) {
                 require_once __DIR__ . '/../library/Agent/Tools/SpacesTool.php';
 
                 $agent = new Agent($user['id']);
-                register_barcode_tool($agent);
-                register_match_goods_tool($agent);
-                register_spaces_tool($agent);
+                // 不注册 tools，避免免费模型不支持 function calling 导致报错
 
                 $startTime = microtime(true);
                 $aiResult = $agent->recognize($imageUrl);
