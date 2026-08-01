@@ -513,7 +513,8 @@ public class AddItemActivity extends AppCompatActivity {
                 .setNegativeButton("重新识别", (d, w) -> startAiRecognize())
                 .show();
         } catch (Exception e) {
-            Toast.makeText(this, "识别结果解析失败", Toast.LENGTH_SHORT).show();
+            android.util.Log.e("AddItem", "AI result parse error: " + e.getMessage(), e);
+            Toast.makeText(this, "识别结果解析失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 

@@ -238,21 +238,37 @@ class Agent {
      * 解析大模型返回的 JSON 结果
      */
     private function parseResult($content) {
-        // 尝试直接解析
+        $content = trim($content);
+
+        // 记录原始内容用于调试
+        $debugContent = substr($content, 0, 500);
+
+        // 方法1: 直接解析
         $result = json_decode($content, true);
-        if ($result && is_array($result)) {
+        if ($result && is_array($result) && (isset($result['goods_name']) || isset($result['name']) || isset($result['category']))) {
             return $this->normalizeResult($result);
         }
 
-        // 尝试从 markdown 代码块中提取
+        // 方法2: 从 markdown 代码块中提取
         if (preg_match('/```(?:json)?\s*\n?(.*?)\n?```/s', $content, $m)) {
-            $result = json_decode($m[1], true);
+            $inner = trim($m[1]);
+            $result = json_decode($inner, true);
             if ($result && is_array($result)) {
                 return $this->normalizeResult($result);
             }
         }
 
-        // 尝试找第一个 { 到最后一个 }
+        // 方法3: 找所有可能的 JSON 对象（支持多个 {} 块）
+        if (preg_match_all('/\{[^{}]*\}/s', $content, $matches)) {
+            foreach ($matches[0] as $match) {
+                $result = json_decode($match, true);
+                if ($result && is_array($result) && (isset($result['goods_name']) || isset($result['name']) || isset($result['category']))) {
+                    return $this->normalizeResult($result);
+                }
+            }
+        }
+
+        // 方法4: 找第一个 { 到最后一个 }（处理嵌套JSON）
         $start = strpos($content, '{');
         $end = strrpos($content, '}');
         if ($start !== false && $end !== false && $end > $start) {
@@ -262,7 +278,20 @@ class Agent {
             }
         }
 
-        throw new Exception('AI 返回结果无法解析');
+        // 方法5: 提取 key-value 对重建
+        if (preg_match('/"goods_name"\s*:\s*"([^"]+)"/', $content, $nm)) {
+            $rebuild = ['goods_name' => $nm[1]];
+            if (preg_match('/"brand"\s*:\s*"([^"]*)"/', $content, $b)) $rebuild['brand'] = $b[1];
+            if (preg_match('/"category"\s*:\s*"([^"]*)"/', $content, $c)) $rebuild['category'] = $c[1];
+            if (preg_match('/"spec"\s*:\s*"([^"]*)"/', $content, $s)) $rebuild['spec'] = $s[1];
+            if (preg_match('/"expire_date"\s*:\s*"([^"]*)"/', $content, $e)) $rebuild['expire_date'] = $e[1];
+            if (preg_match('/"storage_tip"\s*:\s*"([^"]*)"/', $content, $t)) $rebuild['storage_tip'] = $t[1];
+            if (preg_match('/"confidence"\s*:?\s*([\d.]+)/', $content, $cf)) $rebuild['confidence'] = $cf[1];
+            if (preg_match('/"barcode"\s*:\s*"([^"]*)"/', $content, $bc)) $rebuild['barcode'] = $bc[1];
+            return $this->normalizeResult($rebuild);
+        }
+
+        throw new Exception('AI 返回结果无法解析: ' . $debugContent);
     }
 
     /**
