@@ -50,6 +50,7 @@ class Agent {
 
             // 将图片转为 base64 data URL（确保AI模型能访问）
             $imageDataUrl = $imageUrl;
+            error_log('Agent: imageUrl=' . $imageUrl);
             if (strpos($imageUrl, 'http') === 0) {
                 // 是URL，尝试下载转base64
                 $localPath = null;
@@ -69,6 +70,9 @@ class Agent {
                 if ($imgData) {
                     $mime = $this->detectMime($imgData, $imageUrl);
                     $imageDataUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
+                    error_log('Agent: imgDataLen=' . strlen($imgData) . ' mime=' . $mime . ' dataUrlLen=' . strlen($imageDataUrl));
+                } else {
+                    error_log('Agent: imgData is empty! localPath=' . ($localPath ?? 'null') . ' exists=' . (file_exists($localPath ?? '') ? 'yes' : 'no'));
                 }
             } elseif (file_exists($imageUrl)) {
                 // 是本地文件路径
