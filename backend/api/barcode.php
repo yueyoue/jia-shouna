@@ -28,14 +28,41 @@ switch ($action) {
             success(['found' => false, 'barcode' => $barcode, 'msg' => '暂未配置条码查询接口，请在管理后台配置']);
         }
 
-        // 依次尝试每个启用的接口，直到成功
+        // 依次尝试每个启用的接口，找到有实际数据的就返回
         $errors = [];
+        $bestResult = null; // 保存 found=true 但无数据的结果
         foreach ($apis as $api) {
             $result = tryBarcodeLookup($db, $user, $barcode, $api);
             if ($result['found']) {
-                success($result);
+                $name = $result['name'] ?? '';
+                if (!empty($name)) {
+                    // 有实际商品名，直接返回
+                    success($result);
+                }
+                // found=true 但 name 为空，保存为候选，继续尝试下一个接口
+                if (!$bestResult) $bestResult = $result;
             }
             $errors[] = $api['name'] . ': ' . ($result['msg'] ?? '查询失败');
+        }
+
+        // 如果有候选结果（found但无数据），尝试用 ApiZero Pro 补充
+        if ($bestResult) {
+            // 查找 ApiZero Pro 接口
+            foreach ($apis as $api) {
+                if (strpos($api['api_url'], 'barcode-gs1') !== false) {
+                    $proResult = tryBarcodeLookup($db, $user, $barcode, $api);
+                    if ($proResult['found'] && !empty($proResult['name'] ?? '')) {
+                        // 合并：Pro 的数据补充到候选结果
+                        foreach (['name','brand','category','spec','manufacturer','description','image'] as $k) {
+                            if (empty($bestResult[$k] ?? '') && !empty($proResult[$k] ?? '')) {
+                                $bestResult[$k] = $proResult[$k];
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            success($bestResult);
         }
 
         success(['found' => false, 'barcode' => $barcode, 'msg' => '所有接口均未找到: ' . implode('; ', $errors)]);
