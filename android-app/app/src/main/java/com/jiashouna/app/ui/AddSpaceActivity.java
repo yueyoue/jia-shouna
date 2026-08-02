@@ -97,12 +97,9 @@ public class AddSpaceActivity extends AppCompatActivity {
         // 编辑模式：加载现有空间数据
         if (editSpaceId > 0) {
             if (btnSave != null) btnSave.setText("保存修改");
-            if (tvTitle != null) tvTitle.setText("编辑空间");
             loadSpaceData();
         }
     }
-
-    private android.widget.TextView tvTitle;
 
     private void loadSpaceData() {
         ApiClient.get("space.php?action=detail&id=" + editSpaceId, new java.util.HashMap<>(), new ApiClient.ApiCallback() {
