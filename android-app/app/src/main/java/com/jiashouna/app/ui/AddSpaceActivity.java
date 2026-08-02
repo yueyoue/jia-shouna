@@ -41,6 +41,7 @@ public class AddSpaceActivity extends AppCompatActivity {
     private int selectedHouseId = 0;
     private int parentSpaceId = 0;
     private String parentSpaceName = "";
+    private int editSpaceId = 0; // 0=新建, >0=编辑
     private LocalDb localDb;
     private JsonArray houseList = new JsonArray();
 
@@ -59,6 +60,7 @@ public class AddSpaceActivity extends AppCompatActivity {
         if (parentSpaceName == null) parentSpaceName = "";
         int intentHouseId = getIntent().getIntExtra("house_id", 0);
         if (intentHouseId > 0) selectedHouseId = intentHouseId;
+        editSpaceId = getIntent().getIntExtra("edit_space_id", 0);
 
         etName = findViewById(R.id.et_name);
         levelRoom = findViewById(R.id.level_room);
@@ -91,7 +93,46 @@ public class AddSpaceActivity extends AppCompatActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         loadHouses();
+
+        // 编辑模式：加载现有空间数据
+        if (editSpaceId > 0) {
+            if (btnSave != null) btnSave.setText("保存修改");
+            if (tvTitle != null) tvTitle.setText("编辑空间");
+            loadSpaceData();
+        }
     }
+
+    private android.widget.TextView tvTitle;
+
+    private void loadSpaceData() {
+        ApiClient.get("space.php?action=detail&id=" + editSpaceId, new java.util.HashMap<>(), new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        String name = data.has("name") ? data.get("name").getAsString() : "";
+                        String icon = data.has("icon") ? data.get("icon").getAsString() : "🏠";
+                        String color = data.has("color") ? data.get("color").getAsString() : "#FF8C42";
+                        int level = data.has("level") ? data.get("level").getAsInt() : 1;
+                        boolean shared = data.has("shared") && data.get("shared").getAsInt() == 1;
+                        int houseId = data.has("house_id") ? data.get("house_id").getAsInt() : 0;
+
+                        etName.setText(name);
+                        selectedIcon = icon;
+                        selectedColor = color;
+                        selectedLevel = level;
+                        if (houseId > 0) selectedHouseId = houseId;
+                        swShared.setChecked(shared);
+                        buildIconSelector();
+                        buildColorSelector();
+                    } catch (Exception e) {
+                        Toast.makeText(AddSpaceActivity.this, "加载空间信息失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddSpaceActivity.this, "加载失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
 
     private void buildIconSelector() {
         layoutIconSelector.removeAllViews();
@@ -387,17 +428,25 @@ public class AddSpaceActivity extends AppCompatActivity {
                 body.addProperty("parent_id", parentSpaceId);
             }
 
-            ApiClient.post("space.php?action=create", body, new ApiClient.ApiCallback() {
+            String url;
+            if (editSpaceId > 0) {
+                body.addProperty("id", editSpaceId);
+                url = "space.php?action=update";
+            } else {
+                url = "space.php?action=create";
+            }
+
+            ApiClient.post(url, body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
-                        Toast.makeText(AddSpaceActivity.this, "✅ 创建成功", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(AddSpaceActivity.this, editSpaceId > 0 ? "✅ 修改成功" : "✅ 创建成功", Toast.LENGTH_SHORT).show();
                         finish();
                     });
                 }
                 @Override public void onError(String msg) {
                     runOnUiThread(() -> {
                         btnSave.setEnabled(true);
-                        Toast.makeText(AddSpaceActivity.this, "创建失败: " + msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(AddSpaceActivity.this, (editSpaceId > 0 ? "修改" : "创建") + "失败: " + msg, Toast.LENGTH_SHORT).show();
                     });
                 }
             });

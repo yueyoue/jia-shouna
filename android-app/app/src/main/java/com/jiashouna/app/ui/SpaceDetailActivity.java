@@ -68,6 +68,17 @@ public class SpaceDetailActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // 编辑空间按钮
+        View btnEditSpace = findViewById(R.id.btn_edit_space);
+        if (btnEditSpace != null) {
+            btnEditSpace.setOnClickListener(v -> {
+                Intent intent = new Intent(this, AddSpaceActivity.class);
+                intent.putExtra("edit_space_id", spaceId);
+                intent.putExtra("house_id", houseId);
+                startActivity(intent);
+            });
+        }
+
         loadSpaceDetail();
     }
 

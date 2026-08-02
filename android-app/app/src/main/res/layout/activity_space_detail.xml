@@ -51,6 +51,19 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/btn_edit_space"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_tag_warm"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="✏️ 编辑"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <TextView
             android:id="@+id/btn_search"
             android:layout_width="32dp"
             android:layout_height="32dp"
