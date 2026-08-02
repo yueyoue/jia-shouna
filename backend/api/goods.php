@@ -286,10 +286,21 @@ switch ($action) {
         $allowedFields = ['name', 'barcode', 'category', 'brand', 'manufacturer', 'spec', 'quantity', 'unit', 'purchase_date', 'expiry_date', 'purchase_price', 'stock_threshold', 'note', 'is_private'];
         $fields = [];
         $params = [];
+        // DATE/DECIMAL字段的空值需要转为null，避免MySQL严格模式报错
+        $nullableFields = ['purchase_date', 'expiry_date'];
+        $decimalFields = ['purchase_price', 'stock_threshold'];
         foreach ($allowedFields as $field) {
             if (isset($input[$field])) {
+                $val = $input[$field];
+                if (in_array($field, $nullableFields) && ($val === '' || $val === null)) {
+                    $val = null;
+                } elseif (in_array($field, $decimalFields) && ($val === '' || $val === null)) {
+                    $val = null;
+                } elseif (in_array($field, $decimalFields) && $val !== null) {
+                    $val = floatval($val);
+                }
                 $fields[] = "$field = ?";
-                $params[] = $input[$field];
+                $params[] = $val;
             }
         }
         if (empty($fields)) error('没有要更新的内容');
