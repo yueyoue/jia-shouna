@@ -31,6 +31,7 @@ public class HomeFragment extends Fragment {
     private LinearLayout llExpiringList, llRecentList;
     private LinearLayout layoutCategoryChips;
     private String selectedCategory = "";
+    private int houseId = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -156,7 +157,7 @@ public class HomeFragment extends Fragment {
         else greeting = "夜深了，欢迎回来 🌙";
         tvGreeting.setText(greeting);
 
-        int houseId = app.getCurrentHouseId();
+        houseId = app.getCurrentHouseId();
         if (houseId <= 0) {
             tvHouseInfo.setText("暂无家庭");
             tvItemCount.setText("0");
