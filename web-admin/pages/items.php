@@ -189,6 +189,8 @@ $pageSize = 20;
 $keyword = $_GET['keyword'] ?? '';
 $category = $_GET['category'] ?? '';
 $privacy = $_GET['privacy'] ?? '';
+$filterUser = intval($_GET['user_id'] ?? 0);
+$filterSpace = intval($_GET['space_id'] ?? 0);
 
 $where = ["g.status = 1"];
 $params = [];
@@ -196,6 +198,8 @@ if ($keyword) { $where[] = "(g.name LIKE ? OR g.barcode LIKE ?)"; $kw = "%$keywo
 if ($category) { $where[] = "g.category = ?"; $params[] = $category; }
 if ($privacy === 'private') { $where[] = "g.is_private = 1"; }
 elseif ($privacy === 'shared') { $where[] = "g.is_private = 0"; }
+if ($filterUser) { $where[] = "g.creator_id = ?"; $params[] = $filterUser; }
+if ($filterSpace) { $where[] = "g.space_id = ?"; $params[] = $filterSpace; }
 
 $whereStr = implode(' AND ', $where);
 $countStmt = $db->prepare("SELECT COUNT(*) as cnt FROM goods g WHERE $whereStr");
@@ -208,6 +212,42 @@ $stmt = $db->prepare("SELECT g.*, s.name as space_name, h.name as house_name,
         FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id LEFT JOIN house h ON g.house_id = h.id WHERE $whereStr ORDER BY g.updated_at DESC LIMIT $pageSize OFFSET $offset");
 $stmt->execute($params);
 $items = $stmt->fetchAll();
+
+// 处理CSV导出
+if (isset($_GET['action']) && $_GET['action'] === 'export') {
+    $exportWhere = ["g.status = 1"];
+    $exportParams = [];
+    if ($keyword) { $exportWhere[] = "(g.name LIKE ? OR g.barcode LIKE ?)"; $ekw = "%$keyword%"; $exportParams[] = $ekw; $exportParams[] = $ekw; }
+    if ($category) { $exportWhere[] = "g.category = ?"; $exportParams[] = $category; }
+    if ($filterUser) { $exportWhere[] = "g.creator_id = ?"; $exportParams[] = $filterUser; }
+    if ($filterSpace) { $exportWhere[] = "g.space_id = ?"; $exportParams[] = $filterSpace; }
+    $exportWhereStr = implode(' AND ', $exportWhere);
+    $exportStmt = $db->prepare("SELECT g.*, s.name as space_name, h.name as house_name,
+        u.nickname as creator_name
+        FROM goods g
+        LEFT JOIN storage_space s ON g.space_id = s.id
+        LEFT JOIN house h ON g.house_id = h.id
+        LEFT JOIN sys_user u ON g.creator_id = u.id
+        WHERE $exportWhereStr ORDER BY g.updated_at DESC");
+    $exportStmt->execute($exportParams);
+    $exportItems = $exportStmt->fetchAll();
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=items_export_' . date('YmdHis') . '.csv');
+    $output = fopen('php://output', 'w');
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+    fputcsv($output, ['名称', '条码', '分类', '品牌', '规格', '数量', '单位', '购买日期', '保质期', '价格', '家庭', '空间', '录入用户', '备注']);
+    foreach ($exportItems as $ei) {
+        fputcsv($output, [
+            $ei['name'], $ei['barcode'], $ei['category'], $ei['brand'], $ei['spec'],
+            $ei['quantity'], $ei['unit'], $ei['purchase_date'], $ei['expiry_date'],
+            $ei['purchase_price'], $ei['house_name'], $ei['space_name'],
+            $ei['creator_name'], $ei['note']
+        ]);
+    }
+    fclose($output);
+    exit;
+}
 
 $categories = ['食品', '衣物', '药品', '日用品', '数码', '证件', '厨具', '其他'];
 ?>
@@ -279,6 +319,28 @@ tr:hover td .row-actions{opacity:1}
                 </select>
             </div>
             <div class="form-group">
+                <label class="form-label">录入用户</label>
+                <select name="user_id" class="form-control">
+                    <option value="">全部用户</option>
+                    <?php
+                    $allUsers = $db->query('SELECT id, username, nickname FROM sys_user WHERE status = 1 ORDER BY id ASC')->fetchAll();
+                    foreach ($allUsers as $u): ?>
+                    <option value="<?= $u['id'] ?>" <?= $filterUser == $u['id'] ? 'selected' : '' ?>><?= htmlspecialchars($u['nickname'] ?: $u['username']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">存放空间</label>
+                <select name="space_id" class="form-control">
+                    <option value="">全部空间</option>
+                    <?php
+                    $allSpaces = $db->query('SELECT id, name, house_id FROM storage_space ORDER BY house_id, name ASC')->fetchAll();
+                    foreach ($allSpaces as $sp): ?>
+                    <option value="<?= $sp['id'] ?>" <?= $filterSpace == $sp['id'] ? 'selected' : '' ?>><?= htmlspecialchars($sp['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group">
                 <label class="form-label">标签搜索</label>
                 <select name="tag" class="form-control" onchange="if(this.value)document.querySelector('input[name=keyword]').value=this.value;else document.querySelector('input[name=keyword]').value=''">
                     <option value="">全部标签</option>
@@ -319,6 +381,7 @@ function filterByTag(tagName) {
         <div class="right">
             <button class="btn btn-primary btn-sm" onclick="showAddItem()">➕ 添加物品</button>
             <button class="btn btn-outline btn-sm" onclick="showBatchImport()">📥 批量导入</button>
+            <a href="?p=items&action=export" class="btn btn-outline btn-sm">📤 导出CSV</a>
             <a href="../backend/api/goods.php?action=export-template" class="btn btn-ghost btn-sm">📋 下载模板</a>
             <button class="btn btn-ghost btn-sm" onclick="location.reload()">🔄 刷新</button>
         </div>
