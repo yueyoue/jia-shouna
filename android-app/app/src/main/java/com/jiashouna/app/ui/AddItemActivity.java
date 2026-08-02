@@ -510,31 +510,121 @@ public class AddItemActivity extends AppCompatActivity {
             // 计算分类Spinner位置
             final int categoryPos = getCategoryPosition(category);
 
-            new AlertDialog.Builder(this).setTitle("AI 识别结果").setMessage(msg)
-                .setPositiveButton("确认填入", (d, w) -> {
-                    // 填入识别结果
-                    if (!name.isEmpty()) etName.setText(name);
-                    if (!barcode.isEmpty()) etBarcode.setText(barcode);
-                    if (!brand.isEmpty()) etBrand.setText(brand);
-                    if (!spec.isEmpty()) etSpec.setText(spec);
-                    // 存放建议填入备注(如果没有手动输入备注的话)
-                    if (!storageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) {
-                        etNote.setText(storageTip);
+            // 构建可选择性填入的对话框
+            LinearLayout dialogLayout = new LinearLayout(this);
+            dialogLayout.setOrientation(LinearLayout.VERTICAL);
+            dialogLayout.setPadding(dp(24), dp(16), dp(24), dp(8));
+
+            // 识别结果概览
+            TextView tvSummary = new TextView(this);
+            tvSummary.setText("识别置信度: " + String.format(Locale.getDefault(), "%.0f%%", confidence * 100));
+            tvSummary.setTextSize(13);
+            tvSummary.setTextColor(0xFF718096);
+            tvSummary.setPadding(0, 0, 0, dp(12));
+            dialogLayout.addView(tvSummary);
+
+            // 每个字段一个复选框
+            java.util.List<android.widget.CheckBox> checkBoxes = new java.util.ArrayList<>();
+
+            if (!name.isEmpty()) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText("名称: " + name);
+                cb.setChecked(true);
+                cb.setTextSize(14);
+                dialogLayout.addView(cb);
+                checkBoxes.add(cb);
+            }
+            if (!brand.isEmpty()) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText("品牌: " + brand);
+                cb.setChecked(true);
+                cb.setTextSize(14);
+                dialogLayout.addView(cb);
+                checkBoxes.add(cb);
+            }
+            if (!spec.isEmpty()) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText("规格: " + spec);
+                cb.setChecked(true);
+                cb.setTextSize(14);
+                dialogLayout.addView(cb);
+                checkBoxes.add(cb);
+            }
+            if (!barcode.isEmpty()) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText("条码: " + barcode);
+                cb.setChecked(true);
+                cb.setTextSize(14);
+                dialogLayout.addView(cb);
+                checkBoxes.add(cb);
+            }
+            if (!category.isEmpty()) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText("分类: " + category);
+                cb.setChecked(true);
+                cb.setTextSize(14);
+                dialogLayout.addView(cb);
+                checkBoxes.add(cb);
+            }
+            if (!storageTip.isEmpty()) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText("存放建议: " + storageTip);
+                cb.setChecked(etNote.getText().toString().trim().isEmpty());
+                cb.setTextSize(14);
+                dialogLayout.addView(cb);
+                checkBoxes.add(cb);
+            }
+
+            // 全选/全不选
+            android.widget.CheckBox cbAll = new android.widget.CheckBox(this);
+            cbAll.setText("全选");
+            cbAll.setChecked(true);
+            cbAll.setTextSize(13);
+            cbAll.setTextColor(0xFF4A90D9);
+            cbAll.setOnCheckedChangeListener((btn, checked) -> {
+                for (android.widget.CheckBox cb : checkBoxes) cb.setChecked(checked);
+            });
+            // 插入到最前面
+            dialogLayout.addView(cbAll, 1);
+
+            // 字段名到复选框的映射
+            final String fName = name, fBrand = brand, fSpec = spec, fBarcode = barcode, fCategory = category, fStorageTip = storageTip;
+
+            new AlertDialog.Builder(this).setTitle("AI 识别结果").setView(dialogLayout)
+                .setPositiveButton("填入选中项", (d, w) -> {
+                    for (android.widget.CheckBox cb : checkBoxes) {
+                        if (!cb.isChecked()) continue;
+                        String text = cb.getText().toString();
+                        if (text.startsWith("名称:")) etName.setText(fName);
+                        else if (text.startsWith("品牌:")) etBrand.setText(fBrand);
+                        else if (text.startsWith("规格:")) etSpec.setText(fSpec);
+                        else if (text.startsWith("条码:")) etBarcode.setText(fBarcode);
+                        else if (text.startsWith("分类:") && categoryPos >= 0) spCategory.setSelection(categoryPos);
+                        else if (text.startsWith("存放建议:")) etNote.setText(fStorageTip);
                     }
-                    // 自动设置分类 Spinner
-                    if (categoryPos >= 0) {
-                        spCategory.setSelection(categoryPos);
-                    }
-                    // 问题4: 将AI识别的照片添加到物品图片
+                    // 将AI识别的照片添加到物品图片
                     if (cameraImageUri != null) {
                         try {
                             Bitmap aiPhoto = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri);
-                            if (aiPhoto != null) {
-                                addPhotoToList(aiPhoto);
-                            }
+                            if (aiPhoto != null) addPhotoToList(aiPhoto);
                         } catch (Exception ignored) {}
                     }
-                    Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "✅ 已填入选中项", Toast.LENGTH_SHORT).show();
+                })
+                .setNeutralButton("全部填入", (d, w) -> {
+                    if (!fName.isEmpty()) etName.setText(fName);
+                    if (!fBarcode.isEmpty()) etBarcode.setText(fBarcode);
+                    if (!fBrand.isEmpty()) etBrand.setText(fBrand);
+                    if (!fSpec.isEmpty()) etSpec.setText(fSpec);
+                    if (!fStorageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) etNote.setText(fStorageTip);
+                    if (categoryPos >= 0) spCategory.setSelection(categoryPos);
+                    if (cameraImageUri != null) {
+                        try {
+                            Bitmap aiPhoto = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri);
+                            if (aiPhoto != null) addPhotoToList(aiPhoto);
+                        } catch (Exception ignored) {}
+                    }
+                    Toast.makeText(this, "✅ 已填入全部", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("重新识别", (d, w) -> startAiRecognize())
                 .show();
@@ -907,29 +997,56 @@ public class AddItemActivity extends AppCompatActivity {
                 }
 
                 final int catPos = getCategoryPosition(category);
+
+                // 构建可选择性填入的对话框
+                LinearLayout dialogLayout2 = new LinearLayout(this);
+                dialogLayout2.setOrientation(LinearLayout.VERTICAL);
+                dialogLayout2.setPadding(dp(24), dp(16), dp(24), dp(8));
+
+                java.util.List<android.widget.CheckBox> cbs = new java.util.ArrayList<>();
+
+                if (!name.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("名称: " + name); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
+                if (!brand.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("品牌: " + brand); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
+                if (!spec.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("规格: " + spec); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
+                if (!barcode.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("条码: " + barcode); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
+                if (!category.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("分类: " + category); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
+                if (!storageTip.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("存放建议: " + storageTip); c.setChecked(etNote.getText().toString().trim().isEmpty()); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
+
+                android.widget.CheckBox cbAll2 = new android.widget.CheckBox(this);
+                cbAll2.setText("全选"); cbAll2.setChecked(true); cbAll2.setTextSize(13); cbAll2.setTextColor(0xFF4A90D9);
+                cbAll2.setOnCheckedChangeListener((btn, checked) -> { for (android.widget.CheckBox c : cbs) c.setChecked(checked); });
+                dialogLayout2.addView(cbAll2, 1);
+
+                final String rName = name, rBrand = brand, rSpec = spec, rBarcode = barcode, rCategory = category, rStorageTip = storageTip;
+
                 new AlertDialog.Builder(this)
                     .setTitle("✅ 识别结果")
-                    .setMessage(msg.toString() + "\n是否填入表单?")
-                    .setPositiveButton("确认填入", (d, w) -> {
-                        if (!name.isEmpty()) etName.setText(name);
-                        if (!barcode.isEmpty()) etBarcode.setText(barcode);
-                        if (!brand.isEmpty()) etBrand.setText(brand);
-                        if (!spec.isEmpty()) etSpec.setText(spec);
-                        if (!storageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) {
-                            etNote.setText(storageTip);
+                    .setView(dialogLayout2)
+                    .setPositiveButton("填入选中项", (d, w) -> {
+                        for (android.widget.CheckBox c : cbs) {
+                            if (!c.isChecked()) continue;
+                            String t = c.getText().toString();
+                            if (t.startsWith("名称:")) etName.setText(rName);
+                            else if (t.startsWith("品牌:")) etBrand.setText(rBrand);
+                            else if (t.startsWith("规格:")) etSpec.setText(rSpec);
+                            else if (t.startsWith("条码:")) etBarcode.setText(rBarcode);
+                            else if (t.startsWith("分类:") && catPos >= 0) spCategory.setSelection(catPos);
+                            else if (t.startsWith("存放建议:")) etNote.setText(rStorageTip);
                         }
-                        // 自动设置分类 Spinner
-                        if (catPos >= 0) {
-                            spCategory.setSelection(catPos);
-                        }
-                        Toast.makeText(this, "✅ 已填入识别结果", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "✅ 已填入选中项", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNeutralButton("全部填入", (d, w) -> {
+                        if (!rName.isEmpty()) etName.setText(rName);
+                        if (!rBarcode.isEmpty()) etBarcode.setText(rBarcode);
+                        if (!rBrand.isEmpty()) etBrand.setText(rBrand);
+                        if (!rSpec.isEmpty()) etSpec.setText(rSpec);
+                        if (!rStorageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) etNote.setText(rStorageTip);
+                        if (catPos >= 0) spCategory.setSelection(catPos);
+                        Toast.makeText(this, "✅ 已填入全部", Toast.LENGTH_SHORT).show();
                     })
                     .setNegativeButton("重新识别", (d, w) -> {
-                        if (photos.size() > 0) {
-                            recognizeImage(photos.get(photos.size() - 1));
-                        }
+                        if (photos.size() > 0) recognizeImage(photos.get(photos.size() - 1));
                     })
-                    .setNeutralButton("手动输入", null)
                     .show();
             } else {
                 String message = data.has("message") ? data.get("message").getAsString() : "未能识别物品";
@@ -1226,71 +1343,35 @@ public class AddItemActivity extends AppCompatActivity {
      */
     private void showDatePicker() {
         java.util.Calendar cal = java.util.Calendar.getInstance();
-        int currentYear = cal.get(java.util.Calendar.YEAR);
-        int currentMonth = cal.get(java.util.Calendar.MONTH);
-        int currentDay = cal.get(java.util.Calendar.DAY_OF_MONTH);
+        int year = cal.get(java.util.Calendar.YEAR);
+        int month = cal.get(java.util.Calendar.MONTH);
+        int day = cal.get(java.util.Calendar.DAY_OF_MONTH);
 
         // 如果已有日期,解析它
         if (!selectedPurchaseDate.isEmpty()) {
             try {
                 String[] parts = selectedPurchaseDate.split("-");
-                currentYear = Integer.parseInt(parts[0]);
-                currentMonth = Integer.parseInt(parts[1]) - 1;
-                currentDay = Integer.parseInt(parts[2]);
+                year = Integer.parseInt(parts[0]);
+                month = Integer.parseInt(parts[1]) - 1;
+                day = Integer.parseInt(parts[2]);
             } catch (Exception ignored) {}
         }
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.HORIZONTAL);
-        layout.setGravity(android.view.Gravity.CENTER);
-        layout.setPadding(dp(16), dp(16), dp(16), dp(8));
+        DatePickerDialog dialog = new DatePickerDialog(this, (view, y, m, d) -> {
+            selectedPurchaseDate = String.format("%04d-%02d-%02d", y, m + 1, d);
+            etPurchaseDate.setText(selectedPurchaseDate);
+            calcExpiryDate();
+        }, year, month, day);
 
-        // 年份Spinner
-        int startYear = currentYear - 10;
-        int endYear = currentYear + 5;
-        String[] years = new String[endYear - startYear + 1];
-        for (int i = 0; i < years.length; i++) years[i] = (startYear + i) + "年";
-        Spinner spYear = new Spinner(this);
-        spYear.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, years));
-        spYear.setSelection(currentYear - startYear);
-        LinearLayout.LayoutParams yearLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        yearLp.rightMargin = dp(8);
-        spYear.setLayoutParams(yearLp);
-        layout.addView(spYear);
+        // 设置日期范围（10年前到今天）
+        java.util.Calendar minDate = java.util.Calendar.getInstance();
+        minDate.add(java.util.Calendar.YEAR, -10);
+        java.util.Calendar maxDate = java.util.Calendar.getInstance();
+        dialog.getDatePicker().setMinDate(minDate.getTimeInMillis());
+        dialog.getDatePicker().setMaxDate(maxDate.getTimeInMillis());
 
-        // 月份Spinner
-        String[] months = {"1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"};
-        Spinner spMonth = new Spinner(this);
-        spMonth.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, months));
-        spMonth.setSelection(currentMonth);
-        LinearLayout.LayoutParams monthLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        monthLp.rightMargin = dp(8);
-        spMonth.setLayoutParams(monthLp);
-        layout.addView(spMonth);
-
-        // 日期Spinner
-        String[] days = new String[31];
-        for (int i = 0; i < 31; i++) days[i] = (i + 1) + "日";
-        Spinner spDay = new Spinner(this);
-        spDay.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, days));
-        spDay.setSelection(currentDay - 1);
-        LinearLayout.LayoutParams dayLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        spDay.setLayoutParams(dayLp);
-        layout.addView(spDay);
-
-        new AlertDialog.Builder(this)
-            .setTitle("选择日期")
-            .setView(layout)
-            .setPositiveButton("确定", (d, w) -> {
-                int year = startYear + spYear.getSelectedItemPosition();
-                int month = spMonth.getSelectedItemPosition();
-                int day = spDay.getSelectedItemPosition() + 1;
-                selectedPurchaseDate = String.format("%04d-%02d-%02d", year, month + 1, day);
-                etPurchaseDate.setText(selectedPurchaseDate);
-                calcExpiryDate();
-            })
-            .setNegativeButton("取消", null)
-            .show();
+        dialog.setTitle("选择生产日期");
+        dialog.show();
     }
 
     private int convertToDays(int value, String unit) {
