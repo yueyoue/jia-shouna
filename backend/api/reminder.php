@@ -49,7 +49,7 @@ switch ($action) {
             $expWhere[] = "(g.is_private = 0 OR g.creator_id = ?)";
             $expParams[] = $user['id'];
             $expWhereStr = implode(' AND ', $expWhere);
-            $stmt = $db->prepare("SELECT g.id as goods_id, g.name as goods_name, g.expiry_date, g.icon, s.name as space_name,
+            $stmt = $db->prepare("SELECT g.id as goods_id, g.name as goods_name, g.expiry_date, s.name as space_name,
                 DATEDIFF(g.expiry_date, CURDATE()) as days_left
                 FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id
                 WHERE $expWhereStr ORDER BY g.expiry_date ASC LIMIT 10");
