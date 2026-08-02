@@ -176,7 +176,7 @@ public class AllItemsActivity extends AppCompatActivity {
                                         }
                                     } else {
                                         // 单数物品时，添加占位保持半排宽度
-                                        View spacer = new View(this);
+                                        View spacer = new View(AllItemsActivity.this);
                                         spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
                                         row.addView(spacer);
                                     }
