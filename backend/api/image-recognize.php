@@ -71,32 +71,126 @@ switch ($action) {
             $imageUrl = IMAGE_URL_PREFIX . $relativePath;
 
             try {
-                debug_log('开始AI识别, imageUrl=' . $imageUrl);
-                debug_log('aiConfig=' . json_encode($aiConfig, JSON_UNESCAPED_UNICODE));
+                debug_log('开始AI识别(直接调用), imageUrl=' . $imageUrl);
 
-                require_once __DIR__ . '/../library/Agent/Agent.php';
-                debug_log('Agent.php loaded');
+                // 读取图片并压缩
+                $imgData = file_get_contents($filepath);
+                if (function_exists('imagecreatefromstring') && function_exists('imagejpeg')) {
+                    $img = @imagecreatefromstring($imgData);
+                    if ($img) {
+                        $origW = imagesx($img);
+                        $origH = imagesy($img);
+                        if ($origW > 1600 || $origH > 1600) {
+                            $ratio = min(1600 / $origW, 1600 / $origH);
+                            $newW = (int)($origW * $ratio);
+                            $newH = (int)($origH * $ratio);
+                            $newImg = imagecreatetruecolor($newW, $newH);
+                            imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+                            ob_start();
+                            imagejpeg($newImg, null, 75);
+                            $imgData = ob_get_clean();
+                            imagedestroy($newImg);
+                            debug_log('图片已压缩: ' . $origW . 'x' . $origH . ' -> ' . $newW . 'x' . $newH);
+                        }
+                        imagedestroy($img);
+                    }
+                }
+                $base64Image = base64_encode($imgData);
 
-                $agent = new Agent($user['id']);
-                debug_log('Agent created');
-
-                // 接收 APP 传来的自定义分类列表
+                // 动态获取分类列表
                 $customCategories = null;
                 if (!empty($_POST['categories'])) {
                     $customCategories = json_decode($_POST['categories'], true);
-                    if (!is_array($customCategories)) $customCategories = null;
                 }
+                require_once __DIR__ . '/../config/ai.php';
+                $categories = get_ai_categories($customCategories);
+                $categoryStr = implode('、', $categories);
 
+                // 构建 prompt
+                $systemPrompt = '你是家庭收纳物品识别助手。用户会上传家中物品的照片，你需要识别出这是什么物品。'
+                    . '严格只返回一个JSON对象，不要有其他文字：'
+                    . '{"goods_name":"物品名称","brand":"品牌或null","spec":"规格或null","category":"分类(' . $categoryStr . ')","barcode":"条码或null","expire_date":"日期或null","storage_tip":"存放建议","confidence":0.85}'
+                    . '无信息的字段返回null，不要猜。';
+
+                // 直接调用 AI API
                 $startTime = microtime(true);
-                $aiResult = $agent->recognize($imageUrl, $customCategories);
-                debug_log('Agent result: ' . json_encode($aiResult, JSON_UNESCAPED_UNICODE));
+                $payload = json_encode([
+                    'model' => $aiConfig['model'],
+                    'messages' => [
+                        ['role' => 'user', 'content' => [
+                            ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,' . $base64Image]],
+                            ['type' => 'text', 'text' => $systemPrompt]
+                        ]]
+                    ],
+                    'temperature' => 0.2,
+                    'max_tokens' => 500,
+                ]);
+
+                $ch = curl_init($aiConfig['api_url']);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $aiConfig['api_key'],
+                ]);
+                $response = curl_exec($ch);
+                $curlErr = curl_error($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
                 $duration = intval((microtime(true) - $startTime) * 1000);
 
-                // 更新 API 调用统计
-                $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
-                    ->execute([time(), $aiConfig['id']]);
-                $db->prepare("UPDATE api_config SET success_calls = success_calls + 1 WHERE id = ?")
-                    ->execute([time(), $aiConfig['id']]);
+                debug_log('AI HTTP=' . $httpCode . ' err=' . $curlErr . ' resp=' . substr($response, 0, 200));
+
+                if ($curlErr) throw new Exception('AI 请求失败: ' . $curlErr);
+
+                $respData = json_decode($response, true);
+                if (!$respData) throw new Exception('AI 返回无效JSON');
+                if (isset($respData['error'])) {
+                    $errMsg = $respData['error']['message'] ?? json_encode($respData['error']);
+                    throw new Exception('AI 服务错误: ' . $errMsg);
+                }
+
+                $content = $respData['choices'][0]['message']['content'] ?? '';
+                // 移除 <think> 标签
+                $content = preg_replace('/<think>[\s\S]*?<\/think>/i', '', $content);
+                $content = trim($content);
+                // 移除 markdown 代码块
+                $content = preg_replace('/^```(?:json)?\s*/m', '', $content);
+                $content = preg_replace('/^```\s*$/m', '', $content);
+                $content = trim($content);
+
+                // 解析 JSON
+                $aiResult = json_decode($content, true);
+                if (!$aiResult) {
+                    // 尝试提取 JSON
+                    $start = strpos($content, '{');
+                    $end = strrpos($content, '}');
+                    if ($start !== false && $end > $start) {
+                        $aiResult = json_decode(substr($content, $start, $end - $start + 1), true);
+                    }
+                }
+                if (!$aiResult || !isset($aiResult['goods_name'])) {
+                    throw new Exception('AI 返回结果无法解析: ' . substr($content, 0, 200));
+                }
+
+                debug_log('AI识别成功: ' . json_encode($aiResult, JSON_UNESCAPED_UNICODE));
+
+                // 更新统计
+                try {
+                    $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, success_calls = success_calls + 1, last_call_time = ? WHERE id = ?")
+                        ->execute([time(), $aiConfig['id']]);
+                } catch (Exception $e) { /* 忽略统计错误 */ }
+
+                // 记录日志
+                try {
+                    $usage = $respData['usage'] ?? [];
+                    $db->prepare("INSERT INTO ai_call_log (user_id, type, image_url, ai_provider, ai_model, prompt_tokens, completion_tokens, total_tokens, status, duration, created_at) VALUES (?, 'recognize', ?, ?, ?, ?, ?, ?, 1, ?, ?)")
+                        ->execute([$user['id'], $imageUrl, $aiConfig['provider'], $aiConfig['model'], $usage['prompt_tokens'] ?? 0, $usage['completion_tokens'] ?? 0, $usage['total_tokens'] ?? 0, $duration, time()]);
+                } catch (Exception $e) { error_log('ai_call_log error: ' . $e->getMessage()); }
 
                 success([
                     'recognized' => true,
@@ -105,17 +199,19 @@ switch ($action) {
                     'suggested_brand' => $aiResult['brand'] ?? '',
                     'suggested_tags' => [],
                     'barcode' => $aiResult['barcode'] ?? '',
-                    'confidence' => $aiResult['confidence'] ?? 0,
+                    'confidence' => floatval($aiResult['confidence'] ?? 0),
                     'image_path' => $relativePath,
                     'image_url' => $imageUrl
                 ]);
                 break;
 
             } catch (Exception $e) {
-                // AI 识别失败，记录错误并降级到传统图像识别
-                error_log('AI Agent recognize failed: ' . $e->getMessage());
-                $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
-                    ->execute([time(), $aiConfig['id']]);
+                debug_log('AI识别失败: ' . $e->getMessage());
+                error_log('AI recognize failed: ' . $e->getMessage());
+                try {
+                    $db->prepare("UPDATE api_config SET total_calls = total_calls + 1, last_call_time = ? WHERE id = ?")
+                        ->execute([time(), $aiConfig['id']]);
+                } catch (Exception $e2) { /* 忽略 */ }
                 // 继续走传统图像识别
             }
         }
