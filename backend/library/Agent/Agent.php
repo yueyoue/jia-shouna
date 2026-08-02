@@ -466,12 +466,17 @@ class Agent {
         try {
             if (!$logId) return;
             $db = getDB();
+            // 只更新 ai_call_log 表中实际存在的列
+            $validColumns = ['user_id','type','image_url','ai_provider','ai_model','prompt_tokens','completion_tokens','total_tokens','status','error_msg','duration','created_at'];
             $sets = [];
             $params = [];
             foreach ($data as $k => $v) {
-                $sets[] = "$k = ?";
-                $params[] = $v;
+                if (in_array($k, $validColumns)) {
+                    $sets[] = "$k = ?";
+                    $params[] = $v;
+                }
             }
+            if (empty($sets)) return;
             $params[] = $logId;
             $db->prepare("UPDATE ai_call_log SET " . implode(', ', $sets) . " WHERE id = ?")->execute($params);
         } catch (Exception $e) {
