@@ -269,14 +269,17 @@ public class HomeFragment extends Fragment {
         expParams.put("house_id", String.valueOf(houseId));
         expParams.put("action", "expiring");
         expParams.put("days", "7");
+        android.util.Log.d("HomeExp", "Loading expiring, houseId=" + houseId);
         ApiClient.get("goods.php?action=expiring", expParams, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
+                android.util.Log.d("HomeExp", "OK keys=" + data.keySet() + " raw=" + data.toString().substring(0, Math.min(300, data.toString().length())));
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
                     llExpiringList.removeAllViews();
                     try {
                         if (data.has("list") && !data.get("list").isJsonNull()) {
                             JsonArray list = data.getAsJsonArray("list");
+                            android.util.Log.d("HomeExp", "list.size=" + list.size());
                             if (list.size() == 0) {
                                 addEmptyHint(llExpiringList, "暂无临期物品 👍");
                             } else {
@@ -285,14 +288,17 @@ public class HomeFragment extends Fragment {
                                 }
                             }
                         } else {
+                            android.util.Log.w("HomeExp", "No list key. Keys: " + data.keySet());
                             addEmptyHint(llExpiringList, "暂无临期物品 👍");
                         }
                     } catch (Exception e) {
+                        android.util.Log.e("HomeExp", "Parse error", e);
                         addEmptyHint(llExpiringList, "暂无临期物品 👍");
                     }
                 });
             }
             @Override public void onError(String msg) {
+                android.util.Log.e("HomeExp", "Error: " + msg);
                 if (getActivity() != null) getActivity().runOnUiThread(() -> {
                     llExpiringList.removeAllViews();
                     addEmptyHint(llExpiringList, "暂无临期物品 👍");

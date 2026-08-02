@@ -124,7 +124,9 @@ public class RemindersFragment extends Fragment {
 
     private void loadData() {
         int houseId = App.getInstance().getCurrentHouseId();
+        android.util.Log.d("Reminders", "loadData houseId=" + houseId + " token=" + (App.getInstance().getToken().isEmpty() ? "EMPTY" : "OK"));
         if (houseId <= 0) {
+            android.util.Log.w("Reminders", "houseId<=0, showing empty");
             showEmptyInAll("请先创建或加入一个家庭");
             return;
         }
@@ -136,6 +138,7 @@ public class RemindersFragment extends Fragment {
         ApiClient.get("reminder.php?action=stats", params, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
+                android.util.Log.d("Reminders", "Stats OK: " + data.toString().substring(0, Math.min(200, data.toString().length())));
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
                     try {
@@ -148,6 +151,7 @@ public class RemindersFragment extends Fragment {
                         }
                         tvExpiringCount.setText(String.valueOf(expiry));
                     } catch (Exception e) {
+                        android.util.Log.e("Reminders", "Stats parse error", e);
                         tvExpiringCount.setText("0");
                     }
                 });
@@ -155,6 +159,7 @@ public class RemindersFragment extends Fragment {
 
             @Override
             public void onError(String msg) {
+                android.util.Log.e("Reminders", "Stats error: " + msg);
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> tvExpiringCount.setText("0"));
                 }
@@ -166,6 +171,7 @@ public class RemindersFragment extends Fragment {
         ApiClient.get("reminder.php?action=list", params, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JsonObject data) {
+                android.util.Log.d("Reminders", "List OK keys=" + data.keySet() + " raw=" + data.toString().substring(0, Math.min(300, data.toString().length())));
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
                     try {
@@ -175,9 +181,11 @@ public class RemindersFragment extends Fragment {
 
                         if (data.has("list") && !data.get("list").isJsonNull()) {
                             JsonArray list = data.getAsJsonArray("list");
+                            android.util.Log.d("Reminders", "List size=" + list.size());
                             for (int i = 0; i < list.size(); i++) {
                                 JsonObject item = list.get(i).getAsJsonObject();
                                 String type = item.has("type") ? item.get("type").getAsString() : "custom";
+                                android.util.Log.d("Reminders", "Item " + i + ": type=" + type + " title=" + (item.has("title") ? item.get("title").getAsString() : "null"));
                                 switch (type) {
                                     case "expiry":
                                         allExpiring.add(item);
@@ -190,13 +198,17 @@ public class RemindersFragment extends Fragment {
                                         break;
                                 }
                             }
+                        } else {
+                            android.util.Log.w("Reminders", "No 'list' key in data. Keys: " + data.keySet());
                         }
 
+                        android.util.Log.d("Reminders", "Final counts: expiring=" + allExpiring.size() + " lowstock=" + allLowstock.size() + " custom=" + allCustom.size());
                         renderExpiring();
                         renderLowstock();
                         renderCustom();
                         updateSectionVisibility();
                     } catch (Exception e) {
+                        android.util.Log.e("Reminders", "List parse error", e);
                         showEmptyInAll("加载失败，请重试");
                     }
                 });
@@ -204,6 +216,7 @@ public class RemindersFragment extends Fragment {
 
             @Override
             public void onError(String msg) {
+                android.util.Log.e("Reminders", "List error: " + msg);
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> showEmptyInAll("加载失败，请重试"));
                 }
