@@ -264,7 +264,7 @@ public class AddItemActivity extends AppCompatActivity {
                 tabPhoto.setTextColor(Color.parseColor("#FFFFFF"));
                 tabPhoto.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
-                tvScanHint.setText("拍照识别物品，自动填充信息");
+                tvScanHint.setText("拍照识别物品,自动填充信息");
                 btnStartScan.setText("📸 拍照识别");
                 btnStartScan.setOnClickListener(v -> startPhotoCapture());
                 break;
@@ -279,7 +279,7 @@ public class AddItemActivity extends AppCompatActivity {
                 tabAi.setTextColor(Color.parseColor("#FFFFFF"));
                 tabAi.setTypeface(null, android.graphics.Typeface.BOLD);
                 scanContainer.setVisibility(View.VISIBLE);
-                tvScanHint.setText("AI 智能识别：拍照自动提取物品信息");
+                tvScanHint.setText("AI 智能识别:拍照自动提取物品信息");
                 btnStartScan.setText("AI 智能识别");
                 btnStartScan.setOnClickListener(v -> startAiRecognize());
                 break;
@@ -373,8 +373,25 @@ public class AddItemActivity extends AppCompatActivity {
                 if (category.contains("化妆") || category.contains("护肤") || category.contains("美容")) return 4;
                 if (category.contains("服装") || category.contains("衣") || category.contains("裤")) return 5;
                 if (category.contains("鞋") || category.contains("帽")) return 6;
-                return 7; // 默认“其他”
+                return 7; // 默认"其他"
         }
+    }
+
+    /**
+     * 将API返回的分类映射到Spinner选项
+     */
+    private String mapCategoryToSpinner(String apiCategory) {
+        if (apiCategory == null) return "其他";
+        String cat = apiCategory.toLowerCase();
+        if (cat.contains("食") || cat.contains("饮") || cat.contains("奶") || cat.contains("粮") || cat.contains("food")) return "食品";
+        if (cat.contains("药") || cat.contains("医") || cat.contains("medicine")) return "药品";
+        if (cat.contains("日用") || cat.contains("清洁") || cat.contains("洗") || cat.contains("daily")) return "日用品";
+        if (cat.contains("数码") || cat.contains("电子") || cat.contains("手机") || cat.contains("tech")) return "数码";
+        if (cat.contains("化妆") || cat.contains("护肤") || cat.contains("美容") || cat.contains("cosmetic")) return "化妆品";
+        if (cat.contains("服装") || cat.contains("衣") || cat.contains("裤") || cat.contains("cloth")) return "服装";
+        if (cat.contains("鞋") || cat.contains("帽") || cat.contains("shoe")) return "鞋帽";
+        if (cat.contains("书") || cat.contains("book") || cat.contains("图书") || cat.contains("读")) return "图书";
+        return "其他";
     }
 
     private void startAiRecognize() {
@@ -478,7 +495,7 @@ public class AddItemActivity extends AppCompatActivity {
                     }
                 } catch (Exception ignored) {}
             }
-            // 问题5: 提取分类（兼容两种格式）
+            // 问题5: 提取分类(兼容两种格式)
             String category = safeGetString(data, "suggested_category");
             if (category.isEmpty()) category = safeGetString(data, "category");
             final String spec = safeGetString(data, "spec");
@@ -500,7 +517,7 @@ public class AddItemActivity extends AppCompatActivity {
                     if (!barcode.isEmpty()) etBarcode.setText(barcode);
                     if (!brand.isEmpty()) etBrand.setText(brand);
                     if (!spec.isEmpty()) etSpec.setText(spec);
-                    // 存放建议填入备注（如果没有手动输入备注的话）
+                    // 存放建议填入备注(如果没有手动输入备注的话)
                     if (!storageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) {
                         etNote.setText(storageTip);
                     }
@@ -532,13 +549,13 @@ public class AddItemActivity extends AppCompatActivity {
         }
     }
 
-    /** 安全获取 JsonObject 中的字符串值，避免 null/NPE */
+    /** 安全获取 JsonObject 中的字符串值,避免 null/NPE */
     private static String safeGetString(JsonObject obj, String key) {
         if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return "";
         try { return obj.get(key).getAsString(); } catch (Exception e) { return ""; }
     }
 
-    /** 安全获取 JsonObject 中的 double 值，兼容 int/double/string 类型 */
+    /** 安全获取 JsonObject 中的 double 值,兼容 int/double/string 类型 */
     private static double safeGetDouble(JsonObject obj, String key) {
         if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return 0;
         try {
@@ -641,7 +658,7 @@ public class AddItemActivity extends AppCompatActivity {
                     } catch (Exception ignored) {}
                 }
                 if (bitmap == null && data != null) {
-                    // 回退：尝试获取缩略图
+                    // 回退:尝试获取缩略图
                     Bundle extras = data.getExtras();
                     if (extras != null) {
                         bitmap = (Bitmap) extras.get("data");
@@ -670,7 +687,7 @@ public class AddItemActivity extends AppCompatActivity {
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
                     callAiRecognize(baos.toByteArray());
                 } else {
-                    Toast.makeText(this, "拍照获取失败，请重试", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "拍照获取失败,请重试", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
                 Toast.makeText(this, "拍照处理失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -694,7 +711,7 @@ public class AddItemActivity extends AppCompatActivity {
     }
 
     /**
-     * 编辑模式：显示已有的远程图片
+     * 编辑模式:显示已有的远程图片
      */
     private void addExistingPhotoToView(String imageUrl, int existingIndex) {
         android.widget.FrameLayout container = new android.widget.FrameLayout(this);
@@ -872,7 +889,7 @@ public class AddItemActivity extends AppCompatActivity {
                 if (!storageTip.isEmpty()) msg.append("存放建议: ").append(storageTip).append("\n");
 
                 if (msg.length() == 0) {
-                    Toast.makeText(this, "未能识别物品，请手动输入", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "未能识别物品,请手动输入", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -892,7 +909,7 @@ public class AddItemActivity extends AppCompatActivity {
                 final int catPos = getCategoryPosition(category);
                 new AlertDialog.Builder(this)
                     .setTitle("✅ 识别结果")
-                    .setMessage(msg.toString() + "\n是否填入表单？")
+                    .setMessage(msg.toString() + "\n是否填入表单?")
                     .setPositiveButton("确认填入", (d, w) -> {
                         if (!name.isEmpty()) etName.setText(name);
                         if (!barcode.isEmpty()) etBarcode.setText(barcode);
@@ -964,19 +981,33 @@ public class AddItemActivity extends AppCompatActivity {
                                 }
                             }
                             if (hasData) {
+                                // 自动选择分类
+                                if (data.has("category") && !data.get("category").isJsonNull()) {
+                                    String apiCategory = data.get("category").getAsString();
+                                    if (!apiCategory.isEmpty()) {
+                                        // 映射API分类到APP分类
+                                        String mapped = mapCategoryToSpinner(apiCategory);
+                                        for (int i = 0; i < spCategory.getCount(); i++) {
+                                            if (spCategory.getItemAtPosition(i).toString().equals(mapped)) {
+                                                spCategory.setSelection(i);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
                                 Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
                             } else {
-                                Toast.makeText(AddItemActivity.this, "条码已录入，但商品详情未查到，请手动补充", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(AddItemActivity.this, "条码已录入,但商品详情未查到,请手动补充", Toast.LENGTH_SHORT).show();
                             }
                         } else {
                             String msg = data.has("msg") ? data.get("msg").getAsString() : "未找到该条码对应的商品";
                             // 友好化处理原始错误信息
                             if (msg.contains("HTTP 404") || msg.contains("未找到")) {
-                                msg = "该条码在数据库中未找到，可手动输入物品信息";
+                                msg = "该条码在数据库中未找到,可手动输入物品信息";
                             } else if (msg.contains("HTTP 500") || msg.contains("服务")) {
-                                msg = "条码查询服务暂时不可用，请稍后再试";
+                                msg = "条码查询服务暂时不可用,请稍后再试";
                             } else if (msg.contains("连接失败") || msg.contains("timeout")) {
-                                msg = "网络连接超时，请检查网络后重试";
+                                msg = "网络连接超时,请检查网络后重试";
                             }
                             Toast.makeText(AddItemActivity.this, msg, Toast.LENGTH_LONG).show();
                         }
@@ -1033,7 +1064,7 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void showTagDialog() {
         if (tagList.size() == 0) {
-            // 没有标签，提示创建
+            // 没有标签,提示创建
             EditText input = new EditText(this);
             input.setHint("输入标签名称");
             new AlertDialog.Builder(this)
@@ -1164,7 +1195,7 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void showSpacePickerDialog() {
         if (spaceList.size() == 0) {
-            Toast.makeText(this, "暂无空间，请先创建收纳空间", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "暂无空间,请先创建收纳空间", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -1191,7 +1222,7 @@ public class AddItemActivity extends AppCompatActivity {
      * 将用户输入的保质期值和单位换算成天数
      */
     /**
-     * 年月日快速选择器（先选年，再选月日）
+     * 年月日快速选择器(先选年,再选月日)
      */
     private void showDatePicker() {
         java.util.Calendar cal = java.util.Calendar.getInstance();
@@ -1199,7 +1230,7 @@ public class AddItemActivity extends AppCompatActivity {
         int currentMonth = cal.get(java.util.Calendar.MONTH);
         int currentDay = cal.get(java.util.Calendar.DAY_OF_MONTH);
 
-        // 如果已有日期，解析它
+        // 如果已有日期,解析它
         if (!selectedPurchaseDate.isEmpty()) {
             try {
                 String[] parts = selectedPurchaseDate.split("-");
@@ -1322,7 +1353,7 @@ public class AddItemActivity extends AppCompatActivity {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
-                        // ApiClient已提取data层，后端返回goods包裹
+                        // ApiClient已提取data层,后端返回goods包裹
                         JsonObject item = null;
                         if (data.has("goods") && !data.get("goods").isJsonNull()) {
                             item = data.getAsJsonObject("goods");
@@ -1509,7 +1540,7 @@ public class AddItemActivity extends AppCompatActivity {
                 .apply();
         }
 
-        // 先上传照片，再创建物品
+        // 先上传照片,再创建物品
         if (!photos.isEmpty() && NetworkUtils.isNetworkAvailable(this)) {
             btnSave.setEnabled(false);
             btnSave.setText("上传照片中...");
@@ -1518,7 +1549,7 @@ public class AddItemActivity extends AppCompatActivity {
             return;
         }
 
-        // 没有照片，直接创建
+        // 没有照片,直接创建
         Goods goods = new Goods();
         goods.houseId = houseId;
         goods.spaceId = selectedSpaceId;
@@ -1528,13 +1559,13 @@ public class AddItemActivity extends AppCompatActivity {
         String qtyStr = etQuantity.getText().toString().trim();
         goods.quantity = qtyStr.isEmpty() ? 1 : Double.parseDouble(qtyStr);
         goods.unit = etUnit.getSelectedItem() != null ? etUnit.getSelectedItem().toString() : "个";
-        // 过期日期：使用自动计算的日期
+        // 过期日期:使用自动计算的日期
         String autoExpiry = tvExpiryDateAuto.getText().toString().trim();
         if (!autoExpiry.isEmpty() && !autoExpiry.contains("输入")) {
-            // 提取日期部分（去掉可能的提示文字）
+            // 提取日期部分(去掉可能的提示文字)
             goods.expiryDate = autoExpiry.length() >= 10 ? autoExpiry.substring(0, 10) : autoExpiry;
         } else {
-            // 回退：从保质期值和单位计算
+            // 回退:从保质期值和单位计算
             String daysStr = etExpiryDays.getText().toString().trim();
             if (!daysStr.isEmpty()) {
                 try {
@@ -1623,7 +1654,7 @@ public class AddItemActivity extends AppCompatActivity {
                 body.add("tags", tagsArray);
             }
 
-            // 编辑模式：附带已有图片路径
+            // 编辑模式:附带已有图片路径
             if (isEditMode && !existingImagePaths.isEmpty()) {
                 JsonArray imagesArray = new JsonArray();
                 for (String path : existingImagePaths) imagesArray.add(path);
@@ -1656,13 +1687,13 @@ public class AddItemActivity extends AppCompatActivity {
             });
         } else {
             localDb.saveOfflineGoods(goods);
-            Toast.makeText(this, "已保存到本地，联网后自动同步", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "已保存到本地,联网后自动同步", Toast.LENGTH_SHORT).show();
             finish();
         }
     }
 
     private void resetForm() {
-        // 重置表单字段，保留空间选择和模式
+        // 重置表单字段,保留空间选择和模式
         etName.setText("");
         etBarcode.setText("");
         etQuantity.setText("1");
@@ -1718,7 +1749,7 @@ public class AddItemActivity extends AppCompatActivity {
     }
 
     /**
-     * 先上传所有照片，获取路径后创建物品
+     * 先上传所有照片,获取路径后创建物品
      */
     private void createGoodsWithImages(List<String> imagePaths, boolean continueAfterSave) {
         int houseId = App.getInstance().getCurrentHouseId();
@@ -1815,7 +1846,7 @@ public class AddItemActivity extends AppCompatActivity {
             body.add("images", imagesArray);
         }
 
-        // 编辑模式：使用update接口并附带物品ID
+        // 编辑模式:使用update接口并附带物品ID
         String endpoint = isEditMode ? "goods.php?action=update" : "goods.php?action=create";
         if (isEditMode) body.addProperty("id", editGoodsId);
 
@@ -1892,14 +1923,14 @@ public class AddItemActivity extends AppCompatActivity {
                 }
             }
 
-            // 所有照片上传完毕，创建物品（附带图片路径）
+            // 所有照片上传完毕,创建物品(附带图片路径)
             final List<String> finalPaths = imagePaths;
             runOnUiThread(() -> createGoodsWithImages(finalPaths, continueAfterSave));
         }).start();
     }
 
     private void uploadPhotos(int goodsId) {
-        // 异步上传照片，不阻塞UI
+        // 异步上传照片,不阻塞UI
         new Thread(() -> {
             List<String> imagePaths = new java.util.ArrayList<>();
             for (Bitmap photo : photos) {
@@ -1961,7 +1992,7 @@ public class AddItemActivity extends AppCompatActivity {
                         imagesArray.add(path);
                     }
                     body.add("images", imagesArray);
-                    // 同步调用更新接口，添加图片
+                    // 同步调用更新接口,添加图片
                     okhttp3.RequestBody reqBody = okhttp3.RequestBody.create(
                         okhttp3.MediaType.parse("application/json"), body.toString());
                     String updateUrl = App.BASE_URL + "goods.php?action=update";
