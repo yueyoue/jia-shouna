@@ -130,6 +130,7 @@ public class AddSpaceActivity extends AppCompatActivity {
                 runOnUiThread(() -> Toast.makeText(AddSpaceActivity.this, "加载失败: " + msg, Toast.LENGTH_SHORT).show());
             }
         });
+    }
 
     private void buildIconSelector() {
         layoutIconSelector.removeAllViews();
