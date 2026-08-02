@@ -200,7 +200,7 @@ public class SpacesFragment extends Fragment {
                 }
             });
 
-            // Single click: navigate to space detail
+            // Click on room name: navigate to space detail
             roomHeader.setOnClickListener(v -> {
                 Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
                 intent.putExtra("space_id", finalRoomId);
@@ -210,19 +210,22 @@ public class SpacesFragment extends Fragment {
             });
 
             if (hasChildren) {
-                // Long click: toggle expand/collapse
-                roomHeader.setOnLongClickListener(v -> {
-                    boolean currentlyExpanded = finalSubItems.getVisibility() == View.VISIBLE;
-                    if (currentlyExpanded) {
-                        finalSubItems.setVisibility(View.GONE);
-                        expandedState.put(finalRoomId, false);
-                        if (arrowRef[0] != null) arrowRef[0].setText("▶");
-                    } else {
-                        finalSubItems.setVisibility(View.VISIBLE);
-                        expandedState.put(finalRoomId, true);
-                        if (arrowRef[0] != null) arrowRef[0].setText("▼");
+                // Click on arrow: toggle expand/collapse
+                roomHeader.post(() -> {
+                    if (arrowRef[0] != null) {
+                        arrowRef[0].setOnClickListener(v -> {
+                            boolean currentlyExpanded = finalSubItems.getVisibility() == View.VISIBLE;
+                            if (currentlyExpanded) {
+                                finalSubItems.setVisibility(View.GONE);
+                                expandedState.put(finalRoomId, false);
+                                arrowRef[0].setText("▶");
+                            } else {
+                                finalSubItems.setVisibility(View.VISIBLE);
+                                expandedState.put(finalRoomId, true);
+                                arrowRef[0].setText("▼");
+                            }
+                        });
                     }
-                    return true;
                 });
             }
 

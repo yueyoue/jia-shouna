@@ -45,7 +45,7 @@
             android:gravity="center"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:text="＋ 新建"
+            android:text="＋ 物品录入"
             android:textColor="@color/primary"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -59,27 +59,9 @@
             android:gravity="center"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:text="✏️ 编辑"
+            android:text="✏️ 编辑房间"
             android:textColor="@color/text_secondary"
             android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/btn_search"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="6dp"
-            android:gravity="center"
-            android:text="🔍"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/btn_more"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:gravity="center"
-            android:text="⋯"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp" />
     </LinearLayout>
 
     <View
