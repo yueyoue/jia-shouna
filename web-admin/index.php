@@ -57,6 +57,9 @@ $pages = [
     'users' => 'pages/users.php',
     'settings' => 'pages/settings.php',
     'version' => 'pages/version.php',
+    'stats' => 'pages/stats.php',
+    'ai-logs' => 'pages/ai-logs.php',
+    'app-logs' => 'pages/app-logs.php',
 ];
 
 $pageFile = $pages[$page] ?? null;

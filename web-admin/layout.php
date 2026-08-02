@@ -17,6 +17,7 @@ $navGroups = [
     '数据管理' => [
         ['p' => 'spaces', 'icon' => '🏠', 'label' => '收纳空间'],
         ['p' => 'items', 'icon' => '📦', 'label' => '物品管理'],
+        ['p' => 'stats', 'icon' => '📈', 'label' => '数据统计'],
     ],
     '系统' => [
         ['p' => 'api-config', 'icon' => '🔌', 'label' => '接口配置'],
@@ -43,6 +44,7 @@ $pageTitles = [
     'users' => '用户家庭',
     'settings' => '系统设置',
     'version' => '版本信息',
+    'stats' => '数据统计',
 ];
 
 $pageTitle = $pageTitles[$currentPage] ?? '管理后台';
