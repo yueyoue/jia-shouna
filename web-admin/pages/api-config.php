@@ -232,14 +232,14 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
 
 <!-- Tabs -->
 <div class="tabs">
-    <div class="tab active">📊 条码查询接口</div>
-    <div class="tab">📷 图像识别接口</div>
-    <div class="tab">🤖 AI 智能识别</div>
-    <div class="tab">📋 接口调用日志</div>
+    <div class="tab active" onclick="switchTab('barcode', this)">📊 条码查询接口</div>
+    <div class="tab" onclick="switchTab('image', this)">📷 图像识别接口</div>
+    <div class="tab" onclick="switchTab('ai', this)">🤖 AI 智能识别</div>
+    <div class="tab" onclick="switchTab('logs', this)">📋 接口调用日志</div>
 </div>
 
-<!-- Barcode API - 照抄 UI -->
-<div class="api-card">
+<!-- Barcode API -->
+<div class="api-card" id="section-barcode">
     <div class="api-card-header">
         <div class="api-card-title">
             <div class="api-icon barcode">📊</div>
@@ -325,8 +325,8 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
     </div>
 </div>
 
-<!-- Image API - 照抄 UI -->
-<div class="api-card">
+<!-- Image API -->
+<div class="api-card" id="section-image" style="display:none">
     <div class="api-card-header">
         <div class="api-card-title">
             <div class="api-icon image">📷</div>
@@ -399,7 +399,7 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
 </div>
 
 <!-- AI 配置 -->
-<div class="api-card">
+<div class="api-card" id="section-ai" style="display:none">
     <div class="api-card-header">
         <div class="api-card-title">
             <div class="api-icon ai">🤖</div>
@@ -479,8 +479,8 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
     </div>
 </div>
 
-<!-- API Logs - 照抄 UI -->
-<div class="api-card">
+<!-- API Logs -->
+<div class="api-card" id="section-logs" style="display:none">
     <div class="api-card-header">
         <div class="api-card-title">
             <div class="api-icon barcode">📋</div>
@@ -517,6 +517,30 @@ $logs = $db->query("SELECT * FROM api_log ORDER BY created_at DESC LIMIT 20")->f
 </div>
 
 <script>
+function switchTab(tab, el) {
+    var sections = ['barcode', 'image', 'ai', 'logs'];
+    var tabs = document.querySelectorAll('.tabs .tab');
+    sections.forEach(function(s) {
+        var sec = document.getElementById('section-' + s);
+        if (sec) sec.style.display = (s === tab) ? 'block' : 'none';
+    });
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    if (el) el.classList.add('active');
+    if (window.history) history.replaceState(null, '', '?p=api-config&tab=' + tab);
+}
+// 页面加载时恢复上次的 tab
+(function(){
+    var params = new URLSearchParams(location.search);
+    var tab = params.get('tab');
+    if (tab && document.getElementById('section-' + tab)) {
+        var tabs = document.querySelectorAll('.tabs .tab');
+        var targetTab = null;
+        tabs.forEach(function(t) {
+            if (t.getAttribute('onclick').indexOf("'" + tab + "'") !== -1) targetTab = t;
+        });
+        switchTab(tab, targetTab);
+    }
+})();
 function toggleEdit(id) {
     var el = document.getElementById('edit-' + id);
     if (el) {
