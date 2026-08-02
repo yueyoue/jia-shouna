@@ -138,8 +138,11 @@ function tryBarcodeLookup($db, $user, $barcode, $api) {
  */
 function normalizeBarcodeResponse($data) {
     // RollToolsApi (mxnzp): {"code": 0, "data": {"goodsName": "...", "goodsBrand": "..."}}
+    // ApiZero: {"code": 0, "data": {"found": false/true, "name": "..."}}
     if (isset($data['code']) && $data['code'] == 0 && isset($data['data'])) {
         $d = $data['data'];
+        // ApiZero 返回 found=false 表示未找到
+        if (isset($d['found']) && !$d['found']) return null;
         return [
             'name' => $d['goodsName'] ?? $d['name'] ?? '',
             'brand' => $d['goodsBrand'] ?? $d['brand'] ?? '',
