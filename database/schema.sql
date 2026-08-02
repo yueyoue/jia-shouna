@@ -433,8 +433,8 @@ CREATE TABLE IF NOT EXISTS `ai_tool_call_log` (
 -- -------------------------------------------
 INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `api_secret`, `extra_params`, `is_active`, `priority`, `total_calls`, `success_calls`, `created_at`, `updated_at`) VALUES
 ('ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('ai', '面壁智能 MiniCPM-V-4.6-1B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-V-4.6-1B","provider":"modelbest"}', 0, 50, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-('ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', 'sk-live-kmwPsO1yz9kJfbp8c6az72I-BjfZBX-5V5CmI9yTsXw', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 45, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '面壁智能 MiniCPM-V-4.6-1B', 'https://api.modelbest.cn/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-1B","provider":"modelbest"}', 0, 50, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+('ai', '面壁智能 MiniCPM-O-4.5-9B', 'https://api.modelbest.cn/v1/chat/completions', '', '', '{"model":"MiniCPM-O-4.5-9B","provider":"modelbest"}', 0, 45, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('ai', '魔搭 Qwen3-VL-235B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-235B-A22B-Instruct","provider":"modelscope"}', 0, 70, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('ai', '魔搭 Qwen3-VL-8B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"Qwen/Qwen3-VL-8B-Instruct","provider":"modelscope"}', 0, 65, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('ai', '魔搭 InternVL3.5-241B（免费）', 'https://api-inference.modelscope.cn/v1/chat/completions', '', '', '{"model":"OpenGVLab/InternVL3_5-241B-A28B","provider":"modelscope"}', 0, 60, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),

@@ -430,36 +430,40 @@ public class AddItemActivity extends AppCompatActivity {
     private void handleAiResult(String responseBody) {
         try {
             JsonObject json = com.google.gson.JsonParser.parseString(responseBody).getAsJsonObject();
-            if (json.get("code").getAsInt() != 0) {
-                Toast.makeText(this, "识别失败", Toast.LENGTH_SHORT).show();
+            int code = json.has("code") && !json.get("code").isJsonNull() ? json.get("code").getAsInt() : -1;
+            if (code != 0) {
+                String msg = json.has("msg") && !json.get("msg").isJsonNull() ? json.get("msg").getAsString() : "识别失败";
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!json.has("data") || json.get("data").isJsonNull()) {
+                Toast.makeText(this, "识别失败: 返回数据为空", Toast.LENGTH_SHORT).show();
                 return;
             }
             JsonObject data = json.getAsJsonObject("data");
+            if (data == null) {
+                Toast.makeText(this, "识别失败: 返回数据为空", Toast.LENGTH_SHORT).show();
+                return;
+            }
             // 兼容两种返回格式: image-recognize.php 和 ai/recognize.php
-            String tmpName = "";
-            if (data.has("suggested_name") && !data.get("suggested_name").getAsString().isEmpty()) {
-                tmpName = data.get("suggested_name").getAsString();
-            } else if (data.has("goods_name")) {
-                tmpName = data.get("goods_name").getAsString();
-            }
+            String tmpName = safeGetString(data, "suggested_name");
+            if (tmpName.isEmpty()) tmpName = safeGetString(data, "goods_name");
             final String name = tmpName;
-            String tmpBrand = "";
-            if (data.has("suggested_brand") && !data.get("suggested_brand").getAsString().isEmpty()) {
-                tmpBrand = data.get("suggested_brand").getAsString();
-            } else if (data.has("brand")) {
-                tmpBrand = data.get("brand").getAsString();
-            }
+            String tmpBrand = safeGetString(data, "suggested_brand");
+            if (tmpBrand.isEmpty()) tmpBrand = safeGetString(data, "brand");
             final String brand = tmpBrand;
-            final String barcode = data.has("barcode") ? data.get("barcode").getAsString() : "";
-            String expireDate = data.has("expire_date") ? data.get("expire_date").getAsString() : "";
-            double confidence = data.has("confidence") ? data.get("confidence").getAsDouble() : 0;
+            final String barcode = safeGetString(data, "barcode");
+            String expireDate = safeGetString(data, "expire_date");
+            double confidence = safeGetDouble(data, "confidence");
             if (data.has("suggested_space_id") && !data.get("suggested_space_id").isJsonNull()) {
-                int sid = data.get("suggested_space_id").getAsInt();
-                if (sid > 0) {
-                    selectedSpaceId = sid;
-                    String sn = data.has("suggested_space_name") ? data.get("suggested_space_name").getAsString() : "";
-                    tvSpaceName.setText(sn);
-                }
+                try {
+                    int sid = data.get("suggested_space_id").getAsInt();
+                    if (sid > 0) {
+                        selectedSpaceId = sid;
+                        String sn = safeGetString(data, "suggested_space_name");
+                        tvSpaceName.setText(sn);
+                    }
+                } catch (Exception ignored) {}
             }
             if (!name.isEmpty()) etName.setText(name);
             if (!barcode.isEmpty()) etBarcode.setText(barcode);
@@ -475,12 +479,8 @@ public class AddItemActivity extends AppCompatActivity {
                 } catch (Exception ignored) {}
             }
             // 问题5: 提取分类（兼容两种格式）
-            String category = "";
-            if (data.has("suggested_category") && !data.get("suggested_category").getAsString().isEmpty()) {
-                category = data.get("suggested_category").getAsString();
-            } else if (data.has("category")) {
-                category = data.get("category").getAsString();
-            }
+            String category = safeGetString(data, "suggested_category");
+            if (category.isEmpty()) category = safeGetString(data, "category");
             String msg = "名称: " + name;
             if (!brand.isEmpty()) msg += "\n品牌: " + brand;
             if (!category.isEmpty()) msg += "\n分类: " + category;
@@ -521,6 +521,22 @@ public class AddItemActivity extends AppCompatActivity {
                 .setPositiveButton("确定", null)
                 .show();
         }
+    }
+
+    /** 安全获取 JsonObject 中的字符串值，避免 null/NPE */
+    private static String safeGetString(JsonObject obj, String key) {
+        if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return "";
+        try { return obj.get(key).getAsString(); } catch (Exception e) { return ""; }
+    }
+
+    /** 安全获取 JsonObject 中的 double 值，兼容 int/double/string 类型 */
+    private static double safeGetDouble(JsonObject obj, String key) {
+        if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return 0;
+        try {
+            com.google.gson.JsonElement el = obj.get(key);
+            if (el.getAsJsonPrimitive().isNumber()) return el.getAsDouble();
+            return Double.parseDouble(el.getAsString());
+        } catch (Exception e) { return 0; }
     }
 
     private void startBarcodeScan() {
@@ -798,19 +814,29 @@ public class AddItemActivity extends AppCompatActivity {
     private void handleRecognizeResult(String responseBody) {
         try {
             JsonObject json = com.google.gson.JsonParser.parseString(responseBody).getAsJsonObject();
-            if (json.get("code").getAsInt() != 0) {
-                Toast.makeText(this, "识别失败: " + json.get("msg").getAsString(), Toast.LENGTH_SHORT).show();
+            int respCode = json.has("code") && !json.get("code").isJsonNull() ? json.get("code").getAsInt() : -1;
+            if (respCode != 0) {
+                String errMsg = json.has("msg") && !json.get("msg").isJsonNull() ? json.get("msg").getAsString() : "识别失败";
+                Toast.makeText(this, "识别失败: " + errMsg, Toast.LENGTH_SHORT).show();
                 return;
             }
 
+            if (!json.has("data") || json.get("data").isJsonNull()) {
+                Toast.makeText(this, "识别失败: 返回数据为空", Toast.LENGTH_SHORT).show();
+                return;
+            }
             JsonObject data = json.getAsJsonObject("data");
-            boolean recognized = data.has("recognized") && data.get("recognized").getAsBoolean();
+            if (data == null) {
+                Toast.makeText(this, "识别失败: 返回数据为空", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            boolean recognized = data.has("recognized") && !data.get("recognized").isJsonNull() && data.get("recognized").getAsBoolean();
 
             if (recognized) {
-                String name = data.has("suggested_name") ? data.get("suggested_name").getAsString() : "";
-                String category = data.has("suggested_category") ? data.get("suggested_category").getAsString() : "";
-                String brand = data.has("suggested_brand") ? data.get("suggested_brand").getAsString() : "";
-                String barcode = data.has("barcode") ? data.get("barcode").getAsString() : "";
+                String name = safeGetString(data, "suggested_name");
+                String category = safeGetString(data, "suggested_category");
+                String brand = safeGetString(data, "suggested_brand");
+                String barcode = safeGetString(data, "barcode");
 
                 // 显示识别结果确认对话框
                 StringBuilder msg = new StringBuilder();

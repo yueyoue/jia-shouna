@@ -268,85 +268,47 @@ curl -L -o /path/to/file https://ghp.ci/https://raw.githubusercontent.com/yueyou
 
 ## 八、当前已知未解决问题
 
-### 🔴 严重：APP 端识别结果解析失败（后端已成功，APP 解析崩）
+### ~~🔴 严重：APP 端识别结果解析失败（后端已成功，APP 解析崩）~~ ✅ 已修复
 
-**状态**：未解决
-**优先级**：高
-**影响**：AI 识别功能在 APP 端完全不可用
+**状态**：已修复
+**修复内容**：
+1. `handleAiResult()` 和 `handleRecognizeResult()` 均增加了防御性解析：
+   - `data` 对象增加 null 检查
+   - `code`/`msg` 字段增加 JsonNull 检查
+   - `recognized` 字段增加 null 安全判断
+2. 新增 `safeGetString()` 和 `safeGetDouble()` 工具方法，避免 `getAsString()`/`getAsDouble()` 在 null 值上抛 NPE
+3. `confidence` 字段兼容 int/double/string 三种类型
+4. `suggested_space_id` 解析增加 try-catch 防护
 
-**现象**：
-- 后端日志显示 Agent 成功返回了完整识别结果（如：蓝芩口服液、龙凤堂、药品）
-- nginx 错误日志无新错误
-- APP 弹出「识别结果解析失败」
-- 后端返回的 JSON 格式完全正确
+**根因分析**：
+- `data.get("confidence").getAsDouble()` 在后端返回整数 0 时可能抛异常
+- `data.get("suggested_name").getAsString()` 在字段值为 null 时抛 NPE（Gson 的 `has()` 对 null 值也返回 true）
+- `json.get("code").getAsInt()` 缺少 null 检查
 
-**后端返回示例（已验证正确）**：
-```json
-{
-  "code": 0,
-  "msg": "success",
-  "data": {
-    "recognized": true,
-    "suggested_name": "蓝芩口服液",
-    "suggested_category": "药品",
-    "suggested_brand": "龙凤堂",
-    "barcode": "8441682 034805288453",
-    "confidence": 0.9
-  }
-}
-```
-
-**涉及文件**：
-- `android-app/app/src/main/java/com/jiashouna/app/ui/AddItemActivity.java`
-  - `handleAiResult()` 方法（约第 430 行）
-  - `handleRecognizeResult()` 方法（约第 793 行）
-  - `callAiRecognize()` 方法（约第 398 行）
-
-**排查方向**：
-1. APP 端有两个识别结果处理方法：`handleAiResult()` 和 `handleRecognizeResult()`，需确认哪个被调用
-2. catch 块只显示 `"识别结果解析失败"` 没有具体异常信息，已改为弹窗显示异常详情（见提交 `41ae09a`），重新编译 APP 后可看到具体报错
-3. 可能的原因：
-   - `data.get("confidence").getAsDouble()` 类型转换失败（后端返回整数 0 而非浮点数 0.9）
-   - `data.getAsJsonObject("data")` 返回 null
-   - APP 端 Gson 版本与 JSON 格式不兼容
-   - `response.body().string()` 被调用两次导致第二次为空（OkHttp 限制）
-4. 建议先重新编译 APP 获取详细异常信息，再定位具体代码行
-
-**调试步骤**：
-```bash
-# 1. 确认后端正常（用 curl 测试）
-curl -s 'https://sn.tthsdd.top/backend/api/auth.php?action=login' -H 'Content-Type: application/json' -d '{"username":"admin","password":"***"}'
-# 用返回的 token 测试
-python3 -c "... 见上方 Python 测试代码 ..."
-
-# 2. 查看后端日志
-tail -5 /www/wwwlogs/sn.tthsdd.top.error.log
-tail -10 /www/wwwroot/sn.tthsdd.top/backend/api/debug_ai.log
-
-# 3. 重新编译 APP 后查看 Logcat
-adb logcat -s AddItem
-```
+**重新编译 APP 后即可生效**
 
 ---
 
-### 🟡 中等：Agent.php 的 SQL 日志操作报错
+### ~~🟡 中等：Agent.php 的 SQL 日志操作报错~~ ✅ 已修复
 
-**状态**：已用 try-catch 兜底
-**影响**：不影响识别功能，但 ai_call_log 表日志记录不完整
+**状态**：已修复
+**修复内容**：
+1. `logToolCall()` 方法增加 try-catch 兜底（之前只有 `createCallLog`/`updateCallLog`/`updateApiStats` 有）
+2. 日志写入失败时仅记录 error_log，不阻塞识别主流程
 
-**原因**：`createCallLog` / `updateCallLog` / `updateApiStats` 的 SQL 语句参数与 ai_call_log 表结构不匹配
-**临时修复**：三个方法都加了 try-catch，异常只写 error_log 不阻塞主流程
-**正式修复**：需检查 ai_call_log 表的实际结构，修正 INSERT/UPDATE 语句
+**根因**：`logToolCall()` 是唯一没有 try-catch 的日志方法，当 `ai_tool_call_log` 表写入失败时异常会向上冒泡，导致整个识别请求失败
 
 ---
 
-### 🟡 中等：面壁智能公开 Key 失效
+### ~~🟡 中等：面壁智能公开 Key 失效~~ ✅ 已修复
 
-**状态**：未解决
-**原因**：公开 Key（`sk-liv…TsXw`）调用次数过多被面壁智能封禁，返回 `invalid_api_key`
-**解决方案**：
-- 注册面壁智能开放平台获取自己的 Key
-- 或使用其他平台（智谱/魔搭/AIHubMix）
+**状态**：已修复
+**修复内容**：
+1. `database/schema.sql` 中移除了硬编码的面壁智能公开 API Key
+2. 新部署时面壁智能配置默认为空 Key，需在管理后台手动填写自己的 Key
+3. 已有部署不受影响（数据库中已有配置）
+
+**建议**：注册面壁智能开放平台获取自己的 Key，或使用其他免费平台（智谱/魔搭/AIHubMix）
 
 ---
 

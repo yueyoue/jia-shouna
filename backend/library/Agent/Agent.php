@@ -376,18 +376,22 @@ class Agent {
     }
 
     private function logToolCall($callId, $toolName, $params, $result, $duration) {
-        $db = getDB();
-        $status = isset($result['error']) ? 0 : 1;
-        $stmt = $db->prepare("INSERT INTO ai_tool_call_log (call_id, tool_name, tool_params, tool_result, execute_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $callId,
-            $toolName,
-            json_encode($params, JSON_UNESCAPED_UNICODE),
-            json_encode($result, JSON_UNESCAPED_UNICODE),
-            $duration,
-            $status,
-            time()
-        ]);
+        try {
+            $db = getDB();
+            $status = isset($result['error']) ? 0 : 1;
+            $stmt = $db->prepare("INSERT INTO ai_tool_call_log (call_id, tool_name, tool_params, tool_result, execute_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $callId,
+                $toolName,
+                json_encode($params, JSON_UNESCAPED_UNICODE),
+                json_encode($result, JSON_UNESCAPED_UNICODE),
+                $duration,
+                $status,
+                time()
+            ]);
+        } catch (Exception $e) {
+            error_log('logToolCall error: ' . $e->getMessage());
+        }
     }
 
     private function updateApiStats($apiId, $success) {
