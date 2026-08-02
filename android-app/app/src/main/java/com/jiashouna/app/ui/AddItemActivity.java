@@ -137,7 +137,7 @@ public class AddItemActivity extends AppCompatActivity {
 
         // 初始化分类 Spinner
         spCategory = findViewById(R.id.sp_category);
-        String[] categoryOptions = {"食品", "药品", "日用品", "数码", "化妆品", "服装", "鞋帽", "其他"};
+        String[] categoryOptions = {"食品", "药品", "日用品", "数码", "化妆品", "服装", "鞋帽", "图书", "其他"};
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryOptions);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spCategory.setAdapter(categoryAdapter);

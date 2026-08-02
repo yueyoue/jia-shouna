@@ -17,12 +17,27 @@ switch ($action) {
         $page = max(1, intval($_GET['page'] ?? 1));
         $pageSize = 20;
 
+        // 获取用户所有家庭
+        $houseIds = [];
+        $hStmt = $db->prepare("SELECT house_id FROM house_member WHERE user_id = ?");
+        $hStmt->execute([$user['id']]);
+        while ($row = $hStmt->fetch()) $houseIds[] = intval($row['house_id']);
+        $hStmt2 = $db->prepare("SELECT id FROM house WHERE creator_id = ? AND status = 1");
+        $hStmt2->execute([$user['id']]);
+        while ($row = $hStmt2->fetch()) $houseIds[] = intval($row['id']);
+        $houseIds = array_values(array_unique($houseIds));
+
         $reminders = [];
 
         // 1. 获取手动创建的提醒
         $where = ["r.user_id = ?"];
         $params = [$user['id']];
-        if ($houseId) { $where[] = "r.house_id = ?"; $params[] = $houseId; }
+        if ($houseId > 0) { $where[] = "r.house_id = ?"; $params[] = $houseId; }
+        elseif (!empty($houseIds)) {
+            $placeholders = implode(',', array_fill(0, count($houseIds), '?'));
+            $where[] = "r.house_id IN ($placeholders)";
+            $params = array_merge($params, $houseIds);
+        }
         if ($type) { $where[] = "r.type = ?"; $params[] = $type; }
         $whereStr = implode(' AND ', $where);
         $offset = ($page - 1) * $pageSize;
@@ -47,7 +62,12 @@ switch ($action) {
 
             $expWhere = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)", "g.expiry_date >= CURDATE()"];
             $expParams = [$maxRemindDays];
-            if ($houseId) { $expWhere[] = "g.house_id = ?"; $expParams[] = $houseId; }
+            if ($houseId > 0) { $expWhere[] = "g.house_id = ?"; $expParams[] = $houseId; }
+            elseif (!empty($houseIds)) {
+                $placeholders = implode(',', array_fill(0, count($houseIds), '?'));
+                $expWhere[] = "g.house_id IN ($placeholders)";
+                $expParams = array_merge($expParams, $houseIds);
+            }
             $expWhere[] = "(g.is_private = 0 OR g.creator_id = ?)";
             $expParams[] = $user['id'];
             $expWhereStr = implode(' AND ', $expWhere);

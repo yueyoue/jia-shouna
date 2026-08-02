@@ -174,6 +174,11 @@ public class AllItemsActivity extends AppCompatActivity {
                                         } catch (Exception e) {
                                             Log.e(TAG, "Render error at " + (i+j) + ": " + e.getMessage());
                                         }
+                                    } else {
+                                        // 单数物品时，添加占位保持半排宽度
+                                        View spacer = new View(this);
+                                        spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
+                                        row.addView(spacer);
                                     }
                                 }
                                 layoutItems.addView(row);
@@ -244,6 +249,10 @@ public class AllItemsActivity extends AppCompatActivity {
                                         } catch (Exception e) {
                                             Log.e(TAG, "Fallback render error: " + e.getMessage());
                                         }
+                                    } else {
+                                        View spacer = new View(AllItemsActivity.this);
+                                        spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
+                                        row.addView(spacer);
                                     }
                                 }
                                 layoutItems.addView(row);
@@ -295,8 +304,17 @@ public class AllItemsActivity extends AppCompatActivity {
         imgView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imgView.setBackgroundColor(0xFFFFE8D6);
         if (!coverUrl.isEmpty()) {
-            // 简单加载图片（实际项目中建议用 Glide/Picasso）
-            imgView.setImageResource(android.R.drawable.ic_menu_gallery);
+            String fullUrl = coverUrl.startsWith("http") ? coverUrl : "https://sn.tthsdd.top/backend/uploads/" + coverUrl;
+            try {
+                com.bumptech.glide.Glide.with(this)
+                    .load(fullUrl)
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_gallery)
+                    .centerCrop()
+                    .into(imgView);
+            } catch (Exception e) {
+                imgView.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
         } else {
             // 用分类图标代替
             String category = item.has("category") ? item.get("category").getAsString() : "";

@@ -465,7 +465,17 @@ switch ($action) {
         $houseId = intval($_GET['house_id'] ?? 0);
         $days = intval($_GET['days'] ?? 0);
 
-        // 如果未指定house_id，自动获取用户所属的房屋
+        // 如果未指定house_id，搜索用户所有家庭
+        $houseIds = [];
+        if (!$houseId) {
+            $houseStmt = $db->prepare("SELECT house_id FROM house_member WHERE user_id = ?");
+            $houseStmt->execute([$user['id']]);
+            while ($row = $houseStmt->fetch()) $houseIds[] = intval($row['house_id']);
+            $houseStmt2 = $db->prepare("SELECT id FROM house WHERE creator_id = ? AND status = 1");
+            $houseStmt2->execute([$user['id']]);
+            while ($row = $houseStmt2->fetch()) $houseIds[] = intval($row['id']);
+            $houseIds = array_values(array_unique($houseIds));
+        }
         if (!$houseId) {
             // 方式1: 从house_member表查
             $houseStmt = $db->prepare("SELECT house_id FROM house_member WHERE user_id = ? ORDER BY joined_at ASC LIMIT 1");
@@ -510,9 +520,14 @@ switch ($action) {
         $where = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)", "g.expiry_date >= CURDATE()"];
         $params = [$maxRemindDays];
 
-        if ($houseId) {
+        if ($houseId > 0) {
             $where[] = "g.house_id = ?";
             $params[] = $houseId;
+        } elseif (!empty($houseIds)) {
+            // 多家庭模式：搜索所有家庭
+            $placeholders = implode(',', array_fill(0, count($houseIds), '?'));
+            $where[] = "g.house_id IN ($placeholders)";
+            $params = array_merge($params, $houseIds);
         }
         $where[] = "(g.is_private = 0 OR g.creator_id = ?)";
         $params[] = $user['id'];
