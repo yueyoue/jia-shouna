@@ -32,6 +32,8 @@ public class HomeFragment extends Fragment {
     private LinearLayout layoutCategoryChips;
     private String selectedCategory = "";
     private int houseId = 0;
+    private LinearLayout layoutAnnouncement;
+    private ViewFlipper viewFlipperAnnouncement;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -55,6 +57,10 @@ public class HomeFragment extends Fragment {
         // Category chips
         layoutCategoryChips = v.findViewById(R.id.layout_category_chips);
         setupCategoryChips();
+
+        // Announcement banner
+        layoutAnnouncement = v.findViewById(R.id.layout_announcement);
+        viewFlipperAnnouncement = v.findViewById(R.id.view_flipper_announcement);
 
         // === Card clicks ===
         // 物品总数 → 全部物品
@@ -306,11 +312,93 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        // 获取公告提醒（临期+库存不足）
+        loadAnnouncements();
+
         // 获取最近添加的物品
         if (!NetworkUtils.isNetworkAvailable(getActivity())) {
             loadRecentFromCache();
         } else {
             loadRecentItems();
+        }
+    }
+
+    /**
+     * 加载公告提醒（临期物品+库存不足）
+     */
+    private void loadAnnouncements() {
+        if (layoutAnnouncement == null || viewFlipperAnnouncement == null) return;
+        if (houseId <= 0) return;
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+
+        ApiClient.get("reminder.php?action=stats", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        int expiring = 0, lowStock = 0;
+                        if (data.has("stats") && !data.get("stats").isJsonNull()) {
+                            JsonObject stats = data.getAsJsonObject("stats");
+                            expiring = stats.has("expiring_7days") ? stats.get("expiring_7days").getAsInt() : 0;
+                            lowStock = stats.has("low_stock") ? stats.get("low_stock").getAsInt() : 0;
+                        }
+                        updateAnnouncementBanner(expiring, lowStock);
+                        // 更新底部角标
+                        updateReminderBadge(expiring + lowStock);
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
+    }
+
+    private void updateAnnouncementBanner(int expiring, int lowStock) {
+        if (layoutAnnouncement == null || viewFlipperAnnouncement == null) return;
+        viewFlipperAnnouncement.removeAllViews();
+
+        List<String> messages = new ArrayList<>();
+        if (expiring > 0) messages.add("⏰ 有 " + expiring + " 件物品即将过期，请及时处理");
+        if (lowStock > 0) messages.add("📉 有 " + lowStock + " 件物品库存不足，需要补货");
+
+        if (messages.isEmpty()) {
+            layoutAnnouncement.setVisibility(View.GONE);
+            return;
+        }
+
+        layoutAnnouncement.setVisibility(View.VISIBLE);
+        for (String msg : messages) {
+            TextView tv = new TextView(getActivity());
+            tv.setText(msg);
+            tv.setTextSize(13);
+            tv.setTextColor(Color.parseColor("#C25A1E"));
+            viewFlipperAnnouncement.addView(tv);
+        }
+
+        if (messages.size() > 1) {
+            viewFlipperAnnouncement.setFlipInterval(3000);
+            viewFlipperAnnouncement.startFlipping();
+        }
+
+        layoutAnnouncement.setOnClickListener(e -> {
+            Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.MainActivity.class);
+            intent.putExtra("open_tab", "reminders");
+            startActivity(intent);
+        });
+    }
+
+    private void updateReminderBadge(int count) {
+        if (getActivity() == null) return;
+        com.google.android.material.bottomnavigation.BottomNavigationView nav =
+            getActivity().findViewById(R.id.bottom_nav);
+        if (nav == null) return;
+
+        if (count > 0) {
+            nav.getOrCreateBadge(R.id.nav_reminders).setNumber(count);
+            nav.getOrCreateBadge(R.id.nav_reminders).setVisible(true);
+        } else {
+            nav.removeBadge(R.id.nav_reminders);
         }
     }
 
