@@ -221,12 +221,32 @@ public class AllItemsActivity extends AppCompatActivity {
 
                         } else {
                             layoutEmpty.setVisibility(View.GONE);
-                            for (int i = 0; i < list.size(); i++) {
-                                try {
-                                    layoutItems.addView(createItemRow(list.get(i).getAsJsonObject(), i < list.size() - 1));
-                                } catch (Exception e) {
-                                    Log.e(TAG, "Fallback render error: " + e.getMessage());
+                            layoutItems.setPadding(dp(12), dp(8), dp(12), 0);
+                            int cols = 2;
+                            for (int i = 0; i < list.size(); i += cols) {
+                                LinearLayout row = new LinearLayout(AllItemsActivity.this);
+                                row.setOrientation(LinearLayout.HORIZONTAL);
+                                row.setLayoutParams(new LinearLayout.LayoutParams(
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
+                                    LinearLayout.LayoutParams.WRAP_CONTENT));
+                                LinearLayout.LayoutParams rowLp = (LinearLayout.LayoutParams) row.getLayoutParams();
+                                rowLp.bottomMargin = dp(12);
+                                row.setLayoutParams(rowLp);
+                                for (int j = 0; j < cols; j++) {
+                                    if (i + j < list.size()) {
+                                        try {
+                                            View card = createGridItem(list.get(i + j).getAsJsonObject());
+                                            LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                                                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                                            if (j > 0) cardLp.setMarginStart(dp(12));
+                                            card.setLayoutParams(cardLp);
+                                            row.addView(card);
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Fallback render error: " + e.getMessage());
+                                        }
+                                    }
                                 }
+                                layoutItems.addView(row);
                             }
                             tvCount.setText(list.size() + " 件");
                         }
@@ -500,18 +520,38 @@ public class AllItemsActivity extends AppCompatActivity {
         }
 
         tvCount.setText(cached.size() + " 件");
-        for (int i = 0; i < cached.size(); i++) {
-            Goods g = cached.get(i);
-            JsonObject item = new JsonObject();
-            item.addProperty("id", g.id);
-            item.addProperty("name", g.name);
-            item.addProperty("barcode", g.barcode);
-            item.addProperty("category", g.category);
-            item.addProperty("quantity", g.quantity);
-            item.addProperty("unit", g.unit);
-            item.addProperty("space_name", g.spaceName);
-            item.addProperty("cover_image", g.coverImage);
-            layoutItems.addView(createItemRow(item, i < cached.size() - 1));
+        layoutItems.setPadding(dp(12), dp(8), dp(12), 0);
+        int cols = 2;
+        for (int i = 0; i < cached.size(); i += cols) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+            LinearLayout.LayoutParams rowLp = (LinearLayout.LayoutParams) row.getLayoutParams();
+            rowLp.bottomMargin = dp(12);
+            row.setLayoutParams(rowLp);
+            for (int j = 0; j < cols; j++) {
+                if (i + j < cached.size()) {
+                    Goods g = cached.get(i + j);
+                    JsonObject item = new JsonObject();
+                    item.addProperty("id", g.id);
+                    item.addProperty("name", g.name);
+                    item.addProperty("barcode", g.barcode);
+                    item.addProperty("category", g.category);
+                    item.addProperty("quantity", g.quantity);
+                    item.addProperty("unit", g.unit);
+                    item.addProperty("space_name", g.spaceName);
+                    item.addProperty("cover_image", g.coverImage);
+                    View card = createGridItem(item);
+                    LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                    if (j > 0) cardLp.setMarginStart(dp(12));
+                    card.setLayoutParams(cardLp);
+                    row.addView(card);
+                }
+            }
+            layoutItems.addView(row);
         }
 
         if (cached.isEmpty()) {
