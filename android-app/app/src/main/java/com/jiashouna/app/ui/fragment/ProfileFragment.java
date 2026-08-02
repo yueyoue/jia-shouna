@@ -336,57 +336,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadStats() {
-        Toast.makeText(getContext(), "正在加载统计数据...", Toast.LENGTH_SHORT).show();
-        int houseId = App.getInstance().getCurrentHouseId();
-        if (houseId <= 0) {
-            Toast.makeText(getContext(), "暂无家庭数据", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        java.util.HashMap<String, String> params = new java.util.HashMap<>();
-        params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("stats.php", params, new ApiClient.ApiCallback() {
-            @Override
-            public void onSuccess(JsonObject data) {
-                if (getActivity() == null) return;
-                getActivity().runOnUiThread(() -> {
-                    StringBuilder sb = new StringBuilder("📊 数据统计\n\n");
-                    if (data.has("categories") && !data.get("categories").isJsonNull()) {
-                        JsonArray cats = data.getAsJsonArray("categories");
-                        sb.append("按分类：\n");
-                        for (int i = 0; i < cats.size(); i++) {
-                            JsonObject cat = cats.get(i).getAsJsonObject();
-                            sb.append("  ").append(cat.has("name") ? cat.get("name").getAsString() : "")
-                              .append(": ").append(cat.has("count") ? cat.get("count").getAsInt() : 0)
-                              .append(" 件\n");
-                        }
-                    }
-                    if (data.has("spaces") && !data.get("spaces").isJsonNull()) {
-                        JsonArray sp = data.getAsJsonArray("spaces");
-                        sb.append("\n按空间：\n");
-                        for (int i = 0; i < sp.size(); i++) {
-                            JsonObject s = sp.get(i).getAsJsonObject();
-                            sb.append("  ").append(s.has("name") ? s.get("name").getAsString() : "")
-                              .append(": ").append(s.has("count") ? s.get("count").getAsInt() : 0)
-                              .append(" 件\n");
-                        }
-                    }
-                    new android.app.AlertDialog.Builder(requireActivity())
-                        .setTitle("数据统计")
-                        .setMessage(sb.toString())
-                        .setPositiveButton("确定", null)
-                        .show();
-                });
-            }
-
-            @Override
-            public void onError(String msg) {
-                if (getActivity() == null) return;
-                getActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), "加载统计失败: " + msg, Toast.LENGTH_SHORT).show()
-                );
-            }
-        });
+        startActivity(new Intent(getActivity(), com.jiashouna.app.ui.StatsActivity.class));
     }
 
     private void shareInvite() {
