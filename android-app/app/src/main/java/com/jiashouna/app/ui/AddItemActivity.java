@@ -936,34 +936,38 @@ public class AddItemActivity extends AppCompatActivity {
                             if (etBarcode.getText().toString().trim().isEmpty()) {
                                 etBarcode.setText(barcode);
                             }
+                            boolean hasData = false;
                             // name、brand、spec、price、manufacturer等字段直接在data根层级
                             if (data.has("name") && !data.get("name").isJsonNull()) {
                                 String name = data.get("name").getAsString();
-                                if (!name.isEmpty()) etName.setText(name);
+                                if (!name.isEmpty()) { etName.setText(name); hasData = true; }
                             }
                             if (data.has("brand") && !data.get("brand").isJsonNull()) {
                                 String brand = data.get("brand").getAsString();
-                                if (!brand.isEmpty()) etBrand.setText(brand);
+                                if (!brand.isEmpty()) { etBrand.setText(brand); hasData = true; }
                             }
                             if (data.has("spec") && !data.get("spec").isJsonNull()) {
                                 String spec = data.get("spec").getAsString();
-                                if (!spec.isEmpty() && etSpec != null) etSpec.setText(spec);
+                                if (!spec.isEmpty() && etSpec != null) { etSpec.setText(spec); hasData = true; }
                             }
                             if (data.has("manufacturer") && !data.get("manufacturer").isJsonNull()) {
                                 String mfr = data.get("manufacturer").getAsString();
-                                if (!mfr.isEmpty() && etManufacturer != null) etManufacturer.setText(mfr);
+                                if (!mfr.isEmpty() && etManufacturer != null) { etManufacturer.setText(mfr); hasData = true; }
                             }
                             if (data.has("price") && !data.get("price").isJsonNull()) {
                                 String price = data.get("price").getAsString();
                                 if (!price.isEmpty()) {
                                     try {
-                                        // 去除可能的货币符号
                                         String cleanPrice = price.replaceAll("[^0-9.]", "");
-                                        if (!cleanPrice.isEmpty()) etPrice.setText(cleanPrice);
+                                        if (!cleanPrice.isEmpty()) { etPrice.setText(cleanPrice); hasData = true; }
                                     } catch (Exception ignored) {}
                                 }
                             }
-                            Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
+                            if (hasData) {
+                                Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(AddItemActivity.this, "条码已录入，但商品详情未查到，请手动补充", Toast.LENGTH_SHORT).show();
+                            }
                         } else {
                             String msg = data.has("msg") ? data.get("msg").getAsString() : "未找到该条码对应的商品";
                             // 友好化处理原始错误信息
