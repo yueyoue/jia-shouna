@@ -481,9 +481,13 @@ public class AddItemActivity extends AppCompatActivity {
             // 问题5: 提取分类（兼容两种格式）
             String category = safeGetString(data, "suggested_category");
             if (category.isEmpty()) category = safeGetString(data, "category");
+            final String spec = safeGetString(data, "spec");
+            final String storageTip = safeGetString(data, "storage_tip");
             String msg = "名称: " + name;
             if (!brand.isEmpty()) msg += "\n品牌: " + brand;
+            if (!spec.isEmpty()) msg += "\n规格: " + spec;
             if (!category.isEmpty()) msg += "\n分类: " + category;
+            if (!storageTip.isEmpty()) msg += "\n存放建议: " + storageTip;
             msg += "\n置信度: " + String.format(Locale.getDefault(), "%.0f%%", confidence * 100);
 
             // 计算分类Spinner位置
@@ -495,6 +499,11 @@ public class AddItemActivity extends AppCompatActivity {
                     if (!name.isEmpty()) etName.setText(name);
                     if (!barcode.isEmpty()) etBarcode.setText(barcode);
                     if (!brand.isEmpty()) etBrand.setText(brand);
+                    if (!spec.isEmpty()) etSpec.setText(spec);
+                    // 存放建议填入备注（如果没有手动输入备注的话）
+                    if (!storageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) {
+                        etNote.setText(storageTip);
+                    }
                     // 自动设置分类 Spinner
                     if (categoryPos >= 0) {
                         spCategory.setSelection(categoryPos);
@@ -837,13 +846,30 @@ public class AddItemActivity extends AppCompatActivity {
                 String category = safeGetString(data, "suggested_category");
                 String brand = safeGetString(data, "suggested_brand");
                 String barcode = safeGetString(data, "barcode");
+                String spec = safeGetString(data, "spec");
+                String expireDate = safeGetString(data, "expire_date");
+                String storageTip = safeGetString(data, "storage_tip");
+
+                // 处理保质期
+                if (!expireDate.isEmpty()) {
+                    try {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                        java.util.Date expiry = sdf.parse(expireDate);
+                        if (expiry != null) {
+                            int days = (int) ((expiry.getTime() - System.currentTimeMillis()) / 86400000L);
+                            if (days > 0) etExpiryDays.setText(String.valueOf(days));
+                        }
+                    } catch (Exception ignored) {}
+                }
 
                 // 显示识别结果确认对话框
                 StringBuilder msg = new StringBuilder();
                 if (!name.isEmpty()) msg.append("名称: ").append(name).append("\n");
                 if (!category.isEmpty()) msg.append("分类: ").append(category).append("\n");
                 if (!brand.isEmpty()) msg.append("品牌: ").append(brand).append("\n");
+                if (!spec.isEmpty()) msg.append("规格: ").append(spec).append("\n");
                 if (!barcode.isEmpty()) msg.append("条码: ").append(barcode).append("\n");
+                if (!storageTip.isEmpty()) msg.append("存放建议: ").append(storageTip).append("\n");
 
                 if (msg.length() == 0) {
                     Toast.makeText(this, "未能识别物品，请手动输入", Toast.LENGTH_SHORT).show();
@@ -871,6 +897,10 @@ public class AddItemActivity extends AppCompatActivity {
                         if (!name.isEmpty()) etName.setText(name);
                         if (!barcode.isEmpty()) etBarcode.setText(barcode);
                         if (!brand.isEmpty()) etBrand.setText(brand);
+                        if (!spec.isEmpty()) etSpec.setText(spec);
+                        if (!storageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) {
+                            etNote.setText(storageTip);
+                        }
                         // 自动设置分类 Spinner
                         if (catPos >= 0) {
                             spCategory.setSelection(catPos);

@@ -199,6 +199,9 @@ switch ($action) {
                     'suggested_brand' => $aiResult['brand'] ?? '',
                     'suggested_tags' => [],
                     'barcode' => $aiResult['barcode'] ?? '',
+                    'spec' => $aiResult['spec'] ?? '',
+                    'expire_date' => $aiResult['expire_date'] ?? '',
+                    'storage_tip' => $aiResult['storage_tip'] ?? '',
                     'confidence' => floatval($aiResult['confidence'] ?? 0),
                     'image_path' => $relativePath,
                     'image_url' => $imageUrl
