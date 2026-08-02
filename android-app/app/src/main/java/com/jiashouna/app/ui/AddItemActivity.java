@@ -1815,7 +1815,11 @@ public class AddItemActivity extends AppCompatActivity {
             body.add("images", imagesArray);
         }
 
-        ApiClient.post("goods.php?action=create", body, new ApiClient.ApiCallback() {
+        // 编辑模式：使用update接口并附带物品ID
+        String endpoint = isEditMode ? "goods.php?action=update" : "goods.php?action=create";
+        if (isEditMode) body.addProperty("id", editGoodsId);
+
+        ApiClient.post(endpoint, body, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     Toast.makeText(AddItemActivity.this, "✅ 保存成功", Toast.LENGTH_SHORT).show();
