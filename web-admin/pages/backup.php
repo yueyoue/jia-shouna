@@ -1,22 +1,32 @@
 <?php
 $db = getDB();
 
+// 安全查询辅助函数
+function safeQuery($db, $sql, $field) {
+    try {
+        $row = $db->query($sql)->fetch();
+        return ($row && isset($row[$field])) ? $row[$field] : 0;
+    } catch (Exception $e) { return 0; }
+}
+
 // 统计信息
 $stats = [];
-$stats['total_goods'] = $db->query("SELECT COUNT(*) as c FROM goods WHERE status = 1")->fetch()['c'];
-$stats['total_images'] = $db->query("SELECT COUNT(*) as c FROM goods_image")->fetch()['c'];
-$stats['total_spaces'] = $db->query("SELECT COUNT(*) as c FROM storage_space")->fetch()['c'];
-$stats['total_users'] = $db->query("SELECT COUNT(*) as c FROM sys_user WHERE status = 1")->fetch()['c'];
-$stats['total_houses'] = $db->query("SELECT COUNT(*) as c FROM house WHERE status = 1")->fetch()['c'];
+$stats['total_goods'] = safeQuery($db, "SELECT COUNT(*) as c FROM goods WHERE status = 1", 'c');
+$stats['total_images'] = safeQuery($db, "SELECT COUNT(*) as c FROM goods_image", 'c');
+$stats['total_spaces'] = safeQuery($db, "SELECT COUNT(*) as c FROM storage_space", 'c');
+$stats['total_users'] = safeQuery($db, "SELECT COUNT(*) as c FROM sys_user WHERE status = 1", 'c');
+$stats['total_houses'] = safeQuery($db, "SELECT COUNT(*) as c FROM house WHERE status = 1", 'c');
 
 // 图片目录大小
 $imageDirSize = 0;
 $imageDir = UPLOAD_PATH . 'images/';
 if (is_dir($imageDir)) {
-    $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($imageDir));
-    foreach ($iter as $file) {
-        if ($file->isFile()) $imageDirSize += $file->getSize();
-    }
+    try {
+        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($imageDir));
+        foreach ($iter as $file) {
+            if ($file->isFile()) $imageDirSize += $file->getSize();
+        }
+    } catch (Exception $e) {}
 }
 $stats['image_size'] = $imageDirSize;
 
@@ -24,18 +34,20 @@ $stats['image_size'] = $imageDirSize;
 $backupDirSize = 0;
 $backupDir = UPLOAD_PATH . 'backups/';
 if (is_dir($backupDir)) {
-    $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($backupDir));
-    foreach ($iter as $file) {
-        if ($file->isFile()) $backupDirSize += $file->getSize();
-    }
+    try {
+        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($backupDir));
+        foreach ($iter as $file) {
+            if ($file->isFile()) $backupDirSize += $file->getSize();
+        }
+    } catch (Exception $e) {}
 }
 $stats['backup_size'] = $backupDirSize;
 
-$stats['db_size'] = $db->query("SELECT SUM(data_length + index_length) as s FROM information_schema.tables WHERE table_schema = DATABASE()")->fetch()['s'] ?: 0;
+$stats['db_size'] = safeQuery($db, "SELECT SUM(data_length + index_length) as s FROM information_schema.tables WHERE table_schema = DATABASE()", 's');
 
 // 最后备份时间
-$lastBackup = $db->query("SELECT created_at FROM backup_record ORDER BY created_at DESC LIMIT 1")->fetch();
-$stats['last_backup'] = $lastBackup ? $lastBackup['created_at'] : 0;
+$lastBackupTs = safeQuery($db, "SELECT created_at FROM backup_record ORDER BY created_at DESC LIMIT 1", 'created_at');
+$stats['last_backup'] = $lastBackupTs;
 ?>
 
 <style>
