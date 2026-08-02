@@ -45,7 +45,8 @@
             android:background="@drawable/bg_circle_gray"
             android:scaleType="center"
             android:src="@android:drawable/ic_menu_search"
-            android:contentDescription="搜索" />
+            android:contentDescription="搜索"
+            android:visibility="gone" />
     </FrameLayout>
 
     <!-- 三态Tab -->
