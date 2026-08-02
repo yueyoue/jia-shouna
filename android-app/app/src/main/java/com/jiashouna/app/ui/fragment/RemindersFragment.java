@@ -186,6 +186,14 @@ public class RemindersFragment extends Fragment {
                                 JsonObject item = list.get(i).getAsJsonObject();
                                 String type = item.has("type") ? item.get("type").getAsString() : "custom";
                                 android.util.Log.d("Reminders", "Item " + i + ": type=" + type + " title=" + (item.has("title") ? item.get("title").getAsString() : "null"));
+                                // 兼容：如果API返回space_name但没有location，自动补充
+                                if (!item.has("location") && item.has("space_name") && !item.get("space_name").isJsonNull()) {
+                                    item.addProperty("location", item.get("space_name").getAsString());
+                                }
+                                // 兼容：如果API返回quantity但没有current_qty，自动补充
+                                if (!item.has("current_qty") && item.has("quantity") && !item.get("quantity").isJsonNull()) {
+                                    item.add("current_qty", item.get("quantity"));
+                                }
                                 switch (type) {
                                     case "expiry":
                                         allExpiring.add(item);
@@ -209,7 +217,7 @@ public class RemindersFragment extends Fragment {
                         updateSectionVisibility();
                     } catch (Exception e) {
                         android.util.Log.e("Reminders", "List parse error", e);
-                        showEmptyInAll("加载失败，请重试");
+                        showEmptyInAll("数据解析异常，请重试");
                     }
                 });
             }
@@ -218,7 +226,15 @@ public class RemindersFragment extends Fragment {
             public void onError(String msg) {
                 android.util.Log.e("Reminders", "List error: " + msg);
                 if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> showEmptyInAll("加载失败，请重试"));
+                    getActivity().runOnUiThread(() -> {
+                        String displayMsg = "加载失败，请重试";
+                        if (msg != null && msg.contains("请先登录")) {
+                            displayMsg = "登录已过期，请重新登录";
+                        } else if (msg != null && msg.contains("网络")) {
+                            displayMsg = "网络连接失败，请检查网络";
+                        }
+                        showEmptyInAll(displayMsg);
+                    });
                 }
             }
         });

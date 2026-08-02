@@ -523,15 +523,23 @@ switch ($action) {
         $allItems = $stmt->fetchAll();
 
         // 根据规则过滤
+        // 如果客户端指定了days参数，使用该值作为提醒天数（覆盖规则）
+        $useDaysOverride = ($days > 0);
         $list = [];
         foreach ($allItems as $item) {
             $shelfLifeDays = intval($item['shelf_life_days'] ?? 0);
             $daysLeft = intval($item['days_left'] ?? 0);
-            $remindDays = 7;
-            foreach ($reminderRules as $rule) {
-                if ($shelfLifeDays >= $rule['min_days'] && $shelfLifeDays <= $rule['max_days']) {
-                    $remindDays = $rule['remind_days'];
-                    break;
+            if ($useDaysOverride) {
+                // 客户端指定了天数，直接使用（如首页7天、全部临期等）
+                $remindDays = $days;
+            } else {
+                // 未指定天数，根据保质期规则计算
+                $remindDays = 7;
+                foreach ($reminderRules as $rule) {
+                    if ($shelfLifeDays >= $rule['min_days'] && $shelfLifeDays <= $rule['max_days']) {
+                        $remindDays = $rule['remind_days'];
+                        break;
+                    }
                 }
             }
             if ($daysLeft <= $remindDays) {

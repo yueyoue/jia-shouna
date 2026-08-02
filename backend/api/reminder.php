@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/helpers.php';
+corsHeaders();
 /**
  * 提醒接口
  */
@@ -10,6 +11,7 @@ $user = requireLogin();
 
 switch ($action) {
     case 'list':
+        try {
         $houseId = intval($_GET['house_id'] ?? 0);
         $type = $_GET['type'] ?? '';
         $page = max(1, intval($_GET['page'] ?? 1));
@@ -50,7 +52,8 @@ switch ($action) {
             $expParams[] = $user['id'];
             $expWhereStr = implode(' AND ', $expWhere);
             $stmt = $db->prepare("SELECT g.id as goods_id, g.name as goods_name, g.expiry_date, g.purchase_date, s.name as space_name,
-                DATEDIFF(g.expiry_date, CURDATE()) as days_left
+                DATEDIFF(g.expiry_date, CURDATE()) as days_left,
+                DATEDIFF(g.expiry_date, g.purchase_date) as shelf_life_days
                 FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id
                 WHERE $expWhereStr ORDER BY g.expiry_date ASC LIMIT 10");
             $stmt->execute($expParams);
@@ -58,8 +61,8 @@ switch ($action) {
                 $daysLeft = intval($item['days_left']);
 
                 // 计算该物品的保质期总天数
-                $shelfLifeDays = 0;
-                if (!empty($item['purchase_date']) && !empty($item['expiry_date'])) {
+                $shelfLifeDays = intval($item['shelf_life_days'] ?? 0);
+                if ($shelfLifeDays <= 0 && !empty($item['purchase_date']) && !empty($item['expiry_date'])) {
                     $purchaseTs = strtotime($item['purchase_date']);
                     $expiryTs = strtotime($item['expiry_date']);
                     if ($purchaseTs && $expiryTs) {
@@ -81,6 +84,7 @@ switch ($action) {
                     'content' => '存放于: ' . ($item['space_name'] ?? '未分类'),
                     'goods_name' => $item['goods_name'],
                     'space_name' => $item['space_name'] ?? '',
+                    'location' => $item['space_name'] ?? '',
                     'remind_time' => time(),
                     'is_read' => 0,
                     'is_handled' => 0,
@@ -111,25 +115,33 @@ switch ($action) {
                     'content' => '当前: ' . $item['quantity'] . ($item['unit'] ?: '件') . ' / 阈值: ' . $item['stock_threshold'],
                     'goods_name' => $item['goods_name'],
                     'space_name' => $item['space_name'] ?? '',
+                    'location' => $item['space_name'] ?? '',
                     'remind_time' => time(),
                     'is_read' => 0,
                     'is_handled' => 0,
                     'source' => 'auto',
-                    'goods_id' => $item['goods_id']
+                    'goods_id' => $item['goods_id'],
+                    'current_qty' => $item['quantity'],
+                    'threshold' => $item['stock_threshold']
                 ];
             }
         }
 
-        // 按类型排序：未读优先，然后按时间
+        // 按类型排序：未读优先，然后按类型
         usort($reminders, function($a, $b) {
-            if ($a['is_read'] != $b['is_read']) return $a['is_read'] - $b['is_read'];
+            $readA = isset($a['is_read']) ? intval($a['is_read']) : 0;
+            $readB = isset($b['is_read']) ? intval($b['is_read']) : 0;
+            if ($readA != $readB) return $readA - $readB;
             $typeOrder = ['expiry' => 0, 'low_stock' => 1, 'custom' => 2];
-            $oa = $typeOrder[$a['type']] ?? 3;
-            $ob = $typeOrder[$b['type']] ?? 3;
+            $oa = isset($typeOrder[$a['type']]) ? $typeOrder[$a['type']] : 3;
+            $ob = isset($typeOrder[$b['type']]) ? $typeOrder[$b['type']] : 3;
             return $oa - $ob;
         });
 
         success(['list' => array_slice($reminders, $offset, $pageSize)]);
+        } catch (Exception $e) {
+            error('提醒列表加载失败: ' . $e->getMessage(), 500);
+        }
         break;
 
     case 'create':
@@ -234,8 +246,11 @@ function getExpiryReminderRules($db) {
 
 /**
  * 根据保质期总天数获取对应的提醒天数
+ * 当保质期未知(0天)时，使用默认7天提醒窗口
  */
 function getRemindDaysForShelfLife($rules, $shelfLifeDays) {
+    // 保质期未知时，使用默认7天提醒窗口
+    if ($shelfLifeDays <= 0) return 7;
     foreach ($rules as $rule) {
         if ($shelfLifeDays >= $rule['min_days'] && $shelfLifeDays <= $rule['max_days']) {
             return $rule['remind_days'];
