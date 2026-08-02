@@ -90,11 +90,6 @@ public class ProfileFragment extends Fragment {
             loadStats();
         });
 
-        // 数据导出
-        setupMenuClick(v, R.id.menu_export, () -> {
-            exportData();
-        });
-
         // 家庭成员
         setupMenuClick(v, R.id.menu_members, () -> {
             try {
@@ -389,45 +384,6 @@ public class ProfileFragment extends Fragment {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() ->
                     Toast.makeText(getContext(), "加载统计失败: " + msg, Toast.LENGTH_SHORT).show()
-                );
-            }
-        });
-    }
-
-    private void exportData() {
-        Toast.makeText(getContext(), "正在准备导出...", Toast.LENGTH_SHORT).show();
-        int houseId = App.getInstance().getCurrentHouseId();
-        if (houseId <= 0) {
-            Toast.makeText(getContext(), "暂无数据可导出", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        java.util.HashMap<String, String> params = new java.util.HashMap<>();
-        params.put("house_id", String.valueOf(houseId));
-        ApiClient.get("/export", params, new ApiClient.ApiCallback() {
-            @Override
-            public void onSuccess(JsonObject data) {
-                if (getActivity() == null) return;
-                getActivity().runOnUiThread(() -> {
-                    String url = data.has("url") ? data.get("url").getAsString() : "";
-                    if (!url.isEmpty()) {
-                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
-                        try {
-                            startActivity(browserIntent);
-                        } catch (Exception ex) {
-                            Toast.makeText(getContext(), "下载链接: " + url, Toast.LENGTH_LONG).show();
-                        }
-                    } else {
-                        Toast.makeText(getContext(), "导出完成，请在网页端下载", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String msg) {
-                if (getActivity() == null) return;
-                getActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), "导出失败: " + msg, Toast.LENGTH_SHORT).show()
                 );
             }
         });

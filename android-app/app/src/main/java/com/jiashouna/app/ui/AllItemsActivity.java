@@ -147,17 +147,36 @@ public class AllItemsActivity extends AppCompatActivity {
                             loadItemsFallback(keyword);
                         } else {
                             layoutEmpty.setVisibility(View.GONE);
+                            layoutItems.setPadding(dp(12), dp(8), dp(12), 0);
+                            int cols = 2; // 2列网格
                             int rendered = 0;
-                            for (int i = 0; i < list.size(); i++) {
-                                try {
-                                    JsonObject item = list.get(i).getAsJsonObject();
-                                    String itemName = item.has("name") ? item.get("name").getAsString() : "?";
-                                    Log.d(TAG, "Rendering item " + i + ": " + itemName);
-                                    layoutItems.addView(createItemRow(item, i < list.size() - 1));
-                                    rendered++;
-                                } catch (Exception e) {
-                                    Log.e(TAG, "Render error at " + i + ": " + e.getMessage());
+                            for (int i = 0; i < list.size(); i += cols) {
+                                LinearLayout row = new LinearLayout(AllItemsActivity.this);
+                                row.setOrientation(LinearLayout.HORIZONTAL);
+                                row.setLayoutParams(new LinearLayout.LayoutParams(
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
+                                    LinearLayout.LayoutParams.WRAP_CONTENT));
+                                LinearLayout.LayoutParams rowLp = (LinearLayout.LayoutParams) row.getLayoutParams();
+                                rowLp.bottomMargin = dp(12);
+                                row.setLayoutParams(rowLp);
+
+                                for (int j = 0; j < cols; j++) {
+                                    if (i + j < list.size()) {
+                                        try {
+                                            JsonObject item = list.get(i + j).getAsJsonObject();
+                                            View card = createGridItem(item);
+                                            LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                                                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                                            if (j > 0) cardLp.setMarginStart(dp(12));
+                                            card.setLayoutParams(cardLp);
+                                            row.addView(card);
+                                            rendered++;
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Render error at " + (i+j) + ": " + e.getMessage());
+                                        }
+                                    }
                                 }
+                                layoutItems.addView(row);
                             }
                         }
                     } catch (Exception e) {
@@ -225,6 +244,108 @@ public class AllItemsActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private View createGridItem(JsonObject item) {
+        // 网格卡片容器
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_card_warm);
+        card.setPadding(dp(12), dp(12), dp(12), dp(12));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        card.setLayoutParams(cardLp);
+
+        // 图片区域
+        String coverUrl = "";
+        if (item.has("images") && !item.get("images").isJsonNull()) {
+            try {
+                JsonArray imgs = item.getAsJsonArray("images");
+                if (imgs.size() > 0) coverUrl = imgs.get(0).getAsString();
+            } catch (Exception ignored) {}
+        }
+        if (coverUrl.isEmpty() && item.has("cover_image") && !item.get("cover_image").isJsonNull()) {
+            coverUrl = item.get("cover_image").getAsString();
+        }
+
+        ImageView imgView = new ImageView(this);
+        LinearLayout.LayoutParams imgLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(100));
+        imgView.setLayoutParams(imgLp);
+        imgView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        imgView.setBackgroundColor(0xFFFFE8D6);
+        if (!coverUrl.isEmpty()) {
+            // 简单加载图片（实际项目中建议用 Glide/Picasso）
+            imgView.setImageResource(android.R.drawable.ic_menu_gallery);
+        } else {
+            // 用分类图标代替
+            String category = item.has("category") ? item.get("category").getAsString() : "";
+            String emoji = getCategoryIcon(category);
+            imgView.setImageBitmap(createEmojiBitmap(emoji, dp(48)));
+        }
+        card.addView(imgView);
+
+        // 名称
+        String name = item.has("name") ? item.get("name").getAsString() : "";
+        TextView tvName = new TextView(this);
+        tvName.setText(name);
+        tvName.setTextSize(13);
+        tvName.setTextColor(0xFF2D3748);
+        tvName.setTypeface(null, Typeface.BOLD);
+        tvName.setMaxLines(1);
+        tvName.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        nameLp.topMargin = dp(8);
+        tvName.setLayoutParams(nameLp);
+        card.addView(tvName);
+
+        // 数量 + 空间
+        int qty = 0;
+        try {
+            if (item.has("quantity") && !item.get("quantity").isJsonNull()) {
+                qty = (int) Double.parseDouble(item.get("quantity").getAsString());
+            }
+        } catch (Exception ignored) {}
+        String unit = item.has("unit") && !item.get("unit").isJsonNull() ? item.get("unit").getAsString() : "件";
+        String spaceName = item.has("space_name") && !item.get("space_name").isJsonNull() ? item.get("space_name").getAsString() : "";
+
+        TextView tvMeta = new TextView(this);
+        tvMeta.setText("× " + qty + unit + (spaceName.isEmpty() ? "" : " · " + spaceName));
+        tvMeta.setTextSize(11);
+        tvMeta.setTextColor(0xFF718096);
+        tvMeta.setMaxLines(1);
+        tvMeta.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams metaLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        metaLp.topMargin = dp(4);
+        tvMeta.setLayoutParams(metaLp);
+        card.addView(tvMeta);
+
+        // 点击事件
+        int itemId = item.has("id") ? item.get("id").getAsInt() : 0;
+        card.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ItemDetailActivity.class);
+            intent.putExtra("goods_id", itemId);
+            startActivity(intent);
+        });
+
+        return card;
+    }
+
+    private android.graphics.Bitmap createEmojiBitmap(String emoji, int size) {
+        android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+        canvas.drawColor(0xFFFFE8D6);
+        android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(size * 0.6f);
+        paint.setTextAlign(android.graphics.Paint.Align.CENTER);
+        android.graphics.Rect textBounds = new android.graphics.Rect();
+        paint.getTextBounds(emoji, 0, emoji.length(), textBounds);
+        float x = canvas.getWidth() / 2f;
+        float y = canvas.getHeight() / 2f + textBounds.height() / 2f;
+        canvas.drawText(emoji, x, y, paint);
+        return bitmap;
     }
 
     private View createItemRow(JsonObject item, boolean showDivider) {

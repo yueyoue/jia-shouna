@@ -29,6 +29,8 @@ public class HomeFragment extends Fragment {
     private boolean guideDialogShown = false;
     private TextView tvItemCount, tvSpaceCount, tvExpiringCount, tvMemberCount;
     private LinearLayout llExpiringList, llRecentList;
+    private LinearLayout layoutCategoryChips;
+    private String selectedCategory = "";
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -48,6 +50,10 @@ public class HomeFragment extends Fragment {
         // Lists
         llExpiringList = v.findViewById(R.id.ll_expiring_list);
         llRecentList = v.findViewById(R.id.ll_recent_list);
+
+        // Category chips
+        layoutCategoryChips = v.findViewById(R.id.layout_category_chips);
+        setupCategoryChips();
 
         // === Card clicks ===
         // 物品总数 → 全部物品
@@ -297,66 +303,102 @@ public class HomeFragment extends Fragment {
         if (!NetworkUtils.isNetworkAvailable(getActivity())) {
             loadRecentFromCache();
         } else {
-            HashMap<String, String> recentParams = new HashMap<>();
-            recentParams.put("action", "list");
-            recentParams.put("house_id", String.valueOf(houseId));
-            recentParams.put("page_size", "4");
-            ApiClient.get("goods.php?action=list", recentParams, new ApiClient.ApiCallback() {
-                @Override public void onSuccess(JsonObject data) {
-                    if (getActivity() == null) return;
-                    getActivity().runOnUiThread(() -> {
-                        llRecentList.removeAllViews();
-                        try {
-                            if (data.has("list") && !data.get("list").isJsonNull()) {
-                                JsonArray list = data.getAsJsonArray("list");
-                                if (list.size() == 0) {
-                                    addEmptyHint(llRecentList, "暂无物品，快去添加吧");
-                                } else {
-                                    for (int i = 0; i < list.size(); i += 2) {
-                                        LinearLayout row = new LinearLayout(getActivity());
-                                        row.setOrientation(LinearLayout.HORIZONTAL);
-                                        row.setLayoutParams(new LinearLayout.LayoutParams(
-                                            LinearLayout.LayoutParams.MATCH_PARENT,
-                                            LinearLayout.LayoutParams.WRAP_CONTENT));
-                                        if (i > 0) {
-                                            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) row.getLayoutParams();
-                                            lp.topMargin = dp(12);
-                                        }
-                                        addBentoItem(row, list.get(i).getAsJsonObject());
-                                        if (i + 1 < list.size()) {
-                                            View spacer = new View(getActivity());
-                                            spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(12), 0));
-                                            row.addView(spacer);
-                                            addBentoItem(row, list.get(i + 1).getAsJsonObject());
-                                        } else {
-                                            View spacer = new View(getActivity());
-                                            spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
-                                            row.addView(spacer);
-                                        }
-                                        llRecentList.addView(row);
-                                    }
-                                }
-                            } else {
-                                addEmptyHint(llRecentList, "暂无物品，快去添加吧");
-                            }
-                        } catch (Exception e) {
-                            addEmptyHint(llRecentList, "暂无物品，快去添加吧");
-                        }
-                    });
-                }
-                @Override public void onError(String msg) {
-                    if (getActivity() != null) getActivity().runOnUiThread(() -> {
-                        llRecentList.removeAllViews();
-                        addEmptyHint(llRecentList, "暂无物品，快去添加吧");
-                    });
-                }
-            });
+            loadRecentItems();
         }
     }
 
     /**
      * 离线模式：从缓存加载最近物品
      */
+    private void setupCategoryChips() {
+        if (layoutCategoryChips == null || getActivity() == null) return;
+        layoutCategoryChips.removeAllViews();
+        String[] categories = {"全部", "食品", "药品", "日用品", "衣物", "数码", "厨具", "文具", "其他"};
+        for (String cat : categories) {
+            TextView chip = new TextView(getActivity());
+            chip.setText(cat);
+            chip.setTextSize(13);
+            chip.setGravity(android.view.Gravity.CENTER);
+            int px = dp(16);
+            chip.setPadding(px, dp(8), px, dp(8));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(34));
+            if (layoutCategoryChips.indexOfChild(chip) > 0) lp.setMarginStart(dp(8));
+            chip.setLayoutParams(lp);
+
+            boolean isActive = (cat.equals("全部") && selectedCategory.isEmpty())
+                || cat.equals(selectedCategory);
+            chip.setBackgroundResource(isActive ? R.drawable.bg_pill_active : R.drawable.bg_pill_inactive);
+            chip.setTextColor(isActive ? 0xFFFFFFFF : 0xFF718096);
+
+            chip.setOnClickListener(v -> {
+                selectedCategory = cat.equals("全部") ? "" : cat;
+                setupCategoryChips();
+                loadRecentItems();
+            });
+            layoutCategoryChips.addView(chip);
+        }
+    }
+
+    private void loadRecentItems() {
+        if (getActivity() == null) return;
+        HashMap<String, String> params = new HashMap<>();
+        params.put("action", "list");
+        params.put("house_id", String.valueOf(houseId));
+        params.put("page_size", "4");
+        if (!selectedCategory.isEmpty()) params.put("category", selectedCategory);
+        ApiClient.get("goods.php?action=list", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    llRecentList.removeAllViews();
+                    try {
+                        if (data.has("list") && !data.get("list").isJsonNull()) {
+                            JsonArray list = data.getAsJsonArray("list");
+                            if (list.size() == 0) {
+                                addEmptyHint(llRecentList, "暂无物品，快去添加吧");
+                            } else {
+                                for (int i = 0; i < list.size(); i += 2) {
+                                    LinearLayout row = new LinearLayout(getActivity());
+                                    row.setOrientation(LinearLayout.HORIZONTAL);
+                                    row.setLayoutParams(new LinearLayout.LayoutParams(
+                                        LinearLayout.LayoutParams.MATCH_PARENT,
+                                        LinearLayout.LayoutParams.WRAP_CONTENT));
+                                    if (i > 0) {
+                                        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) row.getLayoutParams();
+                                        lp.topMargin = dp(12);
+                                    }
+                                    addBentoItem(row, list.get(i).getAsJsonObject());
+                                    if (i + 1 < list.size()) {
+                                        View spacer = new View(getActivity());
+                                        spacer.setLayoutParams(new LinearLayout.LayoutParams(dp(12), 0));
+                                        row.addView(spacer);
+                                        addBentoItem(row, list.get(i + 1).getAsJsonObject());
+                                    } else {
+                                        View spacer = new View(getActivity());
+                                        spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
+                                        row.addView(spacer);
+                                    }
+                                    llRecentList.addView(row);
+                                }
+                            }
+                        } else {
+                            addEmptyHint(llRecentList, "暂无物品，快去添加吧");
+                        }
+                    } catch (Exception e) {
+                        addEmptyHint(llRecentList, "暂无物品，快去添加吧");
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() -> {
+                    llRecentList.removeAllViews();
+                    addEmptyHint(llRecentList, "暂无物品，快去添加吧");
+                });
+            }
+        });
+    }
+
     private void loadRecentFromCache() {
         if (getActivity() == null) return;
         LocalDb localDb = new LocalDb(getActivity());
