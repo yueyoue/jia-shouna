@@ -132,6 +132,9 @@ switch ($action) {
             $db->prepare("INSERT INTO backup_record (filename, file_size, type, method, status, operator_id, created_at) VALUES (?, ?, 'images', 'manual', 1, ?, ?)")
                 ->execute([$filename, $fileSize, $_SESSION['admin_id'], time()]);
 
+            // 清除输出缓冲，确保文件下载正常
+            while (ob_get_level()) ob_end_clean();
+
             // 直接输出文件供下载
             header('Content-Type: application/zip');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -475,6 +478,9 @@ switch ($action) {
             'json' => 'application/json',
         ];
         $mime = $mimeTypes[$ext] ?? 'application/octet-stream';
+
+        // 清除输出缓冲，确保文件下载正常
+        while (ob_get_level()) ob_end_clean();
 
         header('Content-Type: ' . $mime);
         header('Content-Disposition: attachment; filename="' . basename($filepath) . '"');
