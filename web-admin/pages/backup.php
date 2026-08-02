@@ -36,13 +36,6 @@ $stats['db_size'] = $db->query("SELECT SUM(data_length + index_length) as s FROM
 // 最后备份时间
 $lastBackup = $db->query("SELECT created_at FROM backup_record ORDER BY created_at DESC LIMIT 1")->fetch();
 $stats['last_backup'] = $lastBackup ? $lastBackup['created_at'] : 0;
-
-function formatSize($bytes) {
-    if ($bytes < 1024) return $bytes . ' B';
-    if ($bytes < 1048576) return round($bytes / 1024, 1) . ' KB';
-    if ($bytes < 1073741824) return round($bytes / 1048576, 1) . ' MB';
-    return round($bytes / 1073741824, 2) . ' GB';
-}
 ?>
 
 <style>
