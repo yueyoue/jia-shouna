@@ -406,13 +406,18 @@ public class RemindersFragment extends Fragment {
 
         cardWrapper.addView(card);
 
-        // Handle button click
-        final int itemId = item.has("id") && !item.get("id").isJsonNull() ? item.get("id").getAsInt() : 0;
-        btnHandle.setOnClickListener(v -> {
-            if (itemId > 0) {
-                markHandled(itemId, cardWrapper, llExpiringList);
-            }
-        });
+        // Handle button click - auto-generated reminders have string IDs like "exp_3"
+        int parsedItemId = 0;
+        try {
+            String idStr = item.has("id") && !item.get("id").isJsonNull() ? item.get("id").getAsString() : "0";
+            parsedItemId = Integer.parseInt(idStr);
+        } catch (NumberFormatException ignored) {}
+        final int itemId = parsedItemId;
+        if (itemId > 0) {
+            btnHandle.setOnClickListener(v -> markHandled(itemId, cardWrapper, llExpiringList));
+        } else {
+            btnHandle.setVisibility(View.GONE);
+        }
 
         return cardWrapper;
     }
