@@ -518,9 +518,18 @@ switch ($action) {
         $params[] = $user['id'];
 
         $whereStr = implode(' AND ', $where);
-        $stmt = $db->prepare("SELECT g.*, s.name as space_name, DATEDIFF(g.expiry_date, CURDATE()) as days_left, DATEDIFF(g.expiry_date, g.purchase_date) as shelf_life_days FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE $whereStr ORDER BY g.expiry_date ASC");
+        $stmt = $db->prepare("SELECT g.*, s.name as space_name,
+            (SELECT image_path FROM goods_image WHERE goods_id = g.id ORDER BY sort_order ASC LIMIT 1) as cover_image,
+            DATEDIFF(g.expiry_date, CURDATE()) as days_left, DATEDIFF(g.expiry_date, g.purchase_date) as shelf_life_days
+            FROM goods g LEFT JOIN storage_space s ON g.space_id = s.id WHERE $whereStr ORDER BY g.expiry_date ASC");
         $stmt->execute($params);
         $allItems = $stmt->fetchAll();
+
+        // 处理图片URL
+        foreach ($allItems as &$item) {
+            $item['cover_image'] = !empty($item['cover_image']) ? IMAGE_URL_PREFIX . $item['cover_image'] : '';
+        }
+        unset($item);
 
         // 根据规则过滤
         // 如果客户端指定了days参数，使用该值作为提醒天数（覆盖规则）
