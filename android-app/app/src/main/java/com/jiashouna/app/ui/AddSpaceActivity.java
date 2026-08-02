@@ -97,6 +97,12 @@ public class AddSpaceActivity extends AppCompatActivity {
         // 编辑模式：加载现有空间数据
         if (editSpaceId > 0) {
             if (btnSave != null) btnSave.setText("保存修改");
+            // 设置标题
+            String editName = getIntent().getStringExtra("space_name");
+            TextView tvTitle = findViewById(R.id.tv_title);
+            if (tvTitle != null) {
+                tvTitle.setText(editName != null && !editName.isEmpty() ? "编辑: " + editName : "编辑空间");
+            }
             loadSpaceData();
         }
     }

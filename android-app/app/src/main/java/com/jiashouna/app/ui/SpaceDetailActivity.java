@@ -75,6 +75,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
                 Intent intent = new Intent(this, AddSpaceActivity.class);
                 intent.putExtra("edit_space_id", spaceId);
                 intent.putExtra("house_id", houseId);
+                intent.putExtra("space_name", spaceName);
                 startActivity(intent);
             });
         }
