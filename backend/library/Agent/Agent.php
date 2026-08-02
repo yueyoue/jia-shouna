@@ -37,16 +37,17 @@ class Agent {
     /**
      * 执行 AI 识别
      * @param string $imageUrl 图片URL或本地路径
+     * @param array|null $customCategories APP传来的自定义分类列表
      * @return array 结构化识别结果
      */
-    public function recognize($imageUrl) {
+    public function recognize($imageUrl, $customCategories = null) {
         $startTime = microtime(true);
 
         // 创建调用日志
         $this->callLogId = $this->createCallLog($imageUrl);
 
         try {
-            $systemPrompt = get_ai_system_prompt();
+            $systemPrompt = get_ai_system_prompt($customCategories);
 
             // 将图片转为 base64 data URL（确保AI模型能访问）
             $imageDataUrl = $imageUrl;
@@ -68,6 +69,8 @@ class Agent {
                     $imgData = @file_get_contents($imageUrl);
                 }
                 if ($imgData) {
+                    // 压缩图片：最大1600px，质量75%，减少API超时
+                    $imgData = $this->compressImage($imgData, 1600, 75);
                     $mime = $this->detectMime($imgData, $imageUrl);
                     $imageDataUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
                     error_log('Agent: imgDataLen=' . strlen($imgData) . ' mime=' . $mime . ' dataUrlLen=' . strlen($imageDataUrl));
@@ -78,6 +81,7 @@ class Agent {
                 // 是本地文件路径
                 $imgData = file_get_contents($imageUrl);
                 if ($imgData) {
+                    $imgData = $this->compressImage($imgData, 1600, 75);
                     $mime = $this->detectMime($imgData, $imageUrl);
                     $imageDataUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
                 }
@@ -89,7 +93,7 @@ class Agent {
                     'role' => 'user',
                     'content' => [
                         ['type' => 'image_url', 'image_url' => ['url' => $imageDataUrl]],
-                        ['type' => 'text', 'text' => '请识别这张图片中的物品信息，优先解析条码。'],
+                        ['type' => 'text', 'text' => '请识别这张图片中的物品，按系统提示的JSON格式返回结果。'],
                     ]
                 ]
             ];
@@ -262,7 +266,7 @@ class Agent {
 
         // 方法1: 直接解析
         $result = json_decode($content, true);
-        if ($result && is_array($result) && (isset($result['goods_name']) || isset($result['name']) || isset($result['category']))) {
+        if ($result && is_array($result) && $this->hasRecognizableFields($result)) {
             return $this->normalizeResult($result);
         }
 
@@ -279,7 +283,7 @@ class Agent {
         if (preg_match_all('/\{[^{}]*\}/s', $content, $matches)) {
             foreach ($matches[0] as $match) {
                 $result = json_decode($match, true);
-                if ($result && is_array($result) && (isset($result['goods_name']) || isset($result['name']) || isset($result['category']))) {
+                if ($result && is_array($result) && $this->hasRecognizableFields($result)) {
                     return $this->normalizeResult($result);
                 }
             }
@@ -295,36 +299,136 @@ class Agent {
             }
         }
 
-        // 方法5: 提取 key-value 对重建
-        if (preg_match('/"goods_name"\s*:\s*"([^"]+)"/', $content, $nm)) {
-            $rebuild = ['goods_name' => $nm[1]];
-            if (preg_match('/"brand"\s*:\s*"([^"]*)"/', $content, $b)) $rebuild['brand'] = $b[1];
-            if (preg_match('/"category"\s*:\s*"([^"]*)"/', $content, $c)) $rebuild['category'] = $c[1];
-            if (preg_match('/"spec"\s*:\s*"([^"]*)"/', $content, $s)) $rebuild['spec'] = $s[1];
-            if (preg_match('/"expire_date"\s*:\s*"([^"]*)"/', $content, $e)) $rebuild['expire_date'] = $e[1];
-            if (preg_match('/"storage_tip"\s*:\s*"([^"]*)"/', $content, $t)) $rebuild['storage_tip'] = $t[1];
-            if (preg_match('/"confidence"\s*:?\s*([\d.]+)/', $content, $cf)) $rebuild['confidence'] = $cf[1];
-            if (preg_match('/"barcode"\s*:\s*"([^"]*)"/', $content, $bc)) $rebuild['barcode'] = $bc[1];
+        // 方法5: 提取 key-value 对重建（兼容中英文 key）
+        $rebuild = [];
+        // 英文 key
+        if (preg_match('/"goods_name"\s*:\s*"([^"]+)"/', $content, $nm)) $rebuild['goods_name'] = $nm[1];
+        if (preg_match('/"brand"\s*:\s*"([^"]*)"/', $content, $b)) $rebuild['brand'] = $b[1];
+        if (preg_match('/"category"\s*:\s*"([^"]*)"/', $content, $c)) $rebuild['category'] = $c[1];
+        if (preg_match('/"spec"\s*:\s*"([^"]*)"/', $content, $s)) $rebuild['spec'] = $s[1];
+        if (preg_match('/"expire_date"\s*:\s*"([^"]*)"/', $content, $e)) $rebuild['expire_date'] = $e[1];
+        if (preg_match('/"storage_tip"\s*:\s*"([^"]*)"/', $content, $t)) $rebuild['storage_tip'] = $t[1];
+        if (preg_match('/"confidence"\s*:?\s*([\d.]+)/', $content, $cf)) $rebuild['confidence'] = $cf[1];
+        if (preg_match('/"barcode"\s*:\s*"([^"]*)"/', $content, $bc)) $rebuild['barcode'] = $bc[1];
+        // 中文 key（部分模型会返回中文字段名）
+        if (preg_match('/"名称"\s*:\s*"([^"]+)"/u', $content, $nm2)) $rebuild['goods_name'] = $rebuild['goods_name'] ?? $nm2[1];
+        if (preg_match('/"品牌"\s*:\s*"([^"]*)"/u', $content, $b2)) $rebuild['brand'] = $rebuild['brand'] ?? $b2[1];
+        if (preg_match('/"分类"\s*:\s*"([^"]*)"/u', $content, $c2)) $rebuild['category'] = $rebuild['category'] ?? $c2[1];
+        if (preg_match('/"规格"\s*:\s*"([^"]*)"/u', $content, $s2)) $rebuild['spec'] = $rebuild['spec'] ?? $s2[1];
+        if (preg_match('/"条形码"\s*:\s*"([^"]*)"/u', $content, $bc2)) $rebuild['barcode'] = $rebuild['barcode'] ?? $bc2[1];
+        if (preg_match('/"置信度"\s*:?\s*([\d.]+)/u', $content, $cf2)) $rebuild['confidence'] = $rebuild['confidence'] ?? $cf2[1];
+        if (!empty($rebuild)) {
             return $this->normalizeResult($rebuild);
+        }
+
+        // 方法6: 按行解析 key: value 格式（有些模型返回纯文本键值对）
+        $lines = explode("\n", $content);
+        $kvResult = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (preg_match('/^(?:名称|goods_name|name)\s*[:：]\s*(.+)/u', $line, $m)) $kvResult['goods_name'] = trim($m[1], '" \'');
+            if (preg_match('/^(?:品牌|brand)\s*[:：]\s*(.+)/u', $line, $m)) $kvResult['brand'] = trim($m[1], '" \'');
+            if (preg_match('/^(?:分类|category)\s*[:：]\s*(.+)/u', $line, $m)) $kvResult['category'] = trim($m[1], '" \'');
+            if (preg_match('/^(?:规格|spec)\s*[:：]\s*(.+)/u', $line, $m)) $kvResult['spec'] = trim($m[1], '" \'');
+            if (preg_match('/^(?:条形码|barcode)\s*[:：]\s*(.+)/u', $line, $m)) $kvResult['barcode'] = trim($m[1], '" \'');
+            if (preg_match('/^(?:置信度|confidence)\s*[:：]?\s*([\d.]+)/u', $line, $m)) $kvResult['confidence'] = $m[1];
+        }
+        if (!empty($kvResult) && isset($kvResult['goods_name'])) {
+            return $this->normalizeResult($kvResult);
         }
 
         throw new Exception('AI 返回结果无法解析: ' . $debugContent);
     }
 
     /**
-     * 标准化识别结果
+     * 判断解析结果是否包含可识别的字段
+     */
+    private function hasRecognizableFields($result) {
+        $keys = ['goods_name', 'name', 'category', 'barcode', 'brand'];
+        foreach ($keys as $k) {
+            if (isset($result[$k]) && $result[$k] !== null && $result[$k] !== '') return true;
+        }
+        // 也检查中文 key
+        $cnKeys = ['名称', '品牌', '分类'];
+        foreach ($cnKeys as $k) {
+            if (isset($result[$k]) && $result[$k] !== null && $result[$k] !== '') return true;
+        }
+        return false;
+    }
+
+    /**
+     * 标准化识别结果（兼容中英文 key，null 值转为空字符串）
      */
     private function normalizeResult($result) {
+        // 辅助：安全取值，null/"null"/"无" 都视为空
+        $safe = function($val) {
+            if ($val === null || $val === 'null' || $val === '无' || $val === '暂无' || $val === 'N/A') return '';
+            return trim((string)$val);
+        };
         return [
-            'barcode'      => trim($result['barcode'] ?? ''),
-            'goods_name'   => trim($result['goods_name'] ?? $result['name'] ?? ''),
-            'brand'        => trim($result['brand'] ?? ''),
-            'spec'         => trim($result['spec'] ?? ''),
-            'category'     => trim($result['category'] ?? '其他'),
-            'expire_date'  => trim($result['expire_date'] ?? $result['expiry_date'] ?? ''),
-            'storage_tip'  => trim($result['storage_tip'] ?? $result['storage_suggestion'] ?? ''),
-            'confidence'   => floatval($result['confidence'] ?? 0.8),
+            'barcode'      => $safe($result['barcode'] ?? $result['条形码'] ?? ''),
+            'goods_name'   => $safe($result['goods_name'] ?? $result['name'] ?? $result['名称'] ?? ''),
+            'brand'        => $safe($result['brand'] ?? $result['品牌'] ?? ''),
+            'spec'         => $safe($result['spec'] ?? $result['规格'] ?? ''),
+            'category'     => $safe($result['category'] ?? $result['分类'] ?? '') ?: '其他',
+            'expire_date'  => $safe($result['expire_date'] ?? $result['expiry_date'] ?? $result['保质期'] ?? ''),
+            'storage_tip'  => $safe($result['storage_tip'] ?? $result['storage_suggestion'] ?? $result['存放建议'] ?? ''),
+            'confidence'   => floatval($result['confidence'] ?? $result['置信度'] ?? 0.8),
         ];
+    }
+
+    /**
+     * 压缩图片：限制最大尺寸，降低质量，减少API传输大小
+     * @param string $imageData 原始图片二进制数据
+     * @param int $maxSize 最大边长（px）
+     * @param int $quality JPEG质量（1-100）
+     * @return string 压缩后的图片二进制数据
+     */
+    private function compressImage($imageData, $maxSize = 1600, $quality = 75) {
+        // 没有 GD 扩展就直接返回原图
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) {
+            return $imageData;
+        }
+        try {
+            $img = @imagecreatefromstring($imageData);
+            if (!$img) return $imageData;
+
+            $origW = imagesx($img);
+            $origH = imagesy($img);
+
+            // 如果图片已经够小，直接返回
+            if ($origW <= $maxSize && $origH <= $maxSize && strlen($imageData) < 500000) {
+                imagedestroy($img);
+                return $imageData;
+            }
+
+            // 计算缩放比例
+            $ratio = min($maxSize / $origW, $maxSize / $origH, 1.0);
+            $newW = (int)($origW * $ratio);
+            $newH = (int)($origH * $ratio);
+
+            $newImg = imagecreatetruecolor($newW, $newH);
+            // 保留透明通道
+            imagealphablending($newImg, false);
+            imagesavealpha($newImg, true);
+            imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+            ob_start();
+            imagejpeg($newImg, null, $quality);
+            $compressed = ob_get_clean();
+
+            imagedestroy($img);
+            imagedestroy($newImg);
+
+            if ($compressed && strlen($compressed) > 0) {
+                error_log('Agent: image compressed ' . $origW . 'x' . $origH . ' -> ' . $newW . 'x' . $newH . ', ' . strlen($imageData) . ' -> ' . strlen($compressed) . ' bytes');
+                return $compressed;
+            }
+            return $imageData;
+        } catch (Exception $e) {
+            error_log('Agent: compressImage error: ' . $e->getMessage());
+            return $imageData;
+        }
     }
 
     /**

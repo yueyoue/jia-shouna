@@ -80,8 +80,15 @@ switch ($action) {
                 $agent = new Agent($user['id']);
                 debug_log('Agent created');
 
+                // 接收 APP 传来的自定义分类列表
+                $customCategories = null;
+                if (!empty($_POST['categories'])) {
+                    $customCategories = json_decode($_POST['categories'], true);
+                    if (!is_array($customCategories)) $customCategories = null;
+                }
+
                 $startTime = microtime(true);
-                $aiResult = $agent->recognize($imageUrl);
+                $aiResult = $agent->recognize($imageUrl, $customCategories);
                 debug_log('Agent result: ' . json_encode($aiResult, JSON_UNESCAPED_UNICODE));
                 $duration = intval((microtime(true) - $startTime) * 1000);
 
