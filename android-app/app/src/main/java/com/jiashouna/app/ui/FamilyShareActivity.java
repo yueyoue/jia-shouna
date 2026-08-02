@@ -14,7 +14,7 @@ import java.util.HashMap;
 public class FamilyShareActivity extends AppCompatActivity {
     private TextView tvHouseName, tvInviteCode, tvMemberCount;
     private LinearLayout llMembers;
-    private TextView btnCopyCode, btnJoin;
+    private TextView btnCopyCode, btnJoin, btnCreateHouse;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +27,7 @@ public class FamilyShareActivity extends AppCompatActivity {
         llMembers = findViewById(R.id.ll_members);
         btnCopyCode = findViewById(R.id.btn_copy_code);
         btnJoin = findViewById(R.id.btn_join);
+        btnCreateHouse = findViewById(R.id.btn_create_house);
 
         // 返回按钮
         View btnBack = findViewById(R.id.btn_back);
@@ -46,6 +47,7 @@ public class FamilyShareActivity extends AppCompatActivity {
         }
 
         if (btnJoin != null) btnJoin.setOnClickListener(v -> joinHouse());
+        if (btnCreateHouse != null) btnCreateHouse.setOnClickListener(v -> showCreateHouseDialog());
 
         try {
             loadMembers();
@@ -63,20 +65,13 @@ public class FamilyShareActivity extends AppCompatActivity {
             if (tvInviteCode != null) tvInviteCode.setText("");
             if (llMembers != null) {
                 llMembers.removeAllViews();
-
-                // 显示创建家庭按钮
-                TextView createBtn = new TextView(this);
-                createBtn.setText("+ 创建家庭");
-                createBtn.setTextSize(15);
-                createBtn.setTextColor(0xFFFFFFFF);
-                createBtn.setGravity(android.view.Gravity.CENTER);
-                createBtn.setBackgroundResource(R.drawable.bg_button_primary_warm);
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
-                lp.setMargins(dp(16), dp(20), dp(16), 0);
-                createBtn.setLayoutParams(lp);
-                createBtn.setOnClickListener(v -> showCreateHouseDialog());
-                llMembers.addView(createBtn);
+                TextView hint = new TextView(this);
+                hint.setText("请先创建或加入一个家庭");
+                hint.setTextSize(14);
+                hint.setTextColor(0xFF718096);
+                hint.setGravity(android.view.Gravity.CENTER);
+                hint.setPadding(0, dp(20), 0, 0);
+                llMembers.addView(hint);
             }
             return;
         }
