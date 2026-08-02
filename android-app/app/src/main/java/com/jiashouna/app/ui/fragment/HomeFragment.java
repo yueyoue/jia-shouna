@@ -329,12 +329,14 @@ public class HomeFragment extends Fragment {
     private void loadAnnouncements() {
         if (layoutAnnouncement == null || viewFlipperAnnouncement == null) return;
         if (houseId <= 0) return;
+        android.util.Log.d("HomeAnn", "Loading announcements, houseId=" + houseId);
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
 
         ApiClient.get("reminder.php?action=stats", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
+                android.util.Log.d("HomeAnn", "Stats OK: " + data.toString().substring(0, Math.min(200, data.toString().length())));
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
                     try {
@@ -344,13 +346,13 @@ public class HomeFragment extends Fragment {
                             expiring = stats.has("expiring_7days") ? stats.get("expiring_7days").getAsInt() : 0;
                             lowStock = stats.has("low_stock") ? stats.get("low_stock").getAsInt() : 0;
                         }
+                        android.util.Log.d("HomeAnn", "expiring=" + expiring + " lowStock=" + lowStock);
                         updateAnnouncementBanner(expiring, lowStock);
-                        // 更新底部角标
                         updateReminderBadge(expiring + lowStock);
                     } catch (Exception ignored) {}
                 });
             }
-            @Override public void onError(String msg) {}
+            @Override public void onError(String msg) { android.util.Log.e("HomeAnn", "Stats error: " + msg); }
         });
     }
 

@@ -519,17 +519,12 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/ll_recent_list"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
                 <!-- 胶囊分类Tabs -->
                 <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:scrollbars="none"
-                    android:layout_marginTop="12dp">
+                    android:layout_marginBottom="12dp">
 
                     <LinearLayout
                         android:id="@+id/layout_category_chips"
@@ -538,6 +533,12 @@
                         android:orientation="horizontal">
                     </LinearLayout>
                 </HorizontalScrollView>
+
+                <LinearLayout
+                    android:id="@+id/ll_recent_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
             </LinearLayout>
             <!-- ===== 临期提醒 ===== -->
             <LinearLayout
