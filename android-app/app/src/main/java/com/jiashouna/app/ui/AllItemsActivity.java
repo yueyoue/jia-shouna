@@ -116,6 +116,8 @@ public class AllItemsActivity extends AppCompatActivity {
         if ("expiring".equals(filterType)) {
             endpoint = "goods.php?action=expiring";
             params.put("days", "7");
+        } else if ("unassigned".equals(filterType)) {
+            params.put("unassigned", "1");
         }
 
         Log.d(TAG, "Requesting: " + endpoint + " params=" + params);

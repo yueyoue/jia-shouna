@@ -16,6 +16,7 @@ switch ($action) {
         $category = $_GET['category'] ?? '';
         $tagId = intval($_GET['tag_id'] ?? 0);
         $keyword = $_GET['keyword'] ?? '';
+        $unassigned = intval($_GET['unassigned'] ?? 0);
         $page = max(1, intval($_GET['page'] ?? 1));
         $pageSize = min(50, max(1, intval($_GET['page_size'] ?? 20)));
 
@@ -56,6 +57,9 @@ switch ($action) {
                 $where[] = "g.space_id = ?";
                 $params[] = $spaceId;
             }
+        }
+        if ($unassigned) {
+            $where[] = "(g.space_id IS NULL OR g.space_id = 0)";
         }
         if ($category) {
             $where[] = "g.category = ?";

@@ -1531,6 +1531,24 @@ public class AddItemActivity extends AppCompatActivity {
             return;
         }
 
+        // 检查是否选择了存放位置
+        if (selectedSpaceId <= 0) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("未选择存放位置")
+                .setMessage("该物品还没有指定存放位置，你希望？")
+                .setPositiveButton("选择位置", (d, w) -> showSpacePickerDialog())
+                .setNegativeButton("暂不归位", (d, w) -> doSave(continueAfterSave))
+                .show();
+            return;
+        }
+
+        doSave(continueAfterSave);
+    }
+
+    private void doSave(boolean continueAfterSave) {
+        int houseId = App.getInstance().getCurrentHouseId();
+        String name = etName.getText().toString().trim();
+
         // 保存上次选择的空间
         if (selectedSpaceId > 0) {
             getSharedPreferences("add_item_prefs", MODE_PRIVATE).edit()
