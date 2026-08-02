@@ -60,7 +60,7 @@ switch ($action) {
             }
             if ($maxRemindDays <= 0) $maxRemindDays = 45; // 默认最大45天
 
-            $expWhere = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)", "g.expiry_date >= CURDATE()"];
+            $expWhere = ["g.status = 1", "g.expiry_date IS NOT NULL", "g.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)", "g.expiry_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)"];
             $expParams = [$maxRemindDays];
             if ($houseId > 0) { $expWhere[] = "g.house_id = ?"; $expParams[] = $houseId; }
             elseif (!empty($houseIds)) {

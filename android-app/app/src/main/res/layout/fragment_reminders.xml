@@ -91,6 +91,19 @@
                 android:textSize="13sp" />
 
             <TextView
+                android:id="@+id/tab_expired"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_filter_chip_inactive_warm"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="已过期"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
                 android:id="@+id/tab_lowstock"
                 android:layout_width="wrap_content"
                 android:layout_height="34dp"
@@ -176,6 +189,37 @@
 
                 <LinearLayout
                     android:id="@+id/ll_expiring_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <!-- 已过期 -->
+            <LinearLayout
+                android:id="@+id/layout_expired_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingBottom="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔴 已过期"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/ll_expired_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical" />

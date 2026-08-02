@@ -19,20 +19,21 @@ import java.util.HashMap;
 public class RemindersFragment extends Fragment {
 
     // Filter tabs
-    private TextView tabAll, tabExpiring, tabLowstock, tabCustom;
-    private int currentTab = 0; // 0=all, 1=expiring, 2=lowstock, 3=custom
+    private TextView tabAll, tabExpiring, tabExpired, tabLowstock, tabCustom;
+    private int currentTab = 0; // 0=all, 1=expiring, 2=expired, 3=lowstock, 4=custom
 
     // Sections
-    private LinearLayout layoutExpiringSection, layoutLowstockSection, layoutCustomSection;
+    private LinearLayout layoutExpiringSection, layoutExpiredSection, layoutLowstockSection, layoutCustomSection;
 
     // Lists
-    private LinearLayout llExpiringList, llLowstockList, llCustomList;
+    private LinearLayout llExpiringList, llExpiredList, llLowstockList, llCustomList;
 
     // Count badge
     private TextView tvExpiringCount;
 
     // Data
     private JsonArray allExpiring = new JsonArray();
+    private JsonArray allExpired = new JsonArray();
     private JsonArray allLowstock = new JsonArray();
     private JsonArray allCustom = new JsonArray();
 
@@ -43,16 +44,19 @@ public class RemindersFragment extends Fragment {
         // Filter tabs
         tabAll = v.findViewById(R.id.tab_all);
         tabExpiring = v.findViewById(R.id.tab_expiring);
+        tabExpired = v.findViewById(R.id.tab_expired);
         tabLowstock = v.findViewById(R.id.tab_lowstock);
         tabCustom = v.findViewById(R.id.tab_custom);
 
         // Sections
         layoutExpiringSection = v.findViewById(R.id.layout_expiring_section);
+        layoutExpiredSection = v.findViewById(R.id.layout_expired_section);
         layoutLowstockSection = v.findViewById(R.id.layout_lowstock_section);
         layoutCustomSection = v.findViewById(R.id.layout_custom_section);
 
         // Lists
         llExpiringList = v.findViewById(R.id.ll_expiring_list);
+        llExpiredList = v.findViewById(R.id.ll_expired_list);
         llLowstockList = v.findViewById(R.id.ll_lowstock_list);
         llCustomList = v.findViewById(R.id.ll_custom_list);
 
@@ -62,8 +66,9 @@ public class RemindersFragment extends Fragment {
         // Tab click listeners
         tabAll.setOnClickListener(view -> switchTab(0));
         tabExpiring.setOnClickListener(view -> switchTab(1));
-        tabLowstock.setOnClickListener(view -> switchTab(2));
-        tabCustom.setOnClickListener(view -> switchTab(3));
+        tabExpired.setOnClickListener(view -> switchTab(2));
+        tabLowstock.setOnClickListener(view -> switchTab(3));
+        tabCustom.setOnClickListener(view -> switchTab(4));
 
         return v;
     }
@@ -83,8 +88,9 @@ public class RemindersFragment extends Fragment {
     }
 
     private void updateTabStyles() {
-        TextView[] tabs = {tabAll, tabExpiring, tabLowstock, tabCustom};
+        TextView[] tabs = {tabAll, tabExpiring, tabExpired, tabLowstock, tabCustom};
         for (int i = 0; i < tabs.length; i++) {
+            if (tabs[i] == null) continue;
             if (i == currentTab) {
                 tabs[i].setBackgroundResource(R.drawable.bg_filter_chip_active);
                 tabs[i].setTextColor(Color.WHITE);
@@ -96,28 +102,10 @@ public class RemindersFragment extends Fragment {
     }
 
     private void updateSectionVisibility() {
-        switch (currentTab) {
-            case 0: // All
-                layoutExpiringSection.setVisibility(View.VISIBLE);
-                layoutLowstockSection.setVisibility(View.VISIBLE);
-                layoutCustomSection.setVisibility(View.VISIBLE);
-                break;
-            case 1: // Expiring
-                layoutExpiringSection.setVisibility(View.VISIBLE);
-                layoutLowstockSection.setVisibility(View.GONE);
-                layoutCustomSection.setVisibility(View.GONE);
-                break;
-            case 2: // Low stock
-                layoutExpiringSection.setVisibility(View.GONE);
-                layoutLowstockSection.setVisibility(View.VISIBLE);
-                layoutCustomSection.setVisibility(View.GONE);
-                break;
-            case 3: // Custom
-                layoutExpiringSection.setVisibility(View.GONE);
-                layoutLowstockSection.setVisibility(View.GONE);
-                layoutCustomSection.setVisibility(View.VISIBLE);
-                break;
-        }
+        layoutExpiringSection.setVisibility(currentTab == 0 || currentTab == 1 ? View.VISIBLE : View.GONE);
+        layoutExpiredSection.setVisibility(currentTab == 0 || currentTab == 2 ? View.VISIBLE : View.GONE);
+        layoutLowstockSection.setVisibility(currentTab == 0 || currentTab == 3 ? View.VISIBLE : View.GONE);
+        layoutCustomSection.setVisibility(currentTab == 0 || currentTab == 4 ? View.VISIBLE : View.GONE);
     }
 
     // ===== Data Loading =====
@@ -176,6 +164,7 @@ public class RemindersFragment extends Fragment {
                 getActivity().runOnUiThread(() -> {
                     try {
                         allExpiring = new JsonArray();
+                        allExpired = new JsonArray();
                         allLowstock = new JsonArray();
                         allCustom = new JsonArray();
 
@@ -185,7 +174,6 @@ public class RemindersFragment extends Fragment {
                             for (int i = 0; i < list.size(); i++) {
                                 JsonObject item = list.get(i).getAsJsonObject();
                                 String type = item.has("type") ? item.get("type").getAsString() : "custom";
-                                android.util.Log.d("Reminders", "Item " + i + ": type=" + type + " title=" + (item.has("title") ? item.get("title").getAsString() : "null"));
                                 // 兼容：如果API返回space_name但没有location，自动补充
                                 if (!item.has("location") && item.has("space_name") && !item.get("space_name").isJsonNull()) {
                                     item.addProperty("location", item.get("space_name").getAsString());
@@ -196,7 +184,13 @@ public class RemindersFragment extends Fragment {
                                 }
                                 switch (type) {
                                     case "expiry":
-                                        allExpiring.add(item);
+                                        // 区分已过期和临期
+                                        int daysLeft = item.has("days_left") ? item.get("days_left").getAsInt() : 999;
+                                        if (daysLeft < 0) {
+                                            allExpired.add(item);
+                                        } else {
+                                            allExpiring.add(item);
+                                        }
                                         break;
                                     case "low_stock":
                                         allLowstock.add(item);
@@ -212,6 +206,7 @@ public class RemindersFragment extends Fragment {
 
                         android.util.Log.d("Reminders", "Final counts: expiring=" + allExpiring.size() + " lowstock=" + allLowstock.size() + " custom=" + allCustom.size());
                         renderExpiring();
+                        renderExpired();
                         renderLowstock();
                         renderCustom();
                         updateSectionVisibility();
@@ -242,18 +237,22 @@ public class RemindersFragment extends Fragment {
 
     private void showLoading() {
         llExpiringList.removeAllViews();
+        llExpiredList.removeAllViews();
         llLowstockList.removeAllViews();
         llCustomList.removeAllViews();
         addLoadingHint(llExpiringList);
+        addLoadingHint(llExpiredList);
         addLoadingHint(llLowstockList);
         addLoadingHint(llCustomList);
     }
 
     private void showEmptyInAll(String msg) {
         llExpiringList.removeAllViews();
+        llExpiredList.removeAllViews();
         llLowstockList.removeAllViews();
         llCustomList.removeAllViews();
         addEmptyHint(llExpiringList, msg);
+        addEmptyHint(llExpiredList, msg);
         addEmptyHint(llLowstockList, msg);
         addEmptyHint(llCustomList, msg);
     }
@@ -269,6 +268,18 @@ public class RemindersFragment extends Fragment {
         for (int i = 0; i < allExpiring.size(); i++) {
             JsonObject item = allExpiring.get(i).getAsJsonObject();
             llExpiringList.addView(createExpiringCard(item));
+        }
+    }
+
+    private void renderExpired() {
+        llExpiredList.removeAllViews();
+        if (allExpired.size() == 0) {
+            addEmptyHint(llExpiredList, "暂无已过期物品 👍");
+            return;
+        }
+        for (int i = 0; i < allExpired.size(); i++) {
+            JsonObject item = allExpired.get(i).getAsJsonObject();
+            llExpiredList.addView(createExpiringCard(item));
         }
     }
 
