@@ -482,11 +482,19 @@ public class RemindersFragment extends Fragment {
         name.setTypeface(null, Typeface.BOLD);
         info.addView(name);
 
-        // Progress bar
-        int current = item.has("current_qty") && !item.get("current_qty").isJsonNull()
-                ? item.get("current_qty").getAsInt() : 0;
-        int threshold = item.has("threshold") && !item.get("threshold").isJsonNull()
-                ? item.get("threshold").getAsInt() : 1;
+        // Progress bar - current_qty/threshold are DECIMAL, may be "1.00" string
+        int current = 0;
+        int threshold = 1;
+        try {
+            if (item.has("current_qty") && !item.get("current_qty").isJsonNull()) {
+                current = (int) item.get("current_qty").getAsDouble();
+            }
+        } catch (Exception ignored) {}
+        try {
+            if (item.has("threshold") && !item.get("threshold").isJsonNull()) {
+                threshold = (int) item.get("threshold").getAsDouble();
+            }
+        } catch (Exception ignored) {}
         float ratio = threshold > 0 ? Math.min(1f, (float) current / threshold) : 0;
 
         FrameLayout progressContainer = new FrameLayout(ctx);
