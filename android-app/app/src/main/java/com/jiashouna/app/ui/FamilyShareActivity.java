@@ -25,6 +25,7 @@ public class FamilyShareActivity extends AppCompatActivity {
         tvInviteCode = findViewById(R.id.tv_invite_code);
         tvMemberCount = findViewById(R.id.tv_member_count);
         llMembers = findViewById(R.id.ll_members);
+        llHousesList = findViewById(R.id.ll_houses_list);
         btnCopyCode = findViewById(R.id.btn_copy_code);
         btnJoin = findViewById(R.id.btn_join);
         btnCreateHouse = findViewById(R.id.btn_create_house);
@@ -57,8 +58,103 @@ public class FamilyShareActivity extends AppCompatActivity {
         }
     }
 
+    private LinearLayout llHousesList;
+
+    private void loadAllHouses(int currentHouseId) {
+        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
+                        if (llHousesList == null) return;
+                        llHousesList.removeAllViews();
+
+                        if (list.size() == 0) {
+                            TextView hint = new TextView(FamilyShareActivity.this);
+                            hint.setText("暂无家庭，点击上方按钮创建");
+                            hint.setTextSize(13);
+                            hint.setTextColor(0xFF718096);
+                            hint.setPadding(dp(4), dp(8), 0, 0);
+                            llHousesList.addView(hint);
+                            return;
+                        }
+
+                        for (int i = 0; i < list.size(); i++) {
+                            JsonObject house = list.get(i).getAsJsonObject();
+                            int hid = house.get("id").getAsInt();
+                            String hname = house.get("name").getAsString();
+                            int members = house.has("member_count") ? house.get("member_count").getAsInt() : 1;
+                            String inviteCode = house.has("invite_code") ? house.get("invite_code").getAsString() : "";
+                            boolean isCurrent = (hid == currentHouseId);
+
+                            LinearLayout row = new LinearLayout(FamilyShareActivity.this);
+                            row.setOrientation(LinearLayout.HORIZONTAL);
+                            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                            row.setPadding(dp(12), dp(10), dp(12), dp(10));
+                            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                            rowLp.bottomMargin = dp(6);
+                            row.setLayoutParams(rowLp);
+                            row.setBackgroundResource(isCurrent ? R.drawable.bg_card_warm : R.drawable.bg_card);
+
+                            // 家庭图标
+                            TextView icon = new TextView(FamilyShareActivity.this);
+                            icon.setText(isCurrent ? "🏠" : "🏡");
+                            icon.setTextSize(20);
+                            icon.setPadding(0, 0, dp(8), 0);
+                            row.addView(icon);
+
+                            // 家庭名+成员数+邀请码
+                            LinearLayout info = new LinearLayout(FamilyShareActivity.this);
+                            info.setOrientation(LinearLayout.VERTICAL);
+                            LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                            info.setLayoutParams(infoLp);
+
+                            TextView nameTv = new TextView(FamilyShareActivity.this);
+                            nameTv.setText(hname + (isCurrent ? " (当前)" : ""));
+                            nameTv.setTextSize(15);
+                            nameTv.setTextColor(0xFF2D3748);
+                            nameTv.setTypeface(null, isCurrent ? Typeface.BOLD : Typeface.NORMAL);
+                            info.addView(nameTv);
+
+                            TextView metaTv = new TextView(FamilyShareActivity.this);
+                            metaTv.setText(members + " 位成员 · 邀请码: " + (inviteCode.isEmpty() ? "无" : inviteCode));
+                            metaTv.setTextSize(12);
+                            metaTv.setTextColor(0xFF718096);
+                            info.addView(metaTv);
+
+                            row.addView(info);
+
+                            // 切换按钮
+                            if (!isCurrent) {
+                                TextView switchBtn = new TextView(FamilyShareActivity.this);
+                                switchBtn.setText("切换");
+                                switchBtn.setTextSize(13);
+                                switchBtn.setTextColor(0xFFFF8C42);
+                                switchBtn.setPadding(dp(8), 0, 0, 0);
+                                switchBtn.setOnClickListener(v -> {
+                                    App.getInstance().setCurrentHouseId(hid);
+                                    App.getInstance().setCurrentHouseName(hname);
+                                    loadMembers();
+                                });
+                                row.addView(switchBtn);
+                            }
+
+                            llHousesList.addView(row);
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
+    }
+
     private void loadMembers() {
         int houseId = App.getInstance().getCurrentHouseId();
+
+        // 先加载所有家庭列表
+        loadAllHouses(houseId);
+
         if (houseId <= 0) {
             if (tvHouseName != null) tvHouseName.setText("暂无家庭");
             if (tvMemberCount != null) tvMemberCount.setText("0 位成员");

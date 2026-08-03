@@ -1343,70 +1343,35 @@ public class AddItemActivity extends AppCompatActivity {
      */
     private void showDatePicker() {
         java.util.Calendar cal = java.util.Calendar.getInstance();
-        int curYear = cal.get(java.util.Calendar.YEAR);
-        int curMonth = cal.get(java.util.Calendar.MONTH);
-        int curDay = cal.get(java.util.Calendar.DAY_OF_MONTH);
+        int year = cal.get(java.util.Calendar.YEAR);
+        int month = cal.get(java.util.Calendar.MONTH);
+        int day = cal.get(java.util.Calendar.DAY_OF_MONTH);
 
-        // 如果已有日期,解析它
         if (!selectedPurchaseDate.isEmpty()) {
             try {
                 String[] parts = selectedPurchaseDate.split("-");
-                curYear = Integer.parseInt(parts[0]);
-                curMonth = Integer.parseInt(parts[1]) - 1;
-                curDay = Integer.parseInt(parts[2]);
+                year = Integer.parseInt(parts[0]);
+                month = Integer.parseInt(parts[1]) - 1;
+                day = Integer.parseInt(parts[2]);
             } catch (Exception ignored) {}
         }
 
-        final int finalCurYear = curYear;
-        final int finalCurMonth = curMonth;
-        final int finalCurDay = curDay;
+        final int fYear = year, fMonth = month, fDay = day;
+        DatePickerDialog dialog = new DatePickerDialog(this, (view, y, m, d) -> {
+            selectedPurchaseDate = String.format("%04d-%02d-%02d", y, m + 1, d);
+            etPurchaseDate.setText(selectedPurchaseDate);
+            calcExpiryDate();
+        }, fYear, fMonth, fDay);
 
-        // 第一步：选年份
-        int startYear = curYear - 10;
-        int endYear = curYear;
-        String[] years = new String[endYear - startYear + 1];
-        for (int i = 0; i < years.length; i++) years[i] = (startYear + i) + "年";
+        // 日期范围：10年前到今天
+        java.util.Calendar minDate = java.util.Calendar.getInstance();
+        minDate.add(java.util.Calendar.YEAR, -10);
+        java.util.Calendar maxDate = java.util.Calendar.getInstance();
+        dialog.getDatePicker().setMinDate(minDate.getTimeInMillis());
+        dialog.getDatePicker().setMaxDate(maxDate.getTimeInMillis());
 
-        new AlertDialog.Builder(this)
-            .setTitle("选择年份")
-            .setItems(years, (d1, whichYear) -> {
-                int selectedYear = startYear + whichYear;
-
-                // 第二步：选月份
-                String[] months = {"1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"};
-                new AlertDialog.Builder(this)
-                    .setTitle(selectedYear + "年 - 选择月份")
-                    .setItems(months, (d2, whichMonth) -> {
-
-                        // 第三步：选日期
-                        java.util.Calendar tempCal = java.util.Calendar.getInstance();
-                        tempCal.set(selectedYear, whichMonth, 1);
-                        int daysInMonth = tempCal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
-
-                        // 如果是当前年月，最大日期是今天
-                        int maxDay = daysInMonth;
-                        if (selectedYear == finalCurYear && whichMonth == finalCurMonth) {
-                            maxDay = finalCurDay;
-                        }
-
-                        String[] days = new String[maxDay];
-                        for (int i = 0; i < maxDay; i++) days[i] = (i + 1) + "日";
-
-                        new AlertDialog.Builder(this)
-                            .setTitle(selectedYear + "年" + (whichMonth + 1) + "月 - 选择日期")
-                            .setItems(days, (d3, whichDay) -> {
-                                selectedPurchaseDate = String.format("%04d-%02d-%02d", selectedYear, whichMonth + 1, whichDay + 1);
-                                etPurchaseDate.setText(selectedPurchaseDate);
-                                calcExpiryDate();
-                            })
-                            .setNegativeButton("取消", null)
-                            .show();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
-            })
-            .setNegativeButton("取消", null)
-            .show();
+        dialog.setTitle("选择生产日期（点击年份可快速切换）");
+        dialog.show();
     }
 
     private int convertToDays(int value, String unit) {
