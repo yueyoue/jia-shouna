@@ -27,6 +27,25 @@ public class SpacesFragment extends Fragment {
     // Track expanded state of rooms
     private HashMap<Integer, Boolean> expandedState = new HashMap<>();
 
+    private void loadExpandedState() {
+        if (getActivity() == null) return;
+        android.content.SharedPreferences sp = getActivity().getSharedPreferences("space_expand_state", android.content.Context.MODE_PRIVATE);
+        java.util.Map<String, ?> all = sp.getAll();
+        for (java.util.Map.Entry<String, ?> entry : all.entrySet()) {
+            try {
+                int id = Integer.parseInt(entry.getKey());
+                expandedState.put(id, (Boolean) entry.getValue());
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void saveExpandedState(int roomId, boolean expanded) {
+        expandedState.put(roomId, expanded);
+        if (getActivity() == null) return;
+        getActivity().getSharedPreferences("space_expand_state", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean(String.valueOf(roomId), expanded).apply();
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_spaces, container, false);
@@ -35,6 +54,8 @@ public class SpacesFragment extends Fragment {
         emptyView = v.findViewById(R.id.empty_view);
         addSpaceHint = v.findViewById(R.id.btn_add_space_hint);
         tvSelectedHouse = v.findViewById(R.id.tv_selected_house);
+
+        loadExpandedState();
 
         // 新建按钮
         v.findViewById(R.id.btn_add_space).setOnClickListener(x ->
@@ -217,11 +238,11 @@ public class SpacesFragment extends Fragment {
                             boolean currentlyExpanded = finalSubItems.getVisibility() == View.VISIBLE;
                             if (currentlyExpanded) {
                                 finalSubItems.setVisibility(View.GONE);
-                                expandedState.put(finalRoomId, false);
+                                saveExpandedState(finalRoomId, false);
                                 arrowRef[0].setText("▶");
                             } else {
                                 finalSubItems.setVisibility(View.VISIBLE);
-                                expandedState.put(finalRoomId, true);
+                                saveExpandedState(finalRoomId, true);
                                 arrowRef[0].setText("▼");
                             }
                         });

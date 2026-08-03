@@ -42,6 +42,9 @@ public class HomeFragment extends Fragment {
         // Top bar
         tvHouseInfo = v.findViewById(R.id.tv_house_info);
         tvDate = v.findViewById(R.id.tv_date);
+
+        // 点击家庭名称可切换家庭
+        tvHouseInfo.setOnClickListener(v1 -> showHouseSwitcher());
         tvGreeting = v.findViewById(R.id.tv_greeting);
 
         // Stats
@@ -188,6 +191,9 @@ public class HomeFragment extends Fragment {
         }
 
         tvHouseInfo.setText(app.getCurrentHouseName());
+        // 添加下拉箭头提示
+        tvHouseInfo.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.arrow_down_float, 0);
+        tvHouseInfo.setCompoundDrawablePadding(dp(4));
 
         // 获取家庭成员数
         ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
@@ -407,6 +413,58 @@ public class HomeFragment extends Fragment {
     /**
      * 离线模式：从缓存加载最近物品
      */
+    private void showHouseSwitcher() {
+        if (getActivity() == null) return;
+        ApiClient.get("house.php?action=list", null, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
+                        if (list.size() == 0) {
+                            Toast.makeText(getActivity(), "暂无家庭", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        int currentId = App.getInstance().getCurrentHouseId();
+                        String[] names = new String[list.size()];
+                        int[] ids = new int[list.size()];
+                        int checkedIdx = 0;
+
+                        for (int i = 0; i < list.size(); i++) {
+                            JsonObject h = list.get(i).getAsJsonObject();
+                            ids[i] = h.get("id").getAsInt();
+                            names[i] = h.get("name").getAsString();
+                            if (ids[i] == currentId) checkedIdx = i;
+                        }
+
+                        new android.app.AlertDialog.Builder(getActivity())
+                            .setTitle("选择家庭")
+                            .setSingleChoiceItems(names, checkedIdx, (dialog, which) -> {
+                                int newId = ids[which];
+                                String newName = names[which];
+                                App.getInstance().setCurrentHouseId(newId);
+                                App.getInstance().setCurrentHouseName(newName);
+                                tvHouseInfo.setText(newName);
+                                houseId = newId;
+                                dialog.dismiss();
+                                // 重新加载数据
+                                loadData();
+                            })
+                            .setNegativeButton("取消", null)
+                            .show();
+                    } catch (Exception e) {
+                        Toast.makeText(getActivity(), "加载家庭列表失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() ->
+                    Toast.makeText(getActivity(), "加载失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
     private void setupCategoryChips() {
         if (layoutCategoryChips == null || getActivity() == null) return;
         layoutCategoryChips.removeAllViews();
