@@ -1357,6 +1357,10 @@ public class AddItemActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
+        final int finalCurYear = curYear;
+        final int finalCurMonth = curMonth;
+        final int finalCurDay = curDay;
+
         // 第一步：选年份
         int startYear = curYear - 10;
         int endYear = curYear;
@@ -1381,8 +1385,8 @@ public class AddItemActivity extends AppCompatActivity {
 
                         // 如果是当前年月，最大日期是今天
                         int maxDay = daysInMonth;
-                        if (selectedYear == curYear && whichMonth == curMonth) {
-                            maxDay = curDay;
+                        if (selectedYear == finalCurYear && whichMonth == finalCurMonth) {
+                            maxDay = finalCurDay;
                         }
 
                         String[] days = new String[maxDay];
