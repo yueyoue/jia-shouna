@@ -93,9 +93,15 @@ public class SpacesFragment extends Fragment {
                         if (data.has("list")) {
                             houses = data.getAsJsonArray("list");
                             if (houses.size() > 0) {
-                                JsonObject first = houses.get(0).getAsJsonObject();
-                                int hid = first.get("id").getAsInt();
-                                selectHouse(hid);
+                                // 优先使用当前选择的家庭
+                                int currentId = App.getInstance().getCurrentHouseId();
+                                int targetId = 0;
+                                for (int i = 0; i < houses.size(); i++) {
+                                    int hid = houses.get(i).getAsJsonObject().get("id").getAsInt();
+                                    if (hid == currentId) { targetId = hid; break; }
+                                }
+                                if (targetId == 0) targetId = houses.get(0).getAsJsonObject().get("id").getAsInt();
+                                selectHouse(targetId);
                             } else {
                                 showEmpty();
                             }
