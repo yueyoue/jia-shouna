@@ -202,7 +202,7 @@ public class SpacesFragment extends Fragment {
                 JsonArray children = room.getAsJsonArray("children");
                 for (int j = 0; j < children.size(); j++) {
                     JsonObject child = children.get(j).getAsJsonObject();
-                    View childItem = createSubItem(child, j == children.size() - 1);
+                    View childItem = createSubItemRecursive(child, j == children.size() - 1, 0);
                     subItemsContainer.addView(childItem);
                 }
             }
@@ -326,6 +326,170 @@ public class SpacesFragment extends Fragment {
         }
 
         return header;
+    }
+
+    /**
+     * 递归创建子空间项，支持任意层级嵌套
+     */
+    private View createSubItemRecursive(JsonObject space, boolean isLast, int depth) {
+        int id = space.get("id").getAsInt();
+        String name = space.has("name") ? space.get("name").getAsString() : "";
+        String icon = space.has("icon") && !space.get("icon").isJsonNull() ? space.get("icon").getAsString() : "📦";
+        int itemCount = space.has("item_count") ? space.get("item_count").getAsInt() : 0;
+        boolean hasChildren = space.has("children") && !space.get("children").isJsonNull()
+            && space.getAsJsonArray("children").size() > 0;
+
+        // 整体容器
+        LinearLayout wrapper = new LinearLayout(getActivity());
+        wrapper.setOrientation(LinearLayout.VERTICAL);
+        wrapper.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        // 当前行
+        LinearLayout row = new LinearLayout(getActivity());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        int leftPad = dp(44) + depth * dp(24);
+        row.setPadding(leftPad, dp(10), dp(16), dp(10));
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        android.util.TypedValue outValue = new android.util.TypedValue();
+        getActivity().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+        row.setBackgroundResource(outValue.resourceId);
+
+        // 展开/折叠箭头（如果有子级）
+        if (hasChildren) {
+            TextView arrow = new TextView(getActivity());
+            boolean isExpanded = expandedState.containsKey(id) ? expandedState.get(id) : true;
+            arrow.setText(isExpanded ? "▼" : "▶");
+            arrow.setTextSize(12);
+            arrow.setTextColor(Color.parseColor("#564338"));
+            arrow.setPadding(0, 0, dp(8), 0);
+            row.addView(arrow);
+
+            // 子容器
+            LinearLayout childContainer = new LinearLayout(getActivity());
+            childContainer.setOrientation(LinearLayout.VERTICAL);
+            childContainer.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
+
+            JsonArray children = space.getAsJsonArray("children");
+            for (int j = 0; j < children.size(); j++) {
+                JsonObject child = children.get(j).getAsJsonObject();
+                View childItem = createSubItemRecursive(child, j == children.size() - 1, depth + 1);
+                childContainer.addView(childItem);
+            }
+
+            // 箭头点击切换展开
+            final LinearLayout finalChildContainer = childContainer;
+            final TextView finalArrow = arrow;
+            arrow.setOnClickListener(v -> {
+                boolean currentlyExpanded = finalChildContainer.getVisibility() == View.VISIBLE;
+                finalChildContainer.setVisibility(currentlyExpanded ? View.GONE : View.VISIBLE);
+                finalArrow.setText(currentlyExpanded ? "▶" : "▼");
+                saveExpandedState(id, !currentlyExpanded);
+            });
+
+            // 行点击跳转详情
+            row.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
+                intent.putExtra("space_id", id);
+                intent.putExtra("space_name", name);
+                intent.putExtra("house_id", selectedHouseId);
+                startActivity(intent);
+            });
+
+            // 图标
+            TextView tvIcon = new TextView(getActivity());
+            tvIcon.setText(icon);
+            tvIcon.setTextSize(18);
+            row.addView(tvIcon);
+
+            // 信息
+            LinearLayout info = new LinearLayout(getActivity());
+            info.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            infoLp.leftMargin = dp(10);
+            info.setLayoutParams(infoLp);
+
+            TextView tvName = new TextView(getActivity());
+            tvName.setText(name);
+            tvName.setTextSize(15);
+            tvName.setTextColor(Color.parseColor("#121C2C"));
+            info.addView(tvName);
+
+            TextView tvCount = new TextView(getActivity());
+            tvCount.setText(itemCount + " 件");
+            tvCount.setTextSize(11);
+            tvCount.setTextColor(Color.parseColor("#564338"));
+            info.addView(tvCount);
+
+            row.addView(info);
+
+            // 更多按钮
+            TextView moreBtn = new TextView(getActivity());
+            moreBtn.setText("⋮");
+            moreBtn.setTextSize(16);
+            moreBtn.setTextColor(Color.parseColor("#564338"));
+            moreBtn.setGravity(Gravity.CENTER);
+            moreBtn.setPadding(dp(8), dp(8), dp(8), dp(8));
+            moreBtn.setOnClickListener(v -> showSpaceContextMenu(v, id, name));
+            row.addView(moreBtn);
+
+            wrapper.addView(row);
+            wrapper.addView(childContainer);
+        } else {
+            // 无子级 - 普通行
+            // 图标
+            TextView tvIcon = new TextView(getActivity());
+            tvIcon.setText(icon);
+            tvIcon.setTextSize(18);
+            row.addView(tvIcon);
+
+            // 信息
+            LinearLayout info = new LinearLayout(getActivity());
+            info.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            infoLp.leftMargin = dp(10);
+            info.setLayoutParams(infoLp);
+
+            TextView tvName = new TextView(getActivity());
+            tvName.setText(name);
+            tvName.setTextSize(15);
+            tvName.setTextColor(Color.parseColor("#121C2C"));
+            info.addView(tvName);
+
+            TextView tvCount = new TextView(getActivity());
+            tvCount.setText(itemCount + " 件");
+            tvCount.setTextSize(11);
+            tvCount.setTextColor(Color.parseColor("#564338"));
+            info.addView(tvCount);
+
+            row.addView(info);
+
+            // 更多按钮
+            TextView moreBtn = new TextView(getActivity());
+            moreBtn.setText("⋮");
+            moreBtn.setTextSize(16);
+            moreBtn.setTextColor(Color.parseColor("#564338"));
+            moreBtn.setGravity(Gravity.CENTER);
+            moreBtn.setPadding(dp(8), dp(8), dp(8), dp(8));
+            moreBtn.setOnClickListener(v -> showSpaceContextMenu(v, id, name));
+            row.addView(moreBtn);
+
+            // 点击跳转
+            row.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), SpaceDetailActivity.class);
+                intent.putExtra("space_id", id);
+                intent.putExtra("space_name", name);
+                intent.putExtra("house_id", selectedHouseId);
+                startActivity(intent);
+            });
+
+            wrapper.addView(row);
+        }
+
+        return wrapper;
     }
 
     private View createSubItem(JsonObject space, boolean isLast) {
