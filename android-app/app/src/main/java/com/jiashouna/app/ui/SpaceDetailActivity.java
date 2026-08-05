@@ -80,6 +80,17 @@ public class SpaceDetailActivity extends AppCompatActivity {
             });
         }
 
+        // 二维码按钮
+        View btnQrCode = findViewById(R.id.btn_qr_code);
+        if (btnQrCode != null) {
+            btnQrCode.setOnClickListener(v -> {
+                Intent intent = new Intent(this, SpaceQrActivity.class);
+                intent.putExtra("space_id", spaceId);
+                intent.putExtra("space_name", spaceName);
+                startActivity(intent);
+            });
+        }
+
         loadSpaceDetail();
     }
 

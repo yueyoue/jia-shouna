@@ -452,6 +452,15 @@
                             android:text="⚠️ 请选择存放位置，方便后续查找"
                             android:textColor="@color/primary"
                             android:textSize="10sp" />
+
+                        <!-- 推荐存放位置 -->
+                        <LinearLayout
+                            android:id="@+id/layout_recommend"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginTop="6dp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
 

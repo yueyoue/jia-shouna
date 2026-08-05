@@ -33,6 +33,7 @@ public class AddItemActivity extends AppCompatActivity {
     private TextView tvExpiryDateAuto;
     private Spinner spExpiryUnit, spCategory, spExpiryReminder, spSeason;
     private View btnCreateOutfit;
+    private LinearLayout layoutRecommend;
     private String selectedPurchaseDate = "";
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
@@ -202,6 +203,23 @@ public class AddItemActivity extends AppCompatActivity {
 
         // 空间选择
         spacePicker.setOnClickListener(v -> showSpacePickerDialog());
+
+        // 推荐存放位置
+        layoutRecommend = findViewById(R.id.layout_recommend);
+
+        // 物品名称变化时触发推荐
+        etName.addTextChangedListener(new android.text.TextWatcher() {
+            private java.util.Timer timer;
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                if (timer != null) timer.cancel();
+                timer = new java.util.Timer();
+                timer.schedule(new java.util.TimerTask() {
+                    @Override public void run() { loadRecommendations(); }
+                }, 800);
+            }
+        });
 
         // 添加照片 - 问题7: 直接调用相机
         btnAddPhoto.setOnClickListener(v -> startPhotoCapture());
@@ -776,6 +794,12 @@ public class AddItemActivity extends AppCompatActivity {
         if (requestCode == REQUEST_BARCODE && data != null) {
             String barcode = data.getStringExtra("SCAN_RESULT");
             if (barcode != null && !barcode.isEmpty()) {
+                // 检查是否是空间二维码
+                if (barcode.startsWith("JSN:SPACE:")) {
+                    String spaceCode = barcode.substring("JSN:SPACE:".length());
+                    lookupSpaceCode(spaceCode);
+                    return;
+                }
                 etBarcode.setText(barcode);
                 lookupBarcode(barcode);
             }
@@ -1036,11 +1060,13 @@ public class AddItemActivity extends AppCompatActivity {
                         String tagName = suggestedTags.get(i).getAsString();
                         if (!selectedTagNames.contains(tagName)) {
                             selectedTagNames.add(tagName);
-                            // 标签ID会在保存时自动创建
                         }
                     }
-                    updateTagDisplay();
                 }
+
+                // 根据名称关键词自动生成标签
+                autoGenerateTags(name, category);
+                updateTagDisplay();
 
                 final int catPos = getCategoryPosition(category);
 
@@ -1103,6 +1129,91 @@ public class AddItemActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 扫描到空间二维码时，跳转到空间详情页
+     */
+    private void lookupSpaceCode(String spaceCode) {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("code", spaceCode);
+        ApiClient.get("space.php?action=lookup_code", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonObject space = data.getAsJsonObject("space");
+                        int id = space.get("id").getAsInt();
+                        String name = space.has("name") ? space.get("name").getAsString() : "";
+                        int houseId = space.has("house_id") ? space.get("house_id").getAsInt() : 0;
+                        Intent intent = new Intent(AddItemActivity.this, SpaceDetailActivity.class);
+                        intent.putExtra("space_id", id);
+                        intent.putExtra("space_name", name);
+                        intent.putExtra("house_id", houseId);
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        Toast.makeText(AddItemActivity.this, "解析空间信息失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "空间查找失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    /**
+     * 根据物品名称和分类自动生成标签
+     * 从名称中提取关键词，匹配标签库中已有标签
+     */
+    private void autoGenerateTags(String name, String category) {
+        if (name == null || name.isEmpty()) return;
+
+        // 关键词到标签的映射
+        String[][] keywordTagMap = {
+            {"调料", "酱", "醋", "盐", "糖", "味精", "鸡精", "辣椒", "花椒", "八角", "桂皮", "胡椒"},
+            {"药", "胶囊", "片剂", "颗粒", "口服液", "滴丸", "软膏", "创可贴"},
+            {"饮料", "可乐", "雪碧", "果汁", "奶茶", "咖啡", "茶", "矿泉水"},
+            {"零食", "饼干", "薯片", "巧克力", "糖果", "坚果", "果脯", "肉干"},
+            {"数据线", "充电线", "充电器", "适配器"},
+            {"电池", "干电池", "充电电池"},
+            {"洗涤", "洗衣液", "洗洁精", "洗衣粉", "柔顺剂"},
+            {"纸巾", "抽纸", "卷纸", "湿巾"},
+            {"文具", "笔", "本子", "胶带", "剪刀", "尺子"},
+            {"工具", "螺丝刀", "扳手", "钳子", "锤子"},
+            {"化妆品", "口红", "粉底", "眼影", "腮红", "面膜"},
+            {"护肤", "乳液", "面霜", "精华", "防晒", "洗面奶"},
+        };
+
+        for (String[] group : keywordTagMap) {
+            String tagName = group[0];
+            for (int i = 1; i < group.length; i++) {
+                if (name.contains(group[i])) {
+                    if (!selectedTagNames.contains(tagName)) {
+                        selectedTagNames.add(tagName);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 根据分类生成标签
+        if (category != null && !category.isEmpty()) {
+            String[] catTagMap = {"食品", "药品", "数码", "化妆品", "服装", "鞋帽"};
+            for (String catTag : catTagMap) {
+                if (category.contains(catTag) && !selectedTagNames.contains(catTag)) {
+                    selectedTagNames.add(catTag);
+                }
+            }
+        }
+
+        // 匹配标签库中已有的标签
+        for (int i = 0; i < tagList.size(); i++) {
+            JsonObject tag = tagList.get(i).getAsJsonObject();
+            String existingTag = tag.has("name") ? tag.get("name").getAsString() : "";
+            if (!existingTag.isEmpty() && name.contains(existingTag) && !selectedTagNames.contains(existingTag)) {
+                selectedTagNames.add(existingTag);
+            }
+        }
+    }
+
     private void lookupBarcode(String barcode) {
         HashMap<String, String> params = new HashMap<>();
         params.put("action", "lookup");
@@ -1158,6 +1269,11 @@ public class AddItemActivity extends AppCompatActivity {
                                         }
                                     }
                                 }
+                                // 根据识别结果自动生成标签
+                                String scannedName = etName.getText().toString().trim();
+                                String scannedCategory = spCategory.getSelectedItem() != null ? spCategory.getSelectedItem().toString() : "";
+                                autoGenerateTags(scannedName, scannedCategory);
+                                if (!selectedTagNames.isEmpty()) updateTagDisplay();
                                 Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
                             } else {
                                 Toast.makeText(AddItemActivity.this, "条码已录入,但商品详情未查到,请手动补充", Toast.LENGTH_SHORT).show();
@@ -1335,6 +1451,8 @@ public class AddItemActivity extends AppCompatActivity {
             });
             llTags.addView(tv);
         }
+        // 标签变化时重新加载推荐位置
+        loadRecommendations();
     }
 
     private JsonArray flattenTree(JsonArray tree) {
@@ -1354,6 +1472,124 @@ public class AddItemActivity extends AppCompatActivity {
                 if (children.size() > 0) flattenRecursive(children, prefix + name + " > ", result);
             }
         }
+    }
+
+    /**
+     * 加载推荐存放位置
+     * 根据标签和相似物品名查询同类物品的存放位置
+     */
+    private void loadRecommendations() {
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (houseId <= 0) return;
+
+        String itemName = etName.getText().toString().trim();
+        String tags = String.join(",", selectedTagNames);
+
+        if (itemName.length() < 2 && tags.isEmpty()) {
+            runOnUiThread(() -> {
+                if (layoutRecommend != null) layoutRecommend.setVisibility(View.GONE);
+            });
+            return;
+        }
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+        if (!tags.isEmpty()) params.put("tags", tags);
+        if (itemName.length() >= 2) params.put("name", itemName);
+
+        ApiClient.get("space.php?action=recommend_location", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        com.google.gson.JsonArray recs = data.has("recommendations") ? data.getAsJsonArray("recommendations") : new com.google.gson.JsonArray();
+                        if (layoutRecommend == null) return;
+                        layoutRecommend.removeAllViews();
+
+                        if (recs.size() == 0) {
+                            layoutRecommend.setVisibility(View.GONE);
+                            return;
+                        }
+
+                        // 标题
+                        TextView tvTitle = new TextView(AddItemActivity.this);
+                        tvTitle.setText("💡 推荐存放位置");
+                        tvTitle.setTextSize(11);
+                        tvTitle.setTextColor(0xFF718096);
+                        tvTitle.setPadding(0, dp(4), 0, dp(4));
+                        layoutRecommend.addView(tvTitle);
+
+                        for (int i = 0; i < recs.size(); i++) {
+                            JsonObject rec = recs.get(i).getAsJsonObject();
+                            int spaceId = rec.has("space_id") ? rec.get("space_id").getAsInt() : 0;
+                            String spaceName = rec.has("space_name") ? rec.get("space_name").getAsString() : "";
+                            String reason = rec.has("reason") ? rec.get("reason").getAsString() : "";
+                            int count = rec.has("count") ? rec.get("count").getAsInt() : 0;
+
+                            if (spaceId <= 0 || spaceName.isEmpty()) continue;
+
+                            LinearLayout row = new LinearLayout(AddItemActivity.this);
+                            row.setOrientation(LinearLayout.HORIZONTAL);
+                            row.setGravity(Gravity.CENTER_VERTICAL);
+                            row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                            android.graphics.drawable.GradientDrawable rowBg = new android.graphics.drawable.GradientDrawable();
+                            rowBg.setCornerRadius(dp(8));
+                            rowBg.setColor(0xFFFFFAF0);
+                            rowBg.setStroke(dp(1), 0xFFFFD3B0);
+                            row.setBackground(rowBg);
+                            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                            rowLp.topMargin = dp(4);
+                            row.setLayoutParams(rowLp);
+
+                            // 信息
+                            LinearLayout info = new LinearLayout(AddItemActivity.this);
+                            info.setOrientation(LinearLayout.VERTICAL);
+                            LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                            info.setLayoutParams(infoLp);
+
+                            TextView tvName = new TextView(AddItemActivity.this);
+                            tvName.setText("📍 " + spaceName);
+                            tvName.setTextSize(13);
+                            tvName.setTextColor(0xFF2D3748);
+                            tvName.setTypeface(null, android.graphics.Typeface.BOLD);
+                            info.addView(tvName);
+
+                            TextView tvReason = new TextView(AddItemActivity.this);
+                            tvReason.setText(reason + " (" + count + "件)");
+                            tvReason.setTextSize(11);
+                            tvReason.setTextColor(0xFFA0AEC0);
+                            info.addView(tvReason);
+
+                            row.addView(info);
+
+                            // 使用按钮
+                            TextView btnUse = new TextView(AddItemActivity.this);
+                            btnUse.setText("使用");
+                            btnUse.setTextSize(12);
+                            btnUse.setTextColor(0xFFC48F4E);
+                            btnUse.setTypeface(null, android.graphics.Typeface.BOLD);
+                            btnUse.setPadding(dp(12), dp(6), dp(12), dp(6));
+                            row.addView(btnUse);
+
+                            final int finalSpaceId = spaceId;
+                            final String finalSpaceName = spaceName;
+                            btnUse.setOnClickListener(v -> {
+                                selectedSpaceId = finalSpaceId;
+                                tvSpaceName.setText("🏠 " + finalSpaceName);
+                                tvSpacePath.setText("");
+                                layoutRecommend.setVisibility(View.GONE);
+                                Toast.makeText(AddItemActivity.this, "✅ 已使用推荐位置", Toast.LENGTH_SHORT).show();
+                            });
+
+                            layoutRecommend.addView(row);
+                        }
+
+                        layoutRecommend.setVisibility(View.VISIBLE);
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
     }
 
     private void showSpacePickerDialog() {
