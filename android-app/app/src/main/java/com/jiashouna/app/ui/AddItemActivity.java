@@ -2189,7 +2189,7 @@ public class AddItemActivity extends AppCompatActivity {
      */
     private void showCreateOutfitDialog(String goodsName, String goodsColor, String season, String category) {
         // 系统推荐名称
-        String suggestedName = "";
+        final String suggestedName;
         if (!season.isEmpty() && !goodsColor.isEmpty()) {
             suggestedName = season + "季" + goodsColor + "搭配";
         } else if (!season.isEmpty() && !goodsName.isEmpty()) {
