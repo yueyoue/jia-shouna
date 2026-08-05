@@ -29,6 +29,9 @@
         <activity android:name=".ui.RegisterActivity" />
         <activity android:name=".ui.MainActivity" />
         <activity android:name=".ui.AddItemActivity" />
+        <activity android:name=".ui.DocumentListActivity" />
+        <activity android:name=".ui.AddDocumentActivity" />
+        <activity android:name=".ui.DocumentDetailActivity" />
         <activity android:name=".ui.StatsActivity" />
         <activity android:name=".ui.ItemDetailActivity" />
         <activity android:name=".ui.ImageViewerActivity" android:theme="@style/Theme.AppCompat.NoActionBar" />

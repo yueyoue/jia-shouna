@@ -209,6 +209,18 @@ switch ($action) {
                 $data['goods_logs'] = $stmt->fetchAll();
             } catch (Exception $e) { $data['goods_logs'] = []; }
 
+            // 文件档案
+            try {
+                $stmt = $db->query("SELECT * FROM document WHERE status = 1 ORDER BY id ASC");
+                $data['documents'] = $stmt->fetchAll();
+            } catch (Exception $e) { $data['documents'] = []; }
+
+            // 文件档案图片
+            try {
+                $stmt = $db->query("SELECT * FROM document_image ORDER BY document_id, sort_order ASC");
+                $data['document_images'] = $stmt->fetchAll();
+            } catch (Exception $e) { $data['document_images'] = []; }
+
             // 系统设置
             $stmt = $db->query("SELECT skey, svalue FROM sys_setting ORDER BY skey ASC");
             $data['settings'] = $stmt->fetchAll();

@@ -18,6 +18,7 @@ $stats['total_users'] = safeQuery($db, "SELECT COUNT(*) as c FROM sys_user WHERE
 $stats['total_houses'] = safeQuery($db, "SELECT COUNT(*) as c FROM house WHERE status = 1", 'c');
 $stats['total_outfits'] = safeQuery($db, "SELECT COUNT(*) as c FROM outfit WHERE status = 1", 'c');
 $stats['total_lends'] = safeQuery($db, "SELECT COUNT(*) as c FROM goods_borrow WHERE status = 1 AND lend_to IS NOT NULL AND lend_to != ''", 'c');
+$stats['total_documents'] = safeQuery($db, "SELECT COUNT(*) as c FROM document WHERE status = 1", 'c');
 
 // 图片目录大小
 $imageDirSize = 0;
@@ -168,6 +169,7 @@ $stats['last_backup'] = $lastBackupTs;
     <div class="s-item"><div class="s-icon">👥</div><div class="s-val"><?= number_format($stats['total_users']) ?></div><div class="s-label">用户数量</div></div>
     <div class="s-item"><div class="s-icon">👔</div><div class="s-val"><?= number_format($stats['total_outfits']) ?></div><div class="s-label">套装数量</div></div>
     <div class="s-item"><div class="s-icon">📤</div><div class="s-val"><?= number_format($stats['total_lends']) ?></div><div class="s-label">借出中</div></div>
+    <div class="s-item"><div class="s-icon">📁</div><div class="s-val"><?= number_format($stats['total_documents']) ?></div><div class="s-label">文件档案</div></div>
     <div class="s-item"><div class="s-icon">🗄</div><div class="s-val"><?= formatSize($stats['db_size']) ?></div><div class="s-label">数据库大小</div></div>
     <div class="s-item"><div class="s-icon">🖼</div><div class="s-val"><?= formatSize($stats['image_size']) ?></div><div class="s-label">图片占用</div></div>
     <div class="s-item"><div class="s-icon">💾</div><div class="s-val"><?= formatSize($stats['backup_size']) ?></div><div class="s-label">备份占用</div></div>

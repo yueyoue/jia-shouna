@@ -137,6 +137,10 @@ public class HomeFragment extends Fragment {
         v.findViewById(R.id.tv_view_all_recent).setOnClickListener(e ->
             startActivity(new Intent(getActivity(), AllItemsActivity.class)));
 
+        // === 文件档案 ===
+        v.findViewById(R.id.btn_document).setOnClickListener(e ->
+            startActivity(new Intent(getActivity(), com.jiashouna.app.ui.DocumentListActivity.class)));
+
         loadData();
         return v;
     }
