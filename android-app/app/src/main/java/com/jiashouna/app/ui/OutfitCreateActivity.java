@@ -214,9 +214,6 @@ public class OutfitCreateActivity extends AppCompatActivity {
             String cover = item.has("cover_image") && !item.get("cover_image").isJsonNull() ? item.get("cover_image").getAsString() : "";
 
             // 筛选
-            if (!search && !name.toLowerCase().contains(search) && !color.toLowerCase().contains(search)) {
-                // 如果有搜索词但不匹配名称和颜色，跳过
-            }
             if (!search.isEmpty() && !name.toLowerCase().contains(search) && !color.toLowerCase().contains(search)) continue;
             if (!catFilter.isEmpty() && !cat.equals(catFilter)) continue;
             if (!colorFilter.isEmpty() && !color.equals(colorFilter)) continue;
