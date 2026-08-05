@@ -9,10 +9,6 @@
         android:icon="@android:drawable/ic_menu_mapmode"
         android:title="空间" />
     <item
-        android:id="@+id/nav_scan"
-        android:icon="@android:drawable/ic_menu_camera"
-        android:title="扫码" />
-    <item
         android:id="@+id/nav_outfit"
         android:icon="@android:drawable/ic_menu_myplaces"
         android:title="衣帽间" />

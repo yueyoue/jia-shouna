@@ -35,14 +35,6 @@ public class MainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_spaces) {
                 loadFragment(new SpacesFragment());
                 return true;
-            } else if (id == R.id.nav_scan) {
-                // 扫码 - 跳转到添加物品页面
-                Intent intent = new Intent(this, AddItemActivity.class);
-                intent.putExtra("mode", "scan");
-                startActivity(intent);
-                // 不切换fragment，保持当前页面
-                bottomNav.setSelectedItemId(R.id.nav_home);
-                return false;
             } else if (id == R.id.nav_outfit) {
                 loadFragment(new DressingRoomFragment());
                 return true;
