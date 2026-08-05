@@ -205,7 +205,21 @@ public class ProfileFragment extends Fragment {
                         if (data.has("houses") && !data.get("houses").isJsonNull()) {
                             JsonArray houses = data.getAsJsonArray("houses");
                             if (houses.size() > 0) {
-                                JsonObject house = houses.get(0).getAsJsonObject();
+                                // 优先匹配用户当前选择的家庭，而不是固定取第一个
+                                int currentHouseId = App.getInstance().getCurrentHouseId();
+                                JsonObject house = null;
+                                for (int i = 0; i < houses.size(); i++) {
+                                    JsonObject h = houses.get(i).getAsJsonObject();
+                                    if (h.has("id") && h.get("id").getAsInt() == currentHouseId) {
+                                        house = h;
+                                        break;
+                                    }
+                                }
+                                // 如果当前家庭不在列表中（如被删除），才回退到第一个
+                                if (house == null) {
+                                    house = houses.get(0).getAsJsonObject();
+                                }
+
                                 String hName = house.has("name") ? house.get("name").getAsString() : "我的家";
                                 if (tvHouseName != null) tvHouseName.setText(hName);
 
@@ -219,9 +233,9 @@ public class ProfileFragment extends Fragment {
                                     tvInviteCode.setText(code.isEmpty() ? "无邀请码" : code);
                                 }
 
-                                // Save house info
+                                // 只在当前家庭不在列表中时才更新 SharedPreferences（避免覆盖用户选择）
                                 int houseId = house.has("id") ? house.get("id").getAsInt() : 0;
-                                if (houseId > 0) {
+                                if (houseId > 0 && houseId != currentHouseId) {
                                     App.getInstance().setCurrentHouseId(houseId);
                                     App.getInstance().setCurrentHouseName(hName);
                                 }
