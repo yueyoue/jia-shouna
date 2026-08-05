@@ -186,8 +186,10 @@ public class AddItemActivity extends AppCompatActivity {
 
         // 相册按钮
         btnAlbum.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(intent, REQUEST_GALLERY);
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(intent, "选择照片"), REQUEST_GALLERY);
         });
 
         // 返回按钮

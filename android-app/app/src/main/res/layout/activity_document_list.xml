@@ -110,20 +110,6 @@
             android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- 文件列表 -->
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipe_refresh"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_documents"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:padding="12dp" />
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
     <!-- 空状态 -->
     <LinearLayout
         android:id="@+id/layout_empty"
@@ -155,4 +141,18 @@
             android:textColor="@color/text_hint"
             android:textSize="12sp" />
     </LinearLayout>
+
+    <!-- 文件列表 -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_documents"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="12dp" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </LinearLayout>

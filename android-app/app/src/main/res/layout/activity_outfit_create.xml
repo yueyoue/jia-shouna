@@ -200,24 +200,27 @@
                     <Spinner
                         android:id="@+id/sp_filter_category"
                         android:layout_width="0dp"
-                        android:layout_height="34dp"
-                        android:layout_weight="1" />
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_search_bar" />
 
-                    <View android:layout_width="4dp" android:layout_height="0dp" />
+                    <View android:layout_width="6dp" android:layout_height="0dp" />
 
                     <Spinner
                         android:id="@+id/sp_filter_color"
                         android:layout_width="0dp"
-                        android:layout_height="34dp"
-                        android:layout_weight="1" />
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_search_bar" />
 
-                    <View android:layout_width="4dp" android:layout_height="0dp" />
+                    <View android:layout_width="6dp" android:layout_height="0dp" />
 
                     <Spinner
                         android:id="@+id/sp_filter_season"
                         android:layout_width="0dp"
-                        android:layout_height="34dp"
-                        android:layout_weight="1" />
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_search_bar" />
                 </LinearLayout>
 
                 <!-- 物品列表 -->

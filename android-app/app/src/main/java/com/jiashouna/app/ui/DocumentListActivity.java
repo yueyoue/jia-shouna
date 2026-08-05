@@ -114,8 +114,9 @@ public class DocumentListActivity extends AppCompatActivity {
                         documents = data.has("list") && !data.get("list").isJsonNull()
                             ? data.getAsJsonArray("list") : new JsonArray();
                         adapter.notifyDataSetChanged();
-                        layoutEmpty.setVisibility(documents.size() == 0 ? View.VISIBLE : View.GONE);
-                        rvDocuments.setVisibility(documents.size() > 0 ? View.VISIBLE : View.GONE);
+                        boolean hasData = documents.size() > 0;
+                        layoutEmpty.setVisibility(hasData ? View.GONE : View.VISIBLE);
+                        swipeRefresh.setVisibility(hasData ? View.VISIBLE : View.GONE);
                     } catch (Exception ignored) {}
                 });
             }

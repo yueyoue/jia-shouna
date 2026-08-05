@@ -110,7 +110,7 @@ public class OutfitCreateActivity extends AppCompatActivity {
 
         // 筛选 - 分类
         String[] cats = {"全部分类", "服装", "鞋帽"};
-        spFilterCategory.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cats));
+        spFilterCategory.setAdapter(createCompactAdapter(cats));
         spFilterCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { filterPicker(); }
             @Override public void onNothingSelected(AdapterView<?> p) {}
@@ -118,7 +118,7 @@ public class OutfitCreateActivity extends AppCompatActivity {
 
         // 筛选 - 颜色
         String[] colors = {"全部颜色"};
-        spFilterColor.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, colors));
+        spFilterColor.setAdapter(createCompactAdapter(colors));
         spFilterColor.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { filterPicker(); }
             @Override public void onNothingSelected(AdapterView<?> p) {}
@@ -126,7 +126,7 @@ public class OutfitCreateActivity extends AppCompatActivity {
 
         // 筛选 - 季节
         String[] filterSeasons = {"全部季节", "春", "夏", "秋", "冬", "四季", "春秋"};
-        spFilterSeason.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, filterSeasons));
+        spFilterSeason.setAdapter(createCompactAdapter(filterSeasons));
         spFilterSeason.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { filterPicker(); }
             @Override public void onNothingSelected(AdapterView<?> p) {}
@@ -193,7 +193,7 @@ public class OutfitCreateActivity extends AppCompatActivity {
         List<String> colorList = new ArrayList<>();
         colorList.add("全部颜色");
         colorList.addAll(colors);
-        spFilterColor.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, colorList.toArray(new String[0])));
+        spFilterColor.setAdapter(createCompactAdapter(colorList.toArray(new String[0])));
     }
 
     private void filterPicker() {
@@ -507,6 +507,32 @@ public class OutfitCreateActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    /**
+     * 创建紧凑型 Spinner 适配器（小字体+居中，适合筛选栏）
+     */
+    private ArrayAdapter<String> createCompactAdapter(String[] items) {
+        return new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView tv = (TextView) view;
+                tv.setTextSize(11);
+                tv.setGravity(Gravity.CENTER);
+                tv.setPadding(dp(4), 0, dp(4), 0);
+                tv.setSingleLine(true);
+                return view;
+            }
+            @Override
+            public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+                View view = super.getDropDownView(position, convertView, parent);
+                TextView tv = (TextView) view;
+                tv.setTextSize(13);
+                tv.setPadding(dp(12), dp(8), dp(12), dp(8));
+                return view;
+            }
+        };
     }
 
     private int dp(int dp) {

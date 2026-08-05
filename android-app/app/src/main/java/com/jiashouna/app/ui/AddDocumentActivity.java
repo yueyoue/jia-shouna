@@ -22,14 +22,17 @@ import java.io.*;
 import java.util.*;
 
 public class AddDocumentActivity extends AppCompatActivity {
-    private EditText etName, etDocNo, etIssuer, etLocation, etNote;
+    private EditText etName, etDocNo, etIssuer, etNote;
     private Spinner spCategory, spPrivate;
     private TextView tvIssueDate, tvExpiryDate;
+    private TextView tvSpaceName, tvSpacePath;
     private LinearLayout llPhotos;
     private Button btnSave;
     private List<Bitmap> photos = new ArrayList<>();
     private String selectedIssueDate = "", selectedExpiryDate = "";
-    private int spaceId = 0;
+    private int selectedSpaceId = 0;
+    private String selectedSpaceName = "";
+    private JsonArray spaceList = new JsonArray();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,12 +42,13 @@ public class AddDocumentActivity extends AppCompatActivity {
         etName = findViewById(R.id.et_name);
         etDocNo = findViewById(R.id.et_doc_no);
         etIssuer = findViewById(R.id.et_issuer);
-        etLocation = findViewById(R.id.et_location);
         etNote = findViewById(R.id.et_note);
         spCategory = findViewById(R.id.sp_category);
         spPrivate = findViewById(R.id.sp_private);
         tvIssueDate = findViewById(R.id.tv_issue_date);
         tvExpiryDate = findViewById(R.id.tv_expiry_date);
+        tvSpaceName = findViewById(R.id.tv_space_name);
+        tvSpacePath = findViewById(R.id.tv_space_path);
         llPhotos = findViewById(R.id.ll_photos);
         btnSave = findViewById(R.id.btn_save);
 
@@ -60,6 +64,13 @@ public class AddDocumentActivity extends AppCompatActivity {
         // 日期选择
         tvIssueDate.setOnClickListener(v -> pickDate(tvIssueDate, d -> selectedIssueDate = d));
         tvExpiryDate.setOnClickListener(v -> pickDate(tvExpiryDate, d -> selectedExpiryDate = d));
+
+        // 存放位置 - 空间选择器
+        View spacePicker = findViewById(R.id.space_picker);
+        if (spacePicker != null) {
+            spacePicker.setOnClickListener(v -> showSpacePickerDialog());
+        }
+        loadSpaces();
 
         // 拍照
         findViewById(R.id.btn_take_photo).setOnClickListener(v -> takePhoto());
@@ -81,6 +92,75 @@ public class AddDocumentActivity extends AppCompatActivity {
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
     }
 
+    // ===== 空间选择器 =====
+
+    private void loadSpaces() {
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (houseId <= 0) return;
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+        ApiClient.get("space.php?action=tree", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        if (data.has("tree") && !data.get("tree").isJsonNull()) {
+                            spaceList = flattenTree(data.getAsJsonArray("tree"));
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
+    }
+
+    private JsonArray flattenTree(JsonArray tree) {
+        JsonArray result = new JsonArray();
+        flattenRecursive(tree, "", result);
+        return result;
+    }
+
+    private void flattenRecursive(JsonArray items, String prefix, JsonArray result) {
+        for (int i = 0; i < items.size(); i++) {
+            JsonObject item = items.get(i).getAsJsonObject();
+            String name = item.has("name") ? item.get("name").getAsString() : "";
+            item.addProperty("display_name", prefix + name);
+            result.add(item);
+            if (item.has("children") && !item.get("children").isJsonNull()) {
+                JsonArray children = item.getAsJsonArray("children");
+                if (children.size() > 0) flattenRecursive(children, prefix + name + " > ", result);
+            }
+        }
+    }
+
+    private void showSpacePickerDialog() {
+        if (spaceList.size() == 0) {
+            Toast.makeText(this, "暂无空间,请先创建收纳空间", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] names = new String[spaceList.size()];
+        for (int i = 0; i < spaceList.size(); i++) {
+            JsonObject item = spaceList.get(i).getAsJsonObject();
+            names[i] = item.has("display_name") ? item.get("display_name").getAsString() : item.get("name").getAsString();
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("选择存放位置")
+            .setItems(names, (dialog, which) -> {
+                JsonObject selected = spaceList.get(which).getAsJsonObject();
+                selectedSpaceId = selected.get("id").getAsInt();
+                String icon = selected.has("icon") && !selected.get("icon").isJsonNull() ? selected.get("icon").getAsString() : "🏠";
+                selectedSpaceName = selected.get("name").getAsString();
+                tvSpaceName.setText(icon + " " + selectedSpaceName);
+                tvSpacePath.setText(selected.has("display_name") ? selected.get("display_name").getAsString() : "");
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    // ===== 拍照 & 相册 =====
+
     private Uri cameraUri;
 
     private void takePhoto() {
@@ -101,8 +181,10 @@ public class AddDocumentActivity extends AppCompatActivity {
     }
 
     private void pickFromAlbum() {
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(intent, 102);
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(Intent.createChooser(intent, "选择照片"), 102);
     }
 
     @Override
@@ -166,6 +248,8 @@ public class AddDocumentActivity extends AppCompatActivity {
         container.addView(btnX);
         llPhotos.addView(container);
     }
+
+    // ===== 保存 =====
 
     private void saveDocument() {
         String name = etName.getText().toString().trim();
@@ -236,6 +320,15 @@ public class AddDocumentActivity extends AppCompatActivity {
     }
 
     private void doSave(JsonArray imagePaths) {
+        // 存放位置：优先用空间选择器的名称，拼接路径
+        String location = "";
+        if (tvSpacePath != null && tvSpacePath.getText() != null) {
+            location = tvSpacePath.getText().toString().trim();
+        }
+        if (location.isEmpty() && tvSpaceName != null && tvSpaceName.getText() != null) {
+            location = tvSpaceName.getText().toString().trim();
+        }
+
         JsonObject body = new JsonObject();
         body.addProperty("house_id", App.getInstance().getCurrentHouseId());
         body.addProperty("name", etName.getText().toString().trim());
@@ -244,7 +337,8 @@ public class AddDocumentActivity extends AppCompatActivity {
         body.addProperty("issuer", etIssuer.getText().toString().trim());
         body.addProperty("issue_date", selectedIssueDate);
         body.addProperty("expiry_date", selectedExpiryDate);
-        body.addProperty("storage_location", etLocation.getText().toString().trim());
+        body.addProperty("storage_location", location);
+        if (selectedSpaceId > 0) body.addProperty("space_id", selectedSpaceId);
         body.addProperty("note", etNote.getText().toString().trim());
         body.addProperty("is_private", spPrivate.getSelectedItemPosition() == 0 ? 1 : 0);
         if (imagePaths.size() > 0) body.add("images", imagePaths);
