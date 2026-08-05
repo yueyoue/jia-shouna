@@ -48,9 +48,10 @@ public class ItemDetailActivity extends AppCompatActivity {
     private LinearLayout layoutStatusBadges, layoutTags, layoutBorrowSection, layoutBorrowList;
     private LinearLayout layoutCategoryBadge, layoutExpiryBanner, layoutExtendedInfo;
     private LinearLayout layoutTagsSection, layoutNoteSection;
+    private LinearLayout layoutFlowLogSection, layoutFlowLogList;
     private LinearLayout galleryDots;
     private ViewPager2 viewpagerPhotos;
-    private View btnEditBottom, btnBorrowBottom;
+    private View btnEditBottom, btnBorrowBottom, btnLendBottom;
     private JsonObject currentGoods;
 
     @Override
@@ -154,13 +155,19 @@ public class ItemDetailActivity extends AppCompatActivity {
         layoutBorrowSection = findViewById(R.id.layout_borrow_section);
         layoutBorrowList = findViewById(R.id.layout_borrow_list);
 
+        // Flow log
+        layoutFlowLogSection = findViewById(R.id.layout_flow_log_section);
+        layoutFlowLogList = findViewById(R.id.layout_flow_log_list);
+
         // Bottom buttons
         btnEditBottom = findViewById(R.id.btn_edit_bottom);
         btnBorrowBottom = findViewById(R.id.btn_borrow_bottom);
+        btnLendBottom = findViewById(R.id.btn_lend_bottom);
 
         btnBack.setOnClickListener(v -> finish());
         btnEditBottom.setOnClickListener(v -> editItem());
         btnBorrowBottom.setOnClickListener(v -> borrowItem());
+        btnLendBottom.setOnClickListener(v -> lendItem());
         btnMore.setOnClickListener(v -> showMoreMenu());
     }
 
@@ -624,6 +631,9 @@ public class ItemDetailActivity extends AppCompatActivity {
             tvPhotoCounter.setVisibility(View.GONE);
         }
 
+        // Flow log
+        loadFlowLog();
+
         // Borrow records
         if (g.has("borrow_records") && !g.get("borrow_records").isJsonNull()) {
             JsonArray records = g.getAsJsonArray("borrow_records");
@@ -931,6 +941,270 @@ public class ItemDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> Toast.makeText(ItemDetailActivity.this, "领用失败: " + msg, Toast.LENGTH_SHORT).show());
             }
         });
+    }
+
+    private void lendItem() {
+        if (currentGoods == null) return;
+        double currentQty = currentGoods.has("quantity") ? currentGoods.get("quantity").getAsDouble() : 1;
+        String unit = getJsonString(currentGoods, "unit");
+        if (unit.isEmpty()) unit = "个";
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(24), dp(16), dp(24), dp(8));
+
+        // 借出对象
+        TextView labelTo = new TextView(this);
+        labelTo.setText("借给谁");
+        labelTo.setTextSize(13);
+        labelTo.setTextColor(0xFF718096);
+        container.addView(labelTo);
+
+        EditText etLendTo = new EditText(this);
+        etLendTo.setHint("输入对方姓名");
+        etLendTo.setTextSize(15);
+        etLendTo.setTextColor(0xFF2D3748);
+        etLendTo.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        LinearLayout.LayoutParams etLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        etLp.topMargin = dp(4);
+        etLp.bottomMargin = dp(12);
+        etLendTo.setLayoutParams(etLp);
+        container.addView(etLendTo);
+
+        // 数量
+        if (currentQty > 1) {
+            TextView labelQty = new TextView(this);
+            labelQty.setText("借出数量");
+            labelQty.setTextSize(13);
+            labelQty.setTextColor(0xFF718096);
+            container.addView(labelQty);
+
+            LinearLayout qtyRow = new LinearLayout(this);
+            qtyRow.setOrientation(LinearLayout.HORIZONTAL);
+            qtyRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            qtyRow.setPadding(0, dp(4), 0, dp(12));
+
+            TextView btnMinus = new TextView(this);
+            btnMinus.setText("−");
+            btnMinus.setTextSize(20);
+            btnMinus.setTextColor(0xFFFF8C42);
+            btnMinus.setGravity(android.view.Gravity.CENTER);
+            btnMinus.setLayoutParams(new LinearLayout.LayoutParams(dp(36), dp(36)));
+            btnMinus.setBackgroundResource(R.drawable.bg_icon_btn_rounded);
+
+            EditText etQty = new EditText(this);
+            etQty.setText("1");
+            etQty.setTextSize(16);
+            etQty.setTextColor(0xFF2D3748);
+            etQty.setGravity(android.view.Gravity.CENTER);
+            etQty.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+            LinearLayout.LayoutParams qtyLp = new LinearLayout.LayoutParams(dp(50), LinearLayout.LayoutParams.WRAP_CONTENT);
+            qtyLp.setMarginStart(dp(8));
+            qtyLp.setMarginEnd(dp(8));
+            etQty.setLayoutParams(qtyLp);
+
+            TextView unitTv = new TextView(this);
+            unitTv.setText(unit);
+            unitTv.setTextSize(14);
+            unitTv.setTextColor(0xFF718096);
+
+            TextView btnPlus = new TextView(this);
+            btnPlus.setText("+");
+            btnPlus.setTextSize(20);
+            btnPlus.setTextColor(0xFFFF8C42);
+            btnPlus.setGravity(android.view.Gravity.CENTER);
+            btnPlus.setLayoutParams(new LinearLayout.LayoutParams(dp(36), dp(36)));
+            btnPlus.setBackgroundResource(R.drawable.bg_icon_btn_rounded);
+
+            btnMinus.setOnClickListener(v -> {
+                int val = 1;
+                try { val = Integer.parseInt(etQty.getText().toString()); } catch (Exception ignored) {}
+                etQty.setText(String.valueOf(Math.max(1, val - 1)));
+            });
+            btnPlus.setOnClickListener(v -> {
+                int val = 1;
+                try { val = Integer.parseInt(etQty.getText().toString()); } catch (Exception ignored) {}
+                etQty.setText(String.valueOf(Math.min((int) currentQty, val + 1)));
+            });
+
+            qtyRow.addView(btnMinus);
+            qtyRow.addView(etQty);
+            qtyRow.addView(unitTv);
+            qtyRow.addView(btnPlus);
+            container.addView(qtyRow);
+        }
+
+        // 归还提醒
+        TextView labelRemind = new TextView(this);
+        labelRemind.setText("归还提醒");
+        labelRemind.setTextSize(13);
+        labelRemind.setTextColor(0xFF718096);
+        container.addView(labelRemind);
+
+        String[] remindOptions = {"不提醒", "7天后", "15天后", "30天后", "60天后"};
+        final int[] remindDays = {0, 7, 15, 30, 60};
+        android.widget.Spinner spRemind = new android.widget.Spinner(this);
+        android.widget.ArrayAdapter<String> spAdapter = new android.widget.ArrayAdapter<>(this,
+            android.R.layout.simple_spinner_item, remindOptions);
+        spAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spRemind.setAdapter(spAdapter);
+        spRemind.setSelection(3); // 默认30天
+        LinearLayout.LayoutParams spLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        spLp.topMargin = dp(4);
+        spLp.bottomMargin = dp(8);
+        spRemind.setLayoutParams(spLp);
+        container.addView(spRemind);
+
+        // 备注
+        EditText etNote = new EditText(this);
+        etNote.setHint("备注（选填）");
+        etNote.setTextSize(14);
+        etNote.setTextColor(0xFF2D3748);
+        etNote.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        noteLp.topMargin = dp(8);
+        etNote.setLayoutParams(noteLp);
+        container.addView(etNote);
+
+        new AlertDialog.Builder(this)
+            .setTitle("🤝 借出物品")
+            .setView(container)
+            .setPositiveButton("确认借出", (d, w) -> {
+                String lendTo = etLendTo.getText().toString().trim();
+                if (lendTo.isEmpty()) {
+                    Toast.makeText(this, "请填写借出对象", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                int qty = 1;
+                if (currentQty > 1) {
+                    try { qty = Integer.parseInt(((EditText) ((LinearLayout) container.getChildAt(3)).getChildAt(1)).getText().toString()); } catch (Exception ignored) {}
+                }
+                if (qty < 1) qty = 1;
+                if (qty > (int) currentQty) qty = (int) currentQty;
+                int selRemind = remindDays[spRemind.getSelectedItemPosition()];
+                String note = etNote.getText().toString().trim();
+                confirmLend(lendTo, qty, selRemind, note);
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private void confirmLend(String lendTo, int quantity, int remindDays, String note) {
+        JsonObject body = new JsonObject();
+        body.addProperty("goods_id", goodsId);
+        body.addProperty("quantity", quantity);
+        body.addProperty("lend_to", lendTo);
+        body.addProperty("remind_days", remindDays);
+        if (!note.isEmpty()) body.addProperty("note", note);
+
+        ApiClient.post("goods.php?action=lend", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    Toast.makeText(ItemDetailActivity.this, "✅ 借出成功", Toast.LENGTH_SHORT).show();
+                    loadDetail();
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(ItemDetailActivity.this, "借出失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void loadFlowLog() {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("goods_id", String.valueOf(goodsId));
+        ApiClient.get("goods.php?action=flowLog", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        if (!data.has("list") || data.get("list").isJsonNull()) return;
+                        JsonArray list = data.getAsJsonArray("list");
+                        if (list.size() == 0) return;
+                        layoutFlowLogSection.setVisibility(View.VISIBLE);
+                        layoutFlowLogList.removeAllViews();
+                        for (int i = 0; i < list.size(); i++) {
+                            JsonObject log = list.get(i).getAsJsonObject();
+                            addFlowLogItem(log);
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
+    }
+
+    private void addFlowLogItem(JsonObject log) {
+        String actionName = getJsonString(log, "action_name");
+        String detail = getJsonString(log, "detail");
+        String userName = getJsonString(log, "user_name");
+        String timeStr = getJsonString(log, "time_str");
+        String action = getJsonString(log, "action");
+
+        // 图标映射
+        String icon = "📝";
+        int iconBgColor = 0xFFEDF2F7;
+        switch (action) {
+            case "create": icon = "📥"; iconBgColor = 0xFFE6FFFA; break;
+            case "edit": icon = "✏️"; iconBgColor = 0xFFFFFAF0; break;
+            case "borrow": icon = "📤"; iconBgColor = 0xFFFFFAF0; break;
+            case "lend": icon = "🤝"; iconBgColor = 0xFFEBF8FF; break;
+            case "return": icon = "📥"; iconBgColor = 0xFFF0FFF4; break;
+            case "import": icon = "📦"; iconBgColor = 0xFFFAF5FF; break;
+        }
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(10), dp(12), dp(10));
+
+        // 图标
+        TextView tvIcon = new TextView(this);
+        tvIcon.setText(icon);
+        tvIcon.setTextSize(16);
+        tvIcon.setGravity(android.view.Gravity.CENTER);
+        tvIcon.setWidth(dp(36));
+        tvIcon.setHeight(dp(36));
+        android.graphics.drawable.GradientDrawable igBg = new android.graphics.drawable.GradientDrawable();
+        igBg.setCornerRadius(dp(8));
+        igBg.setColor(iconBgColor);
+        tvIcon.setBackground(igBg);
+        row.addView(tvIcon);
+
+        // 信息
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        infoLp.leftMargin = dp(10);
+        info.setLayoutParams(infoLp);
+
+        TextView tvAction = new TextView(this);
+        tvAction.setText(actionName + (detail.isEmpty() ? "" : " - " + detail));
+        tvAction.setTextSize(13);
+        tvAction.setTextColor(0xFF2D3748);
+        info.addView(tvAction);
+
+        TextView tvMeta = new TextView(this);
+        tvMeta.setText((userName.isEmpty() ? "" : userName + " · ") + timeStr);
+        tvMeta.setTextSize(11);
+        tvMeta.setTextColor(0xFFA0AEC0);
+        info.addView(tvMeta);
+
+        row.addView(info);
+        layoutFlowLogList.addView(row);
+
+        // 分隔线
+        if (layoutFlowLogList.getChildCount() > 0) {
+            View divider = new View(this);
+            divider.setBackgroundColor(0xFFEDF2F7);
+            LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+            divLp.setMarginStart(dp(60));
+            divider.setLayoutParams(divLp);
+            layoutFlowLogList.addView(divider);
+        }
     }
 
     private void shareItem() {

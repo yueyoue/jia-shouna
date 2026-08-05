@@ -147,14 +147,50 @@ switch ($action) {
             }
         }
 
+        // 4. 自动生成：借出到期提醒
+        if (!$type || $type === 'lend_return') {
+            $lrWhere = ['gb.status = 1', 'gb.lend_to IS NOT NULL', "gb.lend_to != ''", 'gb.remind_at IS NOT NULL', 'gb.remind_at <= ?'];
+            $lrParams = [time() + 86400]; // 提醒时间在明天之前
+            if ($houseId > 0) { $lrWhere[] = 'g.house_id = ?'; $lrParams[] = $houseId; }
+            $lrWhere[] = '(g.is_private = 0 OR g.creator_id = ?)';
+            $lrParams[] = $user['id'];
+            $lrWhereStr = implode(' AND ', $lrWhere);
+            $stmt = $db->prepare("SELECT gb.*, g.name as goods_name, s.name as space_name
+                FROM goods_borrow gb
+                LEFT JOIN goods g ON gb.goods_id = g.id
+                LEFT JOIN storage_space s ON g.space_id = s.id
+                WHERE $lrWhereStr ORDER BY gb.remind_at ASC LIMIT 10");
+            $stmt->execute($lrParams);
+            foreach ($stmt->fetchAll() as $item) {
+                $daysAgo = intval((time() - intval($item['borrow_time'])) / 86400);
+                $reminders[] = [
+                    'id' => 'lr_' . $item['id'],
+                    'type' => 'lend_return',
+                    'title' => $item['goods_name'] . ' 借出归还提醒',
+                    'content' => $item['lend_to'] . ' 借走了 ' . $item['quantity'] . '件，已借 ' . $daysAgo . ' 天',
+                    'goods_name' => $item['goods_name'],
+                    'space_name' => $item['space_name'] ?? '',
+                    'location' => $item['space_name'] ?? '',
+                    'remind_time' => intval($item['remind_at']),
+                    'is_read' => 0,
+                    'is_handled' => 0,
+                    'source' => 'auto',
+                    'goods_id' => intval($item['goods_id']),
+                    'days_left' => -($daysAgo),
+                    'lend_to' => $item['lend_to'],
+                    'borrow_id' => intval($item['id']),
+                ];
+            }
+        }
+
         // 按类型排序：未读优先，然后按类型
         usort($reminders, function($a, $b) {
             $readA = isset($a['is_read']) ? intval($a['is_read']) : 0;
             $readB = isset($b['is_read']) ? intval($b['is_read']) : 0;
             if ($readA != $readB) return $readA - $readB;
-            $typeOrder = ['expiry' => 0, 'low_stock' => 1, 'custom' => 2];
-            $oa = isset($typeOrder[$a['type']]) ? $typeOrder[$a['type']] : 3;
-            $ob = isset($typeOrder[$b['type']]) ? $typeOrder[$b['type']] : 3;
+            $typeOrder = ['expiry' => 0, 'lend_return' => 1, 'low_stock' => 2, 'custom' => 3];
+            $oa = isset($typeOrder[$a['type']]) ? $typeOrder[$a['type']] : 4;
+            $ob = isset($typeOrder[$b['type']]) ? $typeOrder[$b['type']] : 4;
             return $oa - $ob;
         });
 

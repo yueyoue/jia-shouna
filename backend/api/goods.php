@@ -286,6 +286,11 @@ switch ($action) {
         }
 
         logOperation($user['id'], 'goods', 'create', $goodsId, "录入物品: $name");
+        // 物品流转日志
+        try {
+            $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, created_at) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$goodsId, $user['id'], 'create', '物品录入', $now]);
+        } catch (Exception $e) { /* 忽略 */ }
         success(['id' => $goodsId]);
         break;
 
@@ -352,6 +357,11 @@ switch ($action) {
         }
 
         logOperation($user['id'], 'goods', 'update', $id, "更新物品: {$goods['name']}");
+        // 物品流转日志
+        try {
+            $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, created_at) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$id, $user['id'], 'edit', '编辑物品信息', time()]);
+        } catch (Exception $e) { /* 忽略 */ }
         success(null, '更新成功');
         break;
 
@@ -611,6 +621,10 @@ switch ($action) {
             $stmt = $db->prepare("UPDATE goods SET quantity = quantity - ?, updated_at = ? WHERE id = ?");
             $stmt->execute([$quantity, $now, $goodsId]);
 
+            // 物品流转日志
+            $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, created_at) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$goodsId, $user['id'], 'borrow', '领取 ' . $quantity . ' 件', $now]);
+
             $db->commit();
             success(null, '领用成功');
         } catch (Exception $e) {
@@ -637,6 +651,10 @@ switch ($action) {
             $stmt = $db->prepare("UPDATE goods SET quantity = quantity + ?, updated_at = ? WHERE id = ?");
             $stmt->execute([$borrow['quantity'], $now, $borrow['goods_id']]);
 
+            // 物品流转日志
+            $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, created_at) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$borrow['goods_id'], $user['id'], 'return', '归还 ' . $borrow['quantity'] . ' 件', $now]);
+
             $db->commit();
             success(null, '归还成功');
         } catch (Exception $e) {
@@ -661,6 +679,84 @@ switch ($action) {
             WHERE $whereStr ORDER BY gb.borrow_time DESC LIMIT 50");
         $stmt->execute($params);
         success(['list' => $stmt->fetchAll()]);
+        break;
+
+    case 'lend':
+        $input = getJsonInput();
+        $goodsId = intval($input['goods_id'] ?? 0);
+        $quantity = floatval($input['quantity'] ?? 1);
+        $lendTo = trim($input['lend_to'] ?? '');
+        $note = trim($input['note'] ?? '');
+        $remindDays = intval($input['remind_days'] ?? 0); // 归还提醒天数，0=不提醒
+
+        if (empty($lendTo)) error('请填写借出对象');
+
+        $stmt = $db->prepare('SELECT * FROM goods WHERE id = ? AND status = 1');
+        $stmt->execute([$goodsId]);
+        $goods = $stmt->fetch();
+        if (!$goods) error('物品不存在');
+        if ($goods['quantity'] < $quantity) error('库存不足');
+
+        $now = time();
+        $remindAt = $remindDays > 0 ? $now + ($remindDays * 86400) : null;
+
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare('INSERT INTO goods_borrow (goods_id, user_id, quantity, borrow_time, status, note, lend_to, remind_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)');
+            $stmt->execute([$goodsId, $user['id'], $quantity, $now, $note, $lendTo, $remindAt]);
+            $borrowId = $db->lastInsertId();
+
+            $stmt = $db->prepare('UPDATE goods SET quantity = quantity - ?, updated_at = ? WHERE id = ?');
+            $stmt->execute([$quantity, $now, $goodsId]);
+
+            // 物品流转日志
+            $detail = '借出 ' . $quantity . ' 件给 ' . $lendTo;
+            if ($remindDays > 0) $detail .= '，' . $remindDays . ' 天后提醒归还';
+            $extra = json_encode(['lend_to' => $lendTo, 'quantity' => $quantity, 'remind_days' => $remindDays], JSON_UNESCAPED_UNICODE);
+            $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, extra, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$goodsId, $user['id'], 'lend', $detail, $extra, $now]);
+
+            // 创建归还提醒
+            if ($remindAt) {
+                $houseId = $goods['house_id'];
+                $title = '借出物品归还提醒: ' . $goods['name'];
+                $content = $lendTo . ' 借走了 ' . $quantity . ($goods['unit'] ?: '件') . '「' . $goods['name'] . '」，请提醒归还';
+                $db->prepare('INSERT INTO reminder (user_id, house_id, goods_id, type, title, content, remind_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                    ->execute([$user['id'], $houseId, $goodsId, 'lend_return', $title, $content, $remindAt, $now]);
+            }
+
+            $db->commit();
+            success(['borrow_id' => $borrowId], '借出成功');
+        } catch (Exception $e) {
+            $db->rollBack();
+            error('借出失败: ' . $e->getMessage());
+        }
+        break;
+
+    case 'flowLog':
+        $goodsId = intval($_GET['goods_id'] ?? 0);
+        if (!$goodsId) error('缺少物品ID');
+
+        $stmt = $db->prepare('SELECT gl.*, u.nickname as user_name FROM goods_log gl LEFT JOIN sys_user u ON gl.user_id = u.id WHERE gl.goods_id = ? ORDER BY gl.created_at DESC');
+        $stmt->execute([$goodsId]);
+        $list = $stmt->fetchAll();
+
+        // 格式化 action 为中文
+        $actionMap = [
+            'create' => '录入',
+            'edit' => '编辑',
+            'borrow' => '领取',
+            'lend' => '借出',
+            'return' => '归还',
+            'import' => '导入',
+        ];
+        foreach ($list as &$log) {
+            $log['action_name'] = $actionMap[$log['action']] ?? $log['action'];
+            $log['time_str'] = date('Y-m-d H:i', $log['created_at']);
+        }
+        unset($log);
+
+        success(['list' => $list]);
         break;
 
     case 'import':

@@ -1099,6 +1099,34 @@
                         android:background="@drawable/bg_detail_info_row_warm"
                         android:orientation="vertical" />
                 </LinearLayout>
+
+                <!-- 物品流转日志 -->
+                <LinearLayout
+                    android:id="@+id/layout_flow_log_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="20dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📜 流转日志"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_flow_log_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_detail_info_row_warm"
+                        android:orientation="vertical" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
@@ -1121,7 +1149,7 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/bg_button_outline_warm"
             android:gravity="center"
             android:text="✏️ 编辑"
@@ -1133,12 +1161,25 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/bg_button_primary_warm"
             android:gravity="center"
             android:text="📤 领用"
             android:textColor="@color/white"
             android:textSize="14sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_lend_bottom"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_button_outline_warm"
+            android:gravity="center"
+            android:text="🤝 借出"
+            android:textColor="@color/primary"
+            android:textSize="14sp" />
     </LinearLayout>
 </FrameLayout>

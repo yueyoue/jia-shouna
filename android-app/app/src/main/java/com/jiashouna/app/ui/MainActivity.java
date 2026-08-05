@@ -46,6 +46,9 @@ public class MainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_outfit) {
                 loadFragment(new DressingRoomFragment());
                 return true;
+            } else if (id == R.id.nav_reminders) {
+                loadFragment(new RemindersFragment());
+                return true;
             } else if (id == R.id.nav_profile) {
                 loadFragment(new ProfileFragment());
                 return true;

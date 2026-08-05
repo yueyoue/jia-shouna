@@ -19,14 +19,14 @@ import java.util.HashMap;
 public class RemindersFragment extends Fragment {
 
     // Filter tabs
-    private TextView tabAll, tabExpiring, tabExpired, tabLowstock, tabCustom;
-    private int currentTab = 0; // 0=all, 1=expiring, 2=expired, 3=lowstock, 4=custom
+    private TextView tabAll, tabExpiring, tabExpired, tabLowstock, tabCustom, tabLend;
+    private int currentTab = 0; // 0=all, 1=expiring, 2=expired, 3=lowstock, 4=custom, 5=lend
 
     // Sections
-    private LinearLayout layoutExpiringSection, layoutExpiredSection, layoutLowstockSection, layoutCustomSection;
+    private LinearLayout layoutExpiringSection, layoutExpiredSection, layoutLowstockSection, layoutCustomSection, layoutLendSection;
 
     // Lists
-    private LinearLayout llExpiringList, llExpiredList, llLowstockList, llCustomList;
+    private LinearLayout llExpiringList, llExpiredList, llLowstockList, llCustomList, llLendList;
 
     // Count badge
     private TextView tvExpiringCount;
@@ -36,6 +36,7 @@ public class RemindersFragment extends Fragment {
     private JsonArray allExpired = new JsonArray();
     private JsonArray allLowstock = new JsonArray();
     private JsonArray allCustom = new JsonArray();
+    private JsonArray allLend = new JsonArray();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -60,6 +61,11 @@ public class RemindersFragment extends Fragment {
         llLowstockList = v.findViewById(R.id.ll_lowstock_list);
         llCustomList = v.findViewById(R.id.ll_custom_list);
 
+        // Lend section
+        tabLend = v.findViewById(R.id.tab_lend);
+        layoutLendSection = v.findViewById(R.id.layout_lend_section);
+        llLendList = v.findViewById(R.id.ll_lend_list);
+
         // Count badge
         tvExpiringCount = v.findViewById(R.id.tv_expiring_count);
 
@@ -69,6 +75,7 @@ public class RemindersFragment extends Fragment {
         tabExpired.setOnClickListener(view -> switchTab(2));
         tabLowstock.setOnClickListener(view -> switchTab(3));
         tabCustom.setOnClickListener(view -> switchTab(4));
+        tabLend.setOnClickListener(view -> switchTab(5));
 
         return v;
     }
@@ -88,7 +95,7 @@ public class RemindersFragment extends Fragment {
     }
 
     private void updateTabStyles() {
-        TextView[] tabs = {tabAll, tabExpiring, tabExpired, tabLowstock, tabCustom};
+        TextView[] tabs = {tabAll, tabExpiring, tabExpired, tabLowstock, tabCustom, tabLend};
         for (int i = 0; i < tabs.length; i++) {
             if (tabs[i] == null) continue;
             if (i == currentTab) {
@@ -106,6 +113,7 @@ public class RemindersFragment extends Fragment {
         layoutExpiredSection.setVisibility(currentTab == 0 || currentTab == 2 ? View.VISIBLE : View.GONE);
         layoutLowstockSection.setVisibility(currentTab == 0 || currentTab == 3 ? View.VISIBLE : View.GONE);
         layoutCustomSection.setVisibility(currentTab == 0 || currentTab == 4 ? View.VISIBLE : View.GONE);
+        if (layoutLendSection != null) layoutLendSection.setVisibility(currentTab == 5 ? View.VISIBLE : View.GONE);
     }
 
     // ===== Data Loading =====
@@ -209,6 +217,7 @@ public class RemindersFragment extends Fragment {
                         renderExpired();
                         renderLowstock();
                         renderCustom();
+                        loadLendData();
                         updateSectionVisibility();
                     } catch (Exception e) {
                         android.util.Log.e("Reminders", "List parse error", e);
@@ -240,6 +249,7 @@ public class RemindersFragment extends Fragment {
         llExpiredList.removeAllViews();
         llLowstockList.removeAllViews();
         llCustomList.removeAllViews();
+        if (llLendList != null) llLendList.removeAllViews();
         addLoadingHint(llExpiringList);
         addLoadingHint(llExpiredList);
         addLoadingHint(llLowstockList);
@@ -251,6 +261,7 @@ public class RemindersFragment extends Fragment {
         llExpiredList.removeAllViews();
         llLowstockList.removeAllViews();
         llCustomList.removeAllViews();
+        if (llLendList != null) llLendList.removeAllViews();
         addEmptyHint(llExpiringList, msg);
         addEmptyHint(llExpiredList, msg);
         addEmptyHint(llLowstockList, msg);
@@ -676,6 +687,180 @@ public class RemindersFragment extends Fragment {
                     });
                 }
             } catch (Exception ignored) {}
+        }
+
+        return card;
+    }
+
+    // ===== Load Lend Data =====
+
+    private void loadLendData() {
+        if (llLendList == null) return;
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (houseId <= 0) return;
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+
+        ApiClient.get("goods.php?action=borrowList", params, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        allLend = new JsonArray();
+                        if (data.has("list") && !data.get("list").isJsonNull()) {
+                            JsonArray list = data.getAsJsonArray("list");
+                            for (int i = 0; i < list.size(); i++) {
+                                JsonObject item = list.get(i).getAsJsonObject();
+                                // 只显示有借出对象的记录
+                                String lendTo = item.has("lend_to") && !item.get("lend_to").isJsonNull()
+                                    ? item.get("lend_to").getAsString() : "";
+                                if (!lendTo.isEmpty()) {
+                                    allLend.add(item);
+                                }
+                            }
+                        }
+                        renderLend();
+                    } catch (Exception e) {
+                        android.util.Log.e("Reminders", "Lend parse error", e);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String msg) {
+                android.util.Log.e("Reminders", "Lend error: " + msg);
+            }
+        });
+    }
+
+    private void renderLend() {
+        if (llLendList == null) return;
+        llLendList.removeAllViews();
+        if (allLend.size() == 0) {
+            addEmptyHint(llLendList, "暂无借出物品 👍");
+            return;
+        }
+        for (int i = 0; i < allLend.size(); i++) {
+            JsonObject item = allLend.get(i).getAsJsonObject();
+            llLendList.addView(createLendCard(item));
+        }
+    }
+
+    private View createLendCard(JsonObject item) {
+        Context ctx = getActivity();
+        if (ctx == null) return new View(getContext());
+
+        String goodsName = item.has("goods_name") && !item.get("goods_name").isJsonNull()
+            ? item.get("goods_name").getAsString() : "";
+        String lendTo = item.has("lend_to") && !item.get("lend_to").isJsonNull()
+            ? item.get("lend_to").getAsString() : "";
+        double qty = item.has("quantity") ? item.get("quantity").getAsDouble() : 1;
+        long borrowTime = item.has("borrow_time") ? item.get("borrow_time").getAsLong() : 0;
+        int daysSince = borrowTime > 0 ? (int) ((System.currentTimeMillis() / 1000 - borrowTime) / 86400) : 0;
+
+        LinearLayout card = new LinearLayout(ctx);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(14), dp(12), dp(14), dp(12));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        cardLp.bottomMargin = dp(8);
+        card.setLayoutParams(cardLp);
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(Color.WHITE);
+        cardBg.setCornerRadius(dp(12));
+        cardBg.setStroke(dp(1), Color.parseColor("#E2E8F0"));
+        card.setBackground(cardBg);
+
+        // 左侧图标
+        TextView icon = new TextView(ctx);
+        icon.setWidth(dp(48));
+        icon.setHeight(dp(48));
+        icon.setGravity(Gravity.CENTER);
+        icon.setTextSize(22);
+        icon.setText("📤");
+        GradientDrawable iconBg = new GradientDrawable();
+        iconBg.setColor(Color.parseColor("#FFFAF0"));
+        iconBg.setCornerRadius(dp(8));
+        icon.setBackground(iconBg);
+        card.addView(icon);
+
+        // 信息
+        LinearLayout info = new LinearLayout(ctx);
+        info.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        infoLp.leftMargin = dp(10);
+        info.setLayoutParams(infoLp);
+
+        TextView nameTv = new TextView(ctx);
+        nameTv.setText(goodsName);
+        nameTv.setTextSize(14);
+        nameTv.setTextColor(Color.parseColor("#2D3748"));
+        nameTv.setTypeface(null, Typeface.BOLD);
+        info.addView(nameTv);
+
+        TextView lendToTv = new TextView(ctx);
+        lendToTv.setText("借给: " + lendTo + " · " + (int) qty + "件");
+        lendToTv.setTextSize(12);
+        lendToTv.setTextColor(Color.parseColor("#718096"));
+        info.addView(lendToTv);
+
+        TextView timeTv = new TextView(ctx);
+        timeTv.setText("已借 " + daysSince + " 天");
+        timeTv.setTextSize(11);
+        timeTv.setTextColor(daysSince > 30 ? Color.parseColor("#F56565") : Color.parseColor("#A0AEC0"));
+        info.addView(timeTv);
+
+        card.addView(info);
+
+        // 归还按钮
+        TextView btnReturn = new TextView(ctx);
+        btnReturn.setText("归还");
+        btnReturn.setTextSize(12);
+        btnReturn.setTextColor(Color.parseColor("#38A169"));
+        btnReturn.setPadding(dp(12), dp(6), dp(12), dp(6));
+        GradientDrawable retBg = new GradientDrawable();
+        retBg.setColor(Color.TRANSPARENT);
+        retBg.setStroke(dp(1), Color.parseColor("#38A169"));
+        retBg.setCornerRadius(dp(16));
+        btnReturn.setBackground(retBg);
+        card.addView(btnReturn);
+
+        // 归还点击
+        int borrowId = item.has("id") ? item.get("id").getAsInt() : 0;
+        final int goodsId = item.has("goods_id") ? item.get("goods_id").getAsInt() : 0;
+        if (borrowId > 0) {
+            btnReturn.setOnClickListener(v -> {
+                JsonObject body = new JsonObject();
+                body.addProperty("borrow_id", borrowId);
+                ApiClient.post("goods.php?action=return", body, new ApiClient.ApiCallback() {
+                    @Override public void onSuccess(JsonObject data) {
+                        if (getActivity() == null) return;
+                        getActivity().runOnUiThread(() -> {
+                            Toast.makeText(getActivity(), "✅ 已归还", Toast.LENGTH_SHORT).show();
+                            loadLendData();
+                        });
+                    }
+                    @Override public void onError(String msg) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> Toast.makeText(getActivity(), "归还失败: " + msg, Toast.LENGTH_SHORT).show());
+                        }
+                    }
+                });
+            });
+        }
+
+        // 点击跳转详情
+        if (goodsId > 0) {
+            card.setClickable(true);
+            card.setFocusable(true);
+            card.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), com.jiashouna.app.ui.ItemDetailActivity.class);
+                intent.putExtra("goods_id", goodsId);
+                startActivity(intent);
+            });
         }
 
         return card;
