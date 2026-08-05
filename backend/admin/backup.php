@@ -191,6 +191,24 @@ switch ($action) {
             $stmt = $db->query("SELECT * FROM goods_borrow ORDER BY id ASC");
             $data['borrow_records'] = $stmt->fetchAll();
 
+            // 套装
+            try {
+                $stmt = $db->query("SELECT * FROM outfit WHERE status = 1 ORDER BY id ASC");
+                $data['outfits'] = $stmt->fetchAll();
+            } catch (Exception $e) { $data['outfits'] = []; }
+
+            // 套装物品关联
+            try {
+                $stmt = $db->query("SELECT * FROM outfit_item ORDER BY outfit_id ASC");
+                $data['outfit_items'] = $stmt->fetchAll();
+            } catch (Exception $e) { $data['outfit_items'] = []; }
+
+            // 物品流转日志
+            try {
+                $stmt = $db->query("SELECT * FROM goods_log ORDER BY id ASC");
+                $data['goods_logs'] = $stmt->fetchAll();
+            } catch (Exception $e) { $data['goods_logs'] = []; }
+
             // 系统设置
             $stmt = $db->query("SELECT skey, svalue FROM sys_setting ORDER BY skey ASC");
             $data['settings'] = $stmt->fetchAll();
@@ -222,6 +240,7 @@ switch ($action) {
     case 'export_csv':
         try {
             $stmt = $db->query("SELECT g.id, g.name, g.barcode, g.category, g.brand, g.manufacturer, g.spec, 
+                g.color, g.season, g.size, g.material, g.shoe_size,
                 g.quantity, g.unit, g.purchase_date, g.expiry_date, g.purchase_price, g.stock_threshold,
                 g.note, g.is_private, s.name as space_name, h.name as house_name, u.nickname as creator_name
                 FROM goods g 
@@ -238,11 +257,13 @@ switch ($action) {
 
             $output = fopen('php://output', 'w');
             fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-            fputcsv($output, ['ID', '物品名称', '条形码', '分类', '品牌', '厂家', '规格', '数量', '单位', '购买日期', '保质期', '价格', '库存阈值', '备注', '隐私', '存放空间', '所属家庭', '录入者']);
+            fputcsv($output, ['ID', '物品名称', '条形码', '分类', '品牌', '厂家', '规格', '颜色', '季节', '尺码', '材质', '鞋码', '数量', '单位', '购买日期', '保质期', '价格', '库存阈值', '备注', '隐私', '存放空间', '所属家庭', '录入者']);
             foreach ($items as $item) {
                 fputcsv($output, [
                     $item['id'], $item['name'], $item['barcode'], $item['category'],
                     $item['brand'], $item['manufacturer'] ?? '', $item['spec'],
+                    $item['color'] ?? '', $item['season'] ?? '', $item['size'] ?? '',
+                    $item['material'] ?? '', $item['shoe_size'] ?? '',
                     $item['quantity'], $item['unit'], $item['purchase_date'],
                     $item['expiry_date'], $item['purchase_price'], $item['stock_threshold'] ?? '',
                     $item['note'], $item['is_private'] ? '隐藏' : '共享',

@@ -380,3 +380,50 @@ $lowStockItems = $lsStmt->fetchAll();
     <?php endforeach; ?>
 </div>
 <?php endif; ?>
+
+
+<!-- Active Lendings -->
+<?php
+try {
+    $lendItems = $db->query("SELECT gb.*, g.name as goods_name, g.space_id, s.name as space_name, h.name as house_name
+        FROM goods_borrow gb
+        LEFT JOIN goods g ON gb.goods_id = g.id
+        LEFT JOIN storage_space s ON g.space_id = s.id
+        LEFT JOIN house h ON g.house_id = h.id
+        WHERE gb.status = 1 AND gb.lend_to IS NOT NULL AND gb.lend_to != ''
+        ORDER BY gb.borrow_time DESC LIMIT 20")->fetchAll();
+} catch (Exception $e) { $lendItems = []; }
+?>
+<?php if (!empty($lendItems)): ?>
+<div class="reminder-section">
+    <div class="section-header">
+        <div class="section-title">
+            🤝 借出中
+            <span class="section-count" style="background:#38A169"><?= count($lendItems) ?></span>
+        </div>
+    </div>
+    <?php foreach ($lendItems as $item): ?>
+    <div class="item-row">
+        <div class="item-thumb" style="background:linear-gradient(135deg,#E6FFFA,#B2F5EA)">📤</div>
+        <div class="item-info">
+            <div class="item-name"><?= htmlspecialchars($item['goods_name'] ?? '未知物品') ?></div>
+            <div class="item-meta">
+                <span>🤝 借给: <?= htmlspecialchars($item['lend_to']) ?></span>
+                <span>📦 <?= $item['quantity'] ?>件</span>
+                <span>📅 <?= date('Y-m-d', $item['borrow_time']) ?></span>
+                <?php
+                $daysSince = intval((time() - $item['borrow_time']) / 86400);
+                if ($item['remind_at'] && $item['remind_at'] < time()):
+                ?>
+                <span style="color:#F56565;font-weight:600">⏰ 已到期需归还</span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <span class="item-badge" style="background:#FFF5F0;color:#C25A1E">已借 <?= $daysSince ?> 天</span>
+        <?php if ($item['goods_id']): ?>
+        <a href="?p=items&action=edit&id=<?= $item['goods_id'] ?>" class="btn btn-outline btn-sm">查看</a>
+        <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>

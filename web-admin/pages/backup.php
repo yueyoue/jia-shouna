@@ -16,6 +16,8 @@ $stats['total_images'] = safeQuery($db, "SELECT COUNT(*) as c FROM goods_image",
 $stats['total_spaces'] = safeQuery($db, "SELECT COUNT(*) as c FROM storage_space", 'c');
 $stats['total_users'] = safeQuery($db, "SELECT COUNT(*) as c FROM sys_user WHERE status = 1", 'c');
 $stats['total_houses'] = safeQuery($db, "SELECT COUNT(*) as c FROM house WHERE status = 1", 'c');
+$stats['total_outfits'] = safeQuery($db, "SELECT COUNT(*) as c FROM outfit WHERE status = 1", 'c');
+$stats['total_lends'] = safeQuery($db, "SELECT COUNT(*) as c FROM goods_borrow WHERE status = 1 AND lend_to IS NOT NULL AND lend_to != ''", 'c');
 
 // 图片目录大小
 $imageDirSize = 0;
@@ -164,6 +166,8 @@ $stats['last_backup'] = $lastBackupTs;
     <div class="s-item"><div class="s-icon">🖼</div><div class="s-val"><?= number_format($stats['total_images']) ?></div><div class="s-label">图片数量</div></div>
     <div class="s-item"><div class="s-icon">🏠</div><div class="s-val"><?= number_format($stats['total_spaces']) ?></div><div class="s-label">收纳空间</div></div>
     <div class="s-item"><div class="s-icon">👥</div><div class="s-val"><?= number_format($stats['total_users']) ?></div><div class="s-label">用户数量</div></div>
+    <div class="s-item"><div class="s-icon">👔</div><div class="s-val"><?= number_format($stats['total_outfits']) ?></div><div class="s-label">套装数量</div></div>
+    <div class="s-item"><div class="s-icon">📤</div><div class="s-val"><?= number_format($stats['total_lends']) ?></div><div class="s-label">借出中</div></div>
     <div class="s-item"><div class="s-icon">🗄</div><div class="s-val"><?= formatSize($stats['db_size']) ?></div><div class="s-label">数据库大小</div></div>
     <div class="s-item"><div class="s-icon">🖼</div><div class="s-val"><?= formatSize($stats['image_size']) ?></div><div class="s-label">图片占用</div></div>
     <div class="s-item"><div class="s-icon">💾</div><div class="s-val"><?= formatSize($stats['backup_size']) ?></div><div class="s-label">备份占用</div></div>
@@ -224,7 +228,7 @@ $stats['last_backup'] = $lastBackupTs;
         <div class="ac-body">
             <div class="ac-label">选择导出格式</div>
             <div class="ac-sub">JSON 包含所有数据和关联关系 · CSV 仅物品列表</div>
-            <div class="ac-meta">包含: 物品、空间、标签、用户、设置、领用记录</div>
+            <div class="ac-meta">包含: 物品、空间、标签、用户、设置、领用记录、套装、流转日志</div>
             <div class="ac-actions">
                 <button class="ac-btn ac-btn-outline" onclick="doExportJson()">{ } JSON</button>
                 <button class="ac-btn ac-btn-outline" onclick="doExportCsv()">📊 CSV</button>
@@ -293,7 +297,8 @@ $stats['last_backup'] = $lastBackupTs;
     <div class="guide-step"><span class="num">4</span><div><strong>重建站点</strong>：删除旧站点，重新部署新站点</div></div>
     <div class="guide-step"><span class="num">5</span><div><strong>恢复数据库</strong>：在新站点的备份页面，点「🔄 数据恢复」→ 上传 <code>.sql</code> 文件 → 输入确认码 <code>RESTORE_CONFIRM</code> → 点击恢复</div></div>
     <div class="guide-step"><span class="num">6</span><div><strong>恢复图片</strong>：将下载的 <code>.zip</code> 解压，把 <code>images/</code> 文件夹上传到新站点的 <code>backend/uploads/</code> 目录下</div></div>
-    <div class="guide-step"><span class="num">7</span><div><strong>验证</strong>：登录新站点，检查物品、图片是否完整</div></div>
+    <div class="guide-step"><span class="num">7</span><div><strong>运行迁移</strong>：访问 <code>migrate_outfit.php</code> 和 <code>migrate_goods_log.php</code>，确保新功能表结构就绪</div></div>
+    <div class="guide-step"><span class="num">8</span><div><strong>验证</strong>：登录新站点，检查物品、图片、套装、借出记录是否完整</div></div>
     <div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:6px;font-size:12px;color:#92400E">
         ⚠ <strong>重要提醒</strong>：数据库备份不包含图片文件！图片需要单独备份。两样都要下载才能完整恢复。
     </div>
