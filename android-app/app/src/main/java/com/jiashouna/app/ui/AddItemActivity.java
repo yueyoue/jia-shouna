@@ -781,17 +781,14 @@ public class AddItemActivity extends AppCompatActivity {
             try {
                 Bitmap bitmap = null;
                 if (cameraImageUri != null) {
-                    // 从FileProvider URI加载完整照片
                     try {
                         bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri);
+                        bitmap = fixPhotoOrientation(cameraImageUri, bitmap);
                     } catch (Exception ignored) {}
                 }
                 if (bitmap == null && data != null) {
-                    // 回退:尝试获取缩略图
                     Bundle extras = data.getExtras();
-                    if (extras != null) {
-                        bitmap = (Bitmap) extras.get("data");
-                    }
+                    if (extras != null) bitmap = (Bitmap) extras.get("data");
                 }
                 if (bitmap != null) {
                     addPhotoToList(bitmap);
@@ -805,7 +802,10 @@ public class AddItemActivity extends AppCompatActivity {
             try {
                 Bitmap bitmap = null;
                 if (cameraImageUri != null) {
-                    try { bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri); } catch (Exception e) { android.util.Log.e("AddItem", "load from URI failed", e); }
+                    try {
+                        bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), cameraImageUri);
+                        bitmap = fixPhotoOrientation(cameraImageUri, bitmap);
+                    } catch (Exception e) { android.util.Log.e("AddItem", "load from URI failed", e); }
                 }
                 if (bitmap == null && data != null) {
                     Bundle extras = data.getExtras();
@@ -829,7 +829,8 @@ public class AddItemActivity extends AppCompatActivity {
                 Uri imageUri = data.getData();
                 if (imageUri != null) {
                     Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
-                    // 先压缩再添加到列表，避免大图OOM
+                    // 修正EXIF方向信息，确保照片正面显示
+                    bitmap = fixPhotoOrientation(imageUri, bitmap);
                     Bitmap compressed = resizeBitmap(bitmap, 1600);
                     addPhotoToList(compressed);
                     // 从相册选取后调用AI识别（压缩后发送，避免超过2MB限制）
@@ -2309,16 +2310,27 @@ public class AddItemActivity extends AppCompatActivity {
      * 套装选择列表 - 两列大封面图网格，封面图下方显示标题
      */
     private void showOutfitPickerDialog(JsonArray outfits) {
-        // 使用 ScrollView 包裹两列网格
+        // 选中状态跟踪
+        final int[] selectedOutfitId = {0};
+        final String[] selectedOutfitName = {""};
+        final List<LinearLayout> cardViews = new java.util.ArrayList<>();
+        final List<int[]> outfitIds = new java.util.ArrayList<>();
+        final List<String> outfitNames = new java.util.ArrayList<>();
+
+        // 主容器
+        LinearLayout dialogRoot = new LinearLayout(this);
+        dialogRoot.setOrientation(LinearLayout.VERTICAL);
+
         ScrollView scrollView = new ScrollView(this);
         scrollView.setFillViewport(true);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1);
+        scrollView.setLayoutParams(scrollLp);
 
-        // 计算屏幕宽度，每列占一半（减去间距）
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int itemWidth = (screenWidth - dp(16) * 2 - dp(12)) / 2; // 左右padding 16dp + 列间距 12dp
-        int coverHeight = (int) (itemWidth * 1.2f); // 封面图高度 = 宽度 × 1.2，略高一些更好看
+        int itemWidth = (screenWidth - dp(16) * 2 - dp(12)) / 2;
+        int coverHeight = (int) (itemWidth * 1.2f);
 
-        // 两列网格容器
         android.widget.GridLayout grid = new android.widget.GridLayout(this);
         grid.setColumnCount(2);
         grid.setRowCount((outfits.size() + 1) / 2);
@@ -2331,31 +2343,29 @@ public class AddItemActivity extends AppCompatActivity {
             String name = outfit.has("name") ? outfit.get("name").getAsString() : "";
             String season = outfit.has("season") && !outfit.get("season").isJsonNull() ? outfit.get("season").getAsString() : "";
             JsonArray items = outfit.has("items") && !outfit.get("items").isJsonNull() ? outfit.getAsJsonArray("items") : new JsonArray();
+            outfitIds.add(new int[]{outfitId});
+            outfitNames.add(name);
 
-            // 单个套装卡片（垂直：封面图 + 标题）
+            // 卡片
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
             cardBg.setCornerRadius(dp(12));
             cardBg.setColor(0xFFF7FAFC);
-            cardBg.setStroke(dp(1), 0xFFE2E8F0);
+            cardBg.setStroke(dp(2), 0xFFE2E8F0);
             card.setBackground(cardBg);
             card.setClipToOutline(true);
 
-            // GridLayout 的 LayoutParams
             android.widget.GridLayout.LayoutParams gridLp = new android.widget.GridLayout.LayoutParams();
             gridLp.width = itemWidth;
             gridLp.height = android.widget.GridLayout.LayoutParams.WRAP_CONTENT;
             gridLp.bottomMargin = dp(12);
-            // 奇数索引（第2列）左边加间距
-            if (i % 2 == 1) {
-                gridLp.leftMargin = dp(12);
-            }
+            if (i % 2 == 1) gridLp.leftMargin = dp(12);
             gridLp.rowSpec = android.widget.GridLayout.spec(i / 2);
             gridLp.columnSpec = android.widget.GridLayout.spec(i % 2);
             card.setLayoutParams(gridLp);
 
-            // 封面图区域 - 大封面，用套装第一张图或 2×2 拼图
+            // 封面图
             android.widget.FrameLayout coverContainer = new android.widget.FrameLayout(this);
             coverContainer.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, coverHeight));
@@ -2364,7 +2374,6 @@ public class AddItemActivity extends AppCompatActivity {
                 ? outfit.get("cover_image").getAsString() : "";
 
             if (!coverImage.isEmpty()) {
-                // 有封面图，直接显示大图
                 android.widget.ImageView coverImg = new android.widget.ImageView(this);
                 coverImg.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
                 coverImg.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
@@ -2373,13 +2382,11 @@ public class AddItemActivity extends AppCompatActivity {
                 try { com.bumptech.glide.Glide.with(this).load(coverImage).centerCrop().into(coverImg); } catch (Exception ignored) {}
                 coverContainer.addView(coverImg);
             } else if (items.size() > 0) {
-                // 没有封面图，用物品图片拼 2×2 网格
                 LinearLayout gridInner = new LinearLayout(this);
                 gridInner.setOrientation(LinearLayout.VERTICAL);
                 gridInner.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
                     android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                     android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
-
                 for (int row = 0; row < 2; row++) {
                     LinearLayout gridRow = new LinearLayout(this);
                     gridRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -2395,39 +2402,26 @@ public class AddItemActivity extends AppCompatActivity {
                             String cover = item.has("cover_image") && !item.get("cover_image").isJsonNull() ? item.get("cover_image").getAsString() : "";
                             if (!cover.isEmpty()) {
                                 try { com.bumptech.glide.Glide.with(this).load(cover).centerCrop().into(img); } catch (Exception ignored) {}
-                            } else {
-                                img.setBackgroundColor(0xFFEDF2F7);
-                            }
-                        } else {
-                            img.setBackgroundColor(0xFFEDF2F7);
-                        }
-                        // 非最后一列加右边距
-                        if (col == 0) {
-                            LinearLayout.LayoutParams imgLp = (LinearLayout.LayoutParams) img.getLayoutParams();
-                            imgLp.rightMargin = dp(1);
-                        }
-                        // 非最后一行加下边距
-                        if (row == 0) {
-                            LinearLayout.LayoutParams imgLp = (LinearLayout.LayoutParams) img.getLayoutParams();
-                            imgLp.bottomMargin = dp(1);
-                        }
+                            } else { img.setBackgroundColor(0xFFEDF2F7); }
+                        } else { img.setBackgroundColor(0xFFEDF2F7); }
+                        if (col == 0) ((LinearLayout.LayoutParams) img.getLayoutParams()).rightMargin = dp(1);
+                        if (row == 0) ((LinearLayout.LayoutParams) img.getLayoutParams()).bottomMargin = dp(1);
                         gridRow.addView(img);
                     }
                     gridInner.addView(gridRow);
                 }
                 coverContainer.addView(gridInner);
             } else {
-                // 空套装，显示占位
-                android.widget.ImageView placeholder = new android.widget.ImageView(this);
-                placeholder.setScaleType(android.widget.ImageView.ScaleType.CENTER);
-                placeholder.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
+                android.widget.ImageView ph = new android.widget.ImageView(this);
+                ph.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+                ph.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
                     android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                     android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
-                placeholder.setBackgroundColor(0xFFEDF2F7);
-                coverContainer.addView(placeholder);
+                ph.setBackgroundColor(0xFFEDF2F7);
+                coverContainer.addView(ph);
             }
 
-            // 右下角物品数量标签
+            // 物品数量标签
             TextView tvCount = new TextView(this);
             tvCount.setText(items.size() + "件");
             tvCount.setTextSize(11);
@@ -2446,13 +2440,30 @@ public class AddItemActivity extends AppCompatActivity {
             tvCount.setLayoutParams(countLp);
             coverContainer.addView(tvCount);
 
+            // 选中对勾（绿色圆圈 ✓），默认隐藏
+            TextView tvCheck = new TextView(this);
+            tvCheck.setText("✓");
+            tvCheck.setTextSize(16);
+            tvCheck.setTextColor(Color.WHITE);
+            tvCheck.setGravity(Gravity.CENTER);
+            android.graphics.drawable.GradientDrawable checkBg = new android.graphics.drawable.GradientDrawable();
+            checkBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            checkBg.setColor(0xFF38A169);
+            tvCheck.setBackground(checkBg);
+            android.widget.FrameLayout.LayoutParams checkLp = new android.widget.FrameLayout.LayoutParams(dp(28), dp(28));
+            checkLp.gravity = Gravity.TOP | Gravity.END;
+            checkLp.topMargin = dp(8);
+            checkLp.rightMargin = dp(8);
+            tvCheck.setLayoutParams(checkLp);
+            tvCheck.setVisibility(View.GONE);
+            coverContainer.addView(tvCheck);
+
             card.addView(coverContainer);
 
-            // 标题区域
+            // 标题
             LinearLayout titleArea = new LinearLayout(this);
             titleArea.setOrientation(LinearLayout.VERTICAL);
             titleArea.setPadding(dp(10), dp(8), dp(10), dp(10));
-
             TextView tvName = new TextView(this);
             tvName.setText(name);
             tvName.setTextSize(13);
@@ -2461,7 +2472,6 @@ public class AddItemActivity extends AppCompatActivity {
             tvName.setMaxLines(1);
             tvName.setEllipsize(android.text.TextUtils.TruncateAt.END);
             titleArea.addView(tvName);
-
             if (!season.isEmpty()) {
                 TextView tvSeason = new TextView(this);
                 tvSeason.setText(season);
@@ -2473,24 +2483,86 @@ public class AddItemActivity extends AppCompatActivity {
                 tvSeason.setLayoutParams(seasonLp);
                 titleArea.addView(tvSeason);
             }
-
             card.addView(titleArea);
             grid.addView(card);
+            cardViews.add(card);
+        }
 
-            // 点击加入
-            final int fOutfitId = outfitId;
-            final String fName = name;
-            card.setOnClickListener(v -> {
-                pendingOutfitId = fOutfitId;
-                Toast.makeText(this, "✅ 物品保存后将加入「" + fName + "」", Toast.LENGTH_SHORT).show();
+        dialogRoot.addView(scrollView);
+
+        // 底部确认按钮
+        LinearLayout btnBar = new LinearLayout(this);
+        btnBar.setOrientation(LinearLayout.HORIZONTAL);
+        btnBar.setGravity(Gravity.CENTER);
+        btnBar.setPadding(dp(16), dp(8), dp(16), dp(12));
+
+        Button btnConfirm = new Button(this);
+        btnConfirm.setText("确认选择");
+        btnConfirm.setTextSize(15);
+        btnConfirm.setTextColor(Color.WHITE);
+        btnConfirm.setEnabled(false);
+        android.graphics.drawable.GradientDrawable confirmBg = new android.graphics.drawable.GradientDrawable();
+        confirmBg.setCornerRadius(dp(24));
+        confirmBg.setColor(0xFFCBD5E0);
+        btnConfirm.setBackground(confirmBg);
+        btnConfirm.setPadding(dp(32), dp(10), dp(32), dp(10));
+        btnBar.addView(btnConfirm);
+        dialogRoot.addView(btnBar);
+
+        // 创建对话框
+        final AlertDialog[] dialogRef = {null};
+        dialogRef[0] = new AlertDialog.Builder(this)
+            .setTitle("选择套装")
+            .setView(dialogRoot)
+            .setNegativeButton("取消", null)
+            .create();
+
+        // 设置所有卡片的点击事件
+        for (int i = 0; i < cardViews.size(); i++) {
+            final int idx = i;
+            cardViews.get(i).setOnClickListener(v -> {
+                // 清除所有选中状态
+                for (LinearLayout c : cardViews) {
+                    android.graphics.drawable.GradientDrawable bg = (android.graphics.drawable.GradientDrawable) c.getBackground();
+                    bg.setStroke(dp(2), 0xFFE2E8F0);
+                    bg.setColor(0xFFF7FAFC);
+                    android.widget.FrameLayout cover = (android.widget.FrameLayout) c.getChildAt(0);
+                    for (int k = 0; k < cover.getChildCount(); k++) {
+                        View child = cover.getChildAt(k);
+                        if (child instanceof TextView && ((TextView) child).getText().equals("✓")) {
+                            child.setVisibility(View.GONE);
+                        }
+                    }
+                }
+                // 设置当前卡片为选中
+                android.graphics.drawable.GradientDrawable bg = (android.graphics.drawable.GradientDrawable) v.getBackground();
+                bg.setStroke(dp(3), 0xFF38A169);
+                bg.setColor(0xFFF0FFF4);
+                android.widget.FrameLayout cover = (android.widget.FrameLayout) ((LinearLayout) v).getChildAt(0);
+                for (int k = 0; k < cover.getChildCount(); k++) {
+                    View child = cover.getChildAt(k);
+                    if (child instanceof TextView && ((TextView) child).getText().equals("✓")) {
+                        child.setVisibility(View.VISIBLE);
+                    }
+                }
+                selectedOutfitId[0] = outfitIds.get(idx)[0];
+                selectedOutfitName[0] = outfitNames.get(idx);
+                // 启用确认按钮
+                btnConfirm.setEnabled(true);
+                confirmBg.setColor(0xFF38A169);
             });
         }
 
-        new AlertDialog.Builder(this)
-            .setTitle("选择套装")
-            .setView(scrollView)
-            .setNegativeButton("取消", null)
-            .show();
+        // 确认按钮
+        btnConfirm.setOnClickListener(v -> {
+            if (selectedOutfitId[0] > 0) {
+                pendingOutfitId = selectedOutfitId[0];
+                Toast.makeText(this, "✅ 物品保存后将加入「" + selectedOutfitName[0] + "」", Toast.LENGTH_SHORT).show();
+                dialogRef[0].dismiss();
+            }
+        });
+
+        dialogRef[0].show();
     }
 
     /**
@@ -2547,6 +2619,46 @@ public class AddItemActivity extends AppCompatActivity {
     /**
      * 缩放Bitmap到指定最大尺寸，保持宽高比
      */
+    /**
+     * 读取EXIF方向信息，自动修正照片旋转
+     * 手机拍照时传感器可能以横向拍摄，EXIF记录了正确显示的旋转角度
+     */
+    private Bitmap fixPhotoOrientation(Uri uri, Bitmap bitmap) {
+        try {
+            InputStream is = getContentResolver().openInputStream(uri);
+            if (is == null) return bitmap;
+            androidx.exifinterface.media.ExifInterface exif = new androidx.exifinterface.media.ExifInterface(is);
+            int orientation = exif.getAttributeInt(
+                androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL);
+            is.close();
+
+            int degrees = 0;
+            switch (orientation) {
+                case androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90:
+                    degrees = 90;
+                    break;
+                case androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180:
+                    degrees = 180;
+                    break;
+                case androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270:
+                    degrees = 270;
+                    break;
+                default:
+                    return bitmap; // 不需要旋转
+            }
+
+            android.graphics.Matrix matrix = new android.graphics.Matrix();
+            matrix.postRotate(degrees);
+            Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            if (rotated != bitmap) bitmap.recycle();
+            return rotated;
+        } catch (Exception e) {
+            android.util.Log.w("AddItem", "fixPhotoOrientation failed: " + e.getMessage());
+            return bitmap;
+        }
+    }
+
     private Bitmap resizeBitmap(Bitmap bitmap, int maxDimension) {
         int w = bitmap.getWidth();
         int h = bitmap.getHeight();
