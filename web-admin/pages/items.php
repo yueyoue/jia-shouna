@@ -254,6 +254,52 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
 }
 
 $categories = ['食品', '衣物', '药品', '日用品', '数码', '证件', '厨具', '其他'];
+
+// 获取借出中的记录
+$borrowedItems = [];
+try {
+    $borrowStmt = $db->query("SELECT gb.goods_id, gb.lend_to, gb.quantity as borrow_qty, gb.borrow_time, gb.id as borrow_id FROM goods_borrow gb WHERE gb.status = 1 AND gb.lend_to IS NOT NULL AND gb.lend_to != ''");
+    while ($br = $borrowStmt->fetch()) {
+        $borrowedItems[$br['goods_id']] = $br;
+    }
+} catch (Exception $e) {}
+
+// 处理借出/归还操作
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postAction2 = $_POST['post_action'] ?? '';
+    if ($postAction2 === 'lend_item') {
+        $goodsId = intval($_POST['lend_goods_id'] ?? 0);
+        $lendTo = trim($_POST['lend_to'] ?? '');
+        $qty = intval($_POST['lend_qty'] ?? 1);
+        $remindDays = intval($_POST['remind_days'] ?? 0);
+        $note = trim($_POST['lend_note'] ?? '');
+        if ($goodsId && $lendTo) {
+            $now = time();
+            $remindAt = $remindDays > 0 ? $now + $remindDays * 86400 : null;
+            $db->prepare('INSERT INTO goods_borrow (goods_id, user_id, quantity, borrow_time, status, note, lend_to, remind_at) VALUES (?, 1, ?, ?, 1, ?, ?, ?)')
+                ->execute([$goodsId, $qty, $now, $note, $lendTo, $remindAt]);
+            $db->prepare('UPDATE goods SET quantity = GREATEST(quantity - ?, 0), updated_at = ? WHERE id = ?')->execute([$qty, $now, $goodsId]);
+            $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, created_at) VALUES (?, 1, ?, ?, ?)')
+                ->execute([$goodsId, 'lend', "借给 {$lendTo}，数量 {$qty}", $now]);
+            $msg = "已借给 {$lendTo}";
+        }
+    } elseif ($postAction2 === 'return_item') {
+        $borrowId = intval($_POST['borrow_id'] ?? 0);
+        if ($borrowId) {
+            $now = time();
+            $br = $db->prepare('SELECT * FROM goods_borrow WHERE id = ? AND status = 1');
+            $br->execute([$borrowId]);
+            $borrow = $br->fetch();
+            if ($borrow) {
+                $db->prepare('UPDATE goods_borrow SET status = 2, return_time = ? WHERE id = ?')->execute([$now, $borrowId]);
+                $db->prepare('UPDATE goods SET quantity = quantity + ?, updated_at = ? WHERE id = ?')->execute([$borrow['quantity'], $now, $borrow['goods_id']]);
+                $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, created_at) VALUES (?, 1, ?, ?, ?)')
+                    ->execute([$borrow['goods_id'], 'return', "从 {$borrow['lend_to']} 归还，数量 {$borrow['quantity']}", $now]);
+                $msg = '已归还';
+            }
+        }
+    }
+}
 ?>
 
 <style>
@@ -449,7 +495,9 @@ function filterByTag(tagName) {
                     <?php endif; ?>
                 </td>
                 <td>
-                    <?php if ($item['is_private']): ?>
+                    <?php if (isset($borrowedItems[$item['id']])): ?>
+                        <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;background:rgba(72,187,120,.12);color:#276749;font-size:11px;font-weight:600">📤 借出中</span>
+                    <?php elseif ($item['is_private']): ?>
                         <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;background:rgba(159,122,234,.12);color:#553C9A;font-size:11px;font-weight:600">🔒 隐藏</span>
                     <?php else: ?>
                         <span style="font-size:11px;color:#A0AEC0">👁 可见</span>
@@ -458,6 +506,12 @@ function filterByTag(tagName) {
                 <td>
                     <div class="row-actions">
                         <a href="?p=items&action=edit&id=<?= $item['id'] ?>" class="icon-mini" title="编辑">✎</a>
+                        <?php if (isset($borrowedItems[$item['id']])): ?>
+                        <div class="icon-mini" title="归还" onclick="returnItem(<?= $borrowedItems[$item['id']]['borrow_id'] ?>, '<?= htmlspecialchars($borrowedItems[$item['id']]['lend_to']) ?>')" style="color:#48BB78">↩</div>
+                        <?php else: ?>
+                        <div class="icon-mini" title="借出" onclick="showLendModal(<?= $item['id'] ?>, '<?= htmlspecialchars(addslashes($item['name'])) ?>', <?= intval($item['quantity']) ?>)">📤</div>
+                        <?php endif; ?>
+                        <div class="icon-mini" title="流转日志" onclick="showFlowLog(<?= $item['id'] ?>)">📜</div>
                         <div class="icon-mini" title="删除" onclick="deleteItem(<?= $item['id'] ?>)">🗑</div>
                     </div>
                 </td>
@@ -625,6 +679,95 @@ async function deleteItem(id) {
 }
 </script>
 
+
+<!-- 借出弹窗 -->
+<div id="modal-lend" class="modal-mask" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;max-width:420px;width:90%;padding:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:16px;font-weight:600">📤 借出物品</h3>
+            <span onclick="document.getElementById('modal-lend').style.display='none'" style="cursor:pointer;font-size:20px;color:#999">&times;</span>
+        </div>
+        <form method="POST">
+            <input type="hidden" name="post_action" value="lend_item">
+            <input type="hidden" name="lend_goods_id" id="lend_goods_id" value="">
+            <div class="form-group"><label class="form-label">物品名称</label><div id="lend_item_name" style="font-weight:600;color:#2D3748"></div></div>
+            <div class="form-group"><label class="form-label">借给谁 *</label><input name="lend_to" class="form-control" required placeholder="输入借出对象姓名"></div>
+            <div class="form-group"><label class="form-label">数量</label><input name="lend_qty" id="lend_qty" class="form-control" type="number" value="1" min="1"></div>
+            <div class="form-group"><label class="form-label">归还提醒</label>
+                <select name="remind_days" class="form-control">
+                    <option value="0">不提醒</option>
+                    <option value="7">7天后提醒</option>
+                    <option value="15">15天后提醒</option>
+                    <option value="30" selected>30天后提醒</option>
+                    <option value="60">60天后提醒</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">备注</label><input name="lend_note" class="form-control" placeholder="选填"></div>
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:8px">确认借出</button>
+        </form>
+    </div>
+</div>
+
+<!-- 流转日志弹窗 -->
+<div id="modal-flow-log" class="modal-mask" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto;padding:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:16px;font-weight:600">📜 流转日志</h3>
+            <span onclick="document.getElementById('modal-flow-log').style.display='none'" style="cursor:pointer;font-size:20px;color:#999">&times;</span>
+        </div>
+        <div id="flow-log-content" style="font-size:13px;color:#4A5568">加载中...</div>
+    </div>
+</div>
+
+<script>
+function showLendModal(goodsId, name, maxQty) {
+    document.getElementById('lend_goods_id').value = goodsId;
+    document.getElementById('lend_item_name').textContent = name;
+    document.getElementById('lend_qty').value = 1;
+    document.getElementById('lend_qty').max = maxQty;
+    document.getElementById('modal-lend').style.display = 'flex';
+}
+
+function returnItem(borrowId, lendTo) {
+    if (!confirm('确认归还「' + lendTo + '」借出的物品？')) return;
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.innerHTML = '<input type="hidden" name="post_action" value="return_item"><input type="hidden" name="borrow_id" value="' + borrowId + '">';
+    document.body.appendChild(form);
+    form.submit();
+}
+
+async function showFlowLog(goodsId) {
+    document.getElementById('modal-flow-log').style.display = 'flex';
+    document.getElementById('flow-log-content').innerHTML = '加载中...';
+    try {
+        var resp = await fetch('../backend/api/goods.php?action=flowLog&goods_id=' + goodsId);
+        var data = await resp.json();
+        if (data.code === 0 && data.data && data.data.list && data.data.list.length > 0) {
+            var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+            var icons = {create:'📝',edit:'✏️',borrow:'📥',lend:'📤',return:'↩️',import:'📥'};
+            var labels = {create:'录入',edit:'编辑',borrow:'领用',lend:'借出',return:'归还',import:'导入'};
+            data.data.list.forEach(function(log) {
+                var d = new Date(log.created_at * 1000);
+                var dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+                html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#F7FAFC;border-radius:8px">';
+                html += '<span style="font-size:18px">' + (icons[log.action] || '📋') + '</span>';
+                html += '<div style="flex:1"><div style="font-weight:600">' + (labels[log.action] || log.action) + '</div>';
+                if (log.detail) html += '<div style="font-size:12px;color:#718096;margin-top:2px">' + log.detail + '</div>';
+                html += '<div style="font-size:11px;color:#A0AEC0;margin-top:2px">' + dateStr + (log.user_name ? ' · ' + log.user_name : '') + '</div>';
+                html += '</div></div>';
+            });
+            html += '</div>';
+            document.getElementById('flow-log-content').innerHTML = html;
+        } else {
+            document.getElementById('flow-log-content').innerHTML = '<div style="color:#A0AEC0;text-align:center;padding:20px">暂无流转记录</div>';
+        }
+    } catch(e) {
+        document.getElementById('flow-log-content').innerHTML = '<div style="color:#F56565">加载失败</div>';
+    }
+}
+</script>
+
 <!-- 添加物品/导入弹窗 -->
 <div id="modal-add-item" class="modal-mask" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:12px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;padding:24px;position:relative">
@@ -767,6 +910,39 @@ async function deleteItem(id) {
                 sel.selectedIndex = 0;
             }
             </script>
+
+            <!-- 流转日志 -->
+            <div class="form-group" style="margin-top:16px">
+                <label class="form-label">📜 流转日志</label>
+                <div id="edit-flow-log" style="max-height:200px;overflow-y:auto;border:1px solid #EDF2F7;border-radius:8px;padding:8px">
+                    <?php
+                    try {
+                        $flowLogs = $db->prepare('SELECT gl.*, u.nickname as user_name FROM goods_log gl LEFT JOIN sys_user u ON gl.user_id = u.id WHERE gl.goods_id = ? ORDER BY gl.created_at DESC LIMIT 20');
+                        $flowLogs->execute([$editItem['id']]);
+                        $logs = $flowLogs->fetchAll();
+                        if (empty($logs)) {
+                            echo '<div style="color:#A0AEC0;font-size:12px;text-align:center;padding:12px">暂无记录</div>';
+                        } else {
+                            $icons = ['create'=>'📝','edit'=>'✏️','borrow'=>'📥','lend'=>'📤','return'=>'↩️','import'=>'📥'];
+                            $labels = ['create'=>'录入','edit'=>'编辑','borrow'=>'领用','lend'=>'借出','return'=>'归还','import'=>'导入'];
+                            foreach ($logs as $log) {
+                                $icon = $icons[$log['action']] ?? '📋';
+                                $label = $labels[$log['action']] ?? $log['action'];
+                                $time = date('m-d H:i', $log['created_at']);
+                                $user = htmlspecialchars($log['user_name'] ?? '');
+                                $detail = htmlspecialchars($log['detail'] ?? '');
+                                echo "<div style='display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #F7FAFC;font-size:12px'>";
+                                echo "<span>{$icon}</span><div style='flex:1'><b>{$label}</b>";
+                                if ($detail) echo " <span style='color:#718096'>{$detail}</span>";
+                                echo "<div style='color:#A0AEC0;font-size:11px'>{$time}" . ($user ? " · {$user}" : "") . "</div></div></div>";
+                            }
+                        }
+                    } catch (Exception $e) {
+                        echo '<div style="color:#A0AEC0;font-size:12px">日志加载失败</div>';
+                    }
+                    ?>
+                </div>
+            </div>
             <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:12px">保存修改</button>
         </form>
     </div>

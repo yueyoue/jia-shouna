@@ -29,6 +29,18 @@ switch ($action) {
         success(['id' => $db->lastInsertId()]);
         break;
 
+    case 'update':
+        $input = getJsonInput();
+        $id = intval($input['id'] ?? 0);
+        $name = trim($input['name'] ?? '');
+        $color = $input['color'] ?? '';
+        if (!$id) error('缺少参数id');
+        if (empty($name)) error('请填写标签名称');
+        $stmt = $db->prepare("UPDATE tag SET name = ?, color = ? WHERE id = ?");
+        $stmt->execute([$name, $color ?: '#5B9FED', $id]);
+        success(null, '更新成功');
+        break;
+
     case 'delete':
         $id = intval($_GET['id'] ?? 0);
         if (!$id) error('缺少参数id');

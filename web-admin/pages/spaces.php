@@ -146,9 +146,29 @@ $tree = buildTree($spaces);
 </style>
 
 <div class="page-header">
-    <div>
-        <div class="page-title">收纳空间管理</div>
-        <div class="page-desc">管理端 · 家庭成员也可在 APP 端创建空间并共享给家人</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+            <div class="page-title">收纳空间管理</div>
+            <div class="page-desc">管理端 · 家庭成员也可在 APP 端创建空间并共享给家人</div>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="batchExportQR()">📋 批量导出二维码</button>
+        </div>
+    </div>
+</div>
+
+<!-- 批量二维码弹窗 -->
+<div id="modal-batch-qr" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;max-width:900px;width:92%;max-height:85vh;overflow-y:auto;padding:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div style="font-size:16px;font-weight:600">📋 批量二维码导出</div>
+            <button style="cursor:pointer;font-size:22px;color:#999;background:none;border:none" onclick="document.getElementById('modal-batch-qr').style.display='none'">&times;</button>
+        </div>
+        <div id="batch-qr-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-outline btn-sm" onclick="printBatchQR()">🖨 打印</button>
+            <button class="btn btn-outline btn-sm" onclick="saveBatchQR()">💾 全部保存</button>
+        </div>
     </div>
 </div>
 
@@ -210,6 +230,7 @@ $tree = buildTree($spaces);
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
 function switchHouse(houseId) {
     window.location.href = '?p=spaces&house_id=' + houseId;
@@ -246,63 +267,101 @@ function showCreateSpace() {
     form.submit();
 }
 
+function escHtml(s) {
+    if (!s) return '';
+    var div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+}
+
 async function selectSpace(id) {
-    document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('active'));
-    const node = document.querySelector(`.tree-node[data-id="${id}"]`);
+    document.querySelectorAll('.tree-node').forEach(function(n) { n.classList.remove('active'); });
+    var node = document.querySelector('.tree-node[data-id="' + id + '"]');
     if (node) node.classList.add('active');
     
-    const data = await api(`../backend/api/space.php?action=detail&id=${id}`);
+    var data = await api('../backend/api/space.php?action=detail&id=' + id);
     if (!data) return;
-    const s = data.space;
+    var s = data.space;
     
-    const levelNames = ['房间', '容器', '区域'];
+    var levelNames = ['房间', '容器', '区域'];
+    var spaceCode = s.space_code || '';
     
-    let html = `
-        <div class="detail-header">
-            <div>
-                <div class="detail-path">
-                    <a href="#">我的家</a>
-                    <span class="sep">/</span>
-                    <span style="color:#2D3748;font-weight:500">${s.name}</span>
-                </div>
-                <div class="detail-title">
-                    <div class="detail-icon">${s.icon}</div>
-                    <div>
-                        <div class="detail-name">${s.name}</div>
-                        <div class="detail-desc">${levelNames[s.level - 1] || '空间'}</div>
-                    </div>
-                </div>
-                <div class="detail-stats">
-                    <div class="detail-stat">📦 物品 <strong>${s.item_count}</strong></div>
-                    <div class="detail-stat">${s.shared == 1 ? '👁 已共享给全家人' : '🔒 仅自己可见'}</div>
-                </div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn btn-outline btn-sm" onclick="editSpace(${s.id})">✎ 编辑</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteSpace(${s.id})">🗑 删除</button>
-            </div>
-        </div>`;
+    var html = '';
+    html += '<div class="detail-header">';
+    html += '  <div>';
+    html += '    <div class="detail-path">';
+    html += '      <a href="#">我的家</a>';
+    html += '      <span class="sep">/</span>';
+    html += '      <span style="color:#2D3748;font-weight:500">' + escHtml(s.name) + '</span>';
+    html += '    </div>';
+    html += '    <div class="detail-title">';
+    html += '      <div class="detail-icon">' + s.icon + '</div>';
+    html += '      <div>';
+    html += '        <div class="detail-name">' + escHtml(s.name) + '</div>';
+    html += '        <div class="detail-desc">' + (levelNames[s.level - 1] || '空间');
+    if (spaceCode) {
+        html += ' · 编码: <code style="background:#EDF2F7;padding:1px 6px;border-radius:4px;font-size:12px">' + escHtml(spaceCode) + '</code>';
+    }
+    html += '        </div>';
+    html += '      </div>';
+    html += '    </div>';
+    html += '    <div class="detail-stats">';
+    html += '      <div class="detail-stat">📦 物品 <strong>' + s.item_count + '</strong></div>';
+    html += '      <div class="detail-stat">' + (s.shared == 1 ? '👁 已共享给全家人' : '🔒 仅自己可见') + '</div>';
+    html += '    </div>';
+    html += '  </div>';
+    html += '  <div style="display:flex;gap:8px;flex-wrap:wrap">';
+    html += '    <button class="btn btn-outline btn-sm" onclick="editSpace(' + s.id + ')">✎ 编辑</button>';
+    html += '    <button class="btn btn-danger btn-sm" onclick="deleteSpace(' + s.id + ')">🗑 删除</button>';
+    if (spaceCode) {
+        html += '    <button class="btn btn-outline btn-sm" onclick="showSpaceQR(this,\'' + escHtml(spaceCode) + '\',\'' + escHtml(s.name) + '\')">📱 二维码</button>';
+    }
+    html += '  </div>';
+    html += '</div>';
     
+    // 二维码区域
+    if (spaceCode) {
+        html += '<div id="qr-section" style="padding:20px 24px;border-bottom:1px solid var(--border-2);display:none">';
+        html += '  <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">';
+        html += '    <div style="text-align:center">';
+        html += '      <div id="qr-single-container" style="display:inline-block;padding:12px;background:#fff;border:1px solid #E2E8F0;border-radius:12px"></div>';
+        html += '      <div style="margin-top:8px;font-size:13px;font-weight:600;color:#2D3748">' + escHtml(s.name) + '</div>';
+        html += '      <div style="font-size:11px;color:#718096">编码: ' + escHtml(spaceCode) + '</div>';
+        html += '      <div style="margin-top:10px">';
+        html += '        <button class="btn btn-outline btn-sm" onclick="saveSingleQR(\'' + escHtml(s.name) + '\',\'' + escHtml(spaceCode) + '\')">💾 保存二维码</button>';
+        html += '      </div>';
+        html += '    </div>';
+        html += '    <div style="flex:1;min-width:200px">';
+        html += '      <div style="font-size:13px;color:#718096;line-height:1.8">';
+        html += '        <div>📱 使用 APP 扫描此二维码可快速定位到该空间</div>';
+        html += '        <div>🔗 二维码内容: <code style="background:#EDF2F7;padding:1px 6px;border-radius:4px;font-size:11px">JSN:SPACE:' + escHtml(spaceCode) + '</code></div>';
+        html += '      </div>';
+        html += '    </div>';
+        html += '  </div>';
+        html += '</div>';
+    }
+    
+    // 子空间卡片
     if (s.children && s.children.length > 0) {
-        html += `<div class="space-cards">`;
-        const colors = ['','c2','c3','c4','c5','c6'];
-        s.children.forEach((c, i) => {
-            html += `<div class="space-card ${colors[i % 6]}">
-                <div class="space-card-head">
-                    <div class="space-card-icon">${c.icon}</div>
-                    <div class="space-card-name">${c.name}</div>
-                    <span class="space-card-tag">${levelNames[c.level - 1] || '空间'}</span>
-                </div>
-                <div class="space-card-meta">
-                    <span>📦 <strong>${c.item_count}</strong> 件物品</span>
-                </div>
-            </div>`;
+        html += '<div class="space-cards">';
+        var colors = ['','c2','c3','c4','c5','c6'];
+        s.children.forEach(function(c, i) {
+            html += '<div class="space-card ' + colors[i % 6] + '">';
+            html += '  <div class="space-card-head">';
+            html += '    <div class="space-card-icon">' + c.icon + '</div>';
+            html += '    <div class="space-card-name">' + escHtml(c.name) + '</div>';
+            html += '    <span class="space-card-tag">' + (levelNames[c.level - 1] || '空间') + '</span>';
+            html += '  </div>';
+            html += '  <div class="space-card-meta">';
+            html += '    <span>📦 <strong>' + c.item_count + '</strong> 件物品</span>';
+            html += '  </div>';
+            html += '</div>';
         });
-        html += `</div>`;
+        html += '</div>';
     }
     
     // 加载物品列表
-    html += `<div id="space-items" style="padding:20px 24px"><div style="color:#A0AEC0;font-size:13px">加载物品中...</div></div>`;
+    html += '<div id="space-items" style="padding:20px 24px"><div style="color:#A0AEC0;font-size:13px">加载物品中...</div></div>';
     
     document.getElementById('space-detail').innerHTML = html;
     
@@ -311,10 +370,10 @@ async function selectSpace(id) {
 }
 
 async function loadSpaceItems(spaceId) {
-    const container = document.getElementById('space-items');
+    var container = document.getElementById('space-items');
     if (!container) return;
     
-    const data = await api(`../backend/api/goods.php?action=list&space_id=${spaceId}&include_children=1&page_size=50`);
+    var data = await api('../backend/api/goods.php?action=list&space_id=' + spaceId + '&include_children=1&page_size=50');
     if (!data || !data.list) {
         container.innerHTML = '<div style="color:#A0AEC0;font-size:13px">暂无物品</div>';
         return;
@@ -325,27 +384,27 @@ async function loadSpaceItems(spaceId) {
         return;
     }
     
-    let html = `<div style="font-size:13px;font-weight:600;color:#2D3748;margin-bottom:12px">📦 物品列表 (${data.list.length})</div>`;
-    html += `<div style="display:grid;gap:8px">`;
-    data.list.forEach(item => {
-        const img = item.cover_image ? `<img src="${item.cover_image}" style="width:36px;height:36px;border-radius:8px;object-fit:cover" onerror="this.outerHTML='📦'">` : '📦';
-        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7FAFC;border-radius:8px;cursor:pointer" onclick="window.location.href='?p=items&keyword=${encodeURIComponent(item.name)}'">
-            <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#FFE8D6,#FFD3B0);display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden">${img}</div>
-            <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">${item.name}</div>
-                <div style="font-size:11px;color:#718096">× ${item.quantity}${item.unit || '件'}</div>
-            </div>
-            <div style="font-size:16px;color:#CBD5E0">›</div>
-        </div>`;
+    var html = '<div style="font-size:13px;font-weight:600;color:#2D3748;margin-bottom:12px">📦 物品列表 (' + data.list.length + ')</div>';
+    html += '<div style="display:grid;gap:8px">';
+    data.list.forEach(function(item) {
+        var img = item.cover_image ? '<img src="' + item.cover_image + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover" onerror="this.outerHTML=\'📦\'">' : '📦';
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7FAFC;border-radius:8px;cursor:pointer" onclick="window.location.href=\'?p=items&keyword=' + encodeURIComponent(item.name) + '\'">';
+        html += '  <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#FFE8D6,#FFD3B0);display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden">' + img + '</div>';
+        html += '  <div style="flex:1">';
+        html += '    <div style="font-weight:600;font-size:13px">' + escHtml(item.name) + '</div>';
+        html += '    <div style="font-size:11px;color:#718096">× ' + item.quantity + (item.unit || '件') + '</div>';
+        html += '  </div>';
+        html += '  <div style="font-size:16px;color:#CBD5E0">›</div>';
+        html += '</div>';
     });
-    html += `</div>`;
+    html += '</div>';
     container.innerHTML = html;
 }
 
 async function editSpace(id) {
-    const name = prompt('请输入新的空间名称:');
+    var name = prompt('请输入新的空间名称:');
     if (!name) return;
-    const data = await api('../backend/api/space.php?action=update', {
+    var data = await api('../backend/api/space.php?action=update', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({id: id, name: name})
@@ -355,11 +414,128 @@ async function editSpace(id) {
 
 async function deleteSpace(id) {
     if (!confirm('确定要删除此空间吗？')) return;
-    const data = await api('../backend/api/space.php?action=delete', {
+    var data = await api('../backend/api/space.php?action=delete', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({id: id, delete_goods: 0})
     });
     if (data !== null) { showToast('删除成功', 'success'); location.reload(); }
+}
+
+// ====== 二维码功能 ======
+function showSpaceQR(btn, code, name) {
+    var section = document.getElementById('qr-section');
+    if (!section) return;
+    var visible = section.style.display !== 'none';
+    section.style.display = visible ? 'none' : 'block';
+    if (!visible) {
+        var container = document.getElementById('qr-single-container');
+        container.innerHTML = '';
+        new QRCode(container, {
+            text: 'JSN:SPACE:' + code,
+            width: 180,
+            height: 180,
+            colorDark: '#2D3748',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+}
+
+function saveSingleQR(name, code) {
+    var container = document.getElementById('qr-single-container');
+    var canvas = container.querySelector('canvas');
+    if (!canvas) { showToast('二维码未生成', 'error'); return; }
+    downloadQRWithLabel(canvas, name, code);
+}
+
+function downloadQRWithLabel(canvas, name, code) {
+    var padding = 30;
+    var labelHeight = 60;
+    var newCanvas = document.createElement('canvas');
+    newCanvas.width = canvas.width + padding * 2;
+    newCanvas.height = canvas.height + padding * 2 + labelHeight;
+    var ctx = newCanvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+    ctx.drawImage(canvas, padding, padding);
+    ctx.fillStyle = '#2D3748';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(name, newCanvas.width / 2, canvas.height + padding + 24);
+    ctx.fillStyle = '#718096';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('编码: ' + code, newCanvas.width / 2, canvas.height + padding + 46);
+    var link = document.createElement('a');
+    link.download = '空间二维码_' + name + '_' + code + '.png';
+    link.href = newCanvas.toDataURL('image/png');
+    link.click();
+}
+
+async function batchExportQR() {
+    var houseId = <?= $selectedHouse ?>;
+    if (!houseId) { showToast('请先选择家庭', 'error'); return; }
+    var data = await api('../backend/api/space.php?action=list&house_id=' + houseId);
+    if (!data || !data.list) { showToast('获取空间列表失败', 'error'); return; }
+    var allSpaces = data.list.filter(function(s) { return s.space_code; });
+    if (allSpaces.length === 0) { showToast('暂无空间编码', 'warning'); return; }
+    var grid = document.getElementById('batch-qr-grid');
+    grid.innerHTML = '';
+    allSpaces.forEach(function(s) {
+        var card = document.createElement('div');
+        card.style.cssText = 'text-align:center;padding:12px;background:#F7FAFC;border-radius:10px;border:1px solid #E2E8F0';
+        var qrDiv = document.createElement('div');
+        qrDiv.style.cssText = 'display:inline-block;padding:8px;background:#fff;border-radius:8px';
+        card.appendChild(qrDiv);
+        var label = document.createElement('div');
+        label.style.cssText = 'margin-top:6px;font-size:12px;font-weight:600;color:#2D3748';
+        label.textContent = s.name;
+        card.appendChild(label);
+        var codeLabel = document.createElement('div');
+        codeLabel.style.cssText = 'font-size:10px;color:#718096';
+        codeLabel.textContent = s.space_code;
+        card.appendChild(codeLabel);
+        grid.appendChild(card);
+        new QRCode(qrDiv, {
+            text: 'JSN:SPACE:' + s.space_code,
+            width: 140,
+            height: 140,
+            colorDark: '#2D3748',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    });
+    grid.dataset.spaces = JSON.stringify(allSpaces);
+    document.getElementById('modal-batch-qr').style.display = 'flex';
+}
+
+function saveBatchQR() {
+    var grid = document.getElementById('batch-qr-grid');
+    var canvases = grid.querySelectorAll('canvas');
+    var spaces = JSON.parse(grid.dataset.spaces || '[]');
+    if (canvases.length === 0) { showToast('无二维码可保存', 'error'); return; }
+    canvases.forEach(function(canvas, idx) {
+        var s = spaces[idx];
+        if (s) downloadQRWithLabel(canvas, s.name, s.space_code);
+    });
+    showToast('正在保存 ' + canvases.length + ' 个二维码', 'success');
+}
+
+function printBatchQR() {
+    var grid = document.getElementById('batch-qr-grid');
+    var canvases = grid.querySelectorAll('canvas');
+    var spaces = JSON.parse(grid.dataset.spaces || '[]');
+    var printWin = window.open('', '_blank');
+    printWin.document.write('<html><head><title>批量二维码打印</title>');
+    printWin.document.write('<style>body{font-family:sans-serif;padding:20px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.item{text-align:center;padding:12px;border:1px solid #ddd;border-radius:8px}img{max-width:100%}.name{font-weight:600;margin-top:6px;font-size:13px}.code{font-size:11px;color:#666}</style>');
+    printWin.document.write('</head><body><h2 style="text-align:center">空间二维码</h2><div class="grid">');
+    canvases.forEach(function(canvas, idx) {
+        var s = spaces[idx];
+        var dataUrl = canvas.toDataURL('image/png');
+        printWin.document.write('<div class="item"><img src="' + dataUrl + '"><div class="name">' + (s ? s.name : '') + '</div><div class="code">' + (s ? s.space_code : '') + '</div></div>');
+    });
+    printWin.document.write('</div></body></html>');
+    printWin.document.close();
+    setTimeout(function() { printWin.print(); }, 500);
 }
 </script>
