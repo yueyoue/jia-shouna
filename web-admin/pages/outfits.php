@@ -1,7 +1,28 @@
 <?php
 require_once __DIR__ . '/../../backend/config/helpers.php';
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
+
+// 临时调试：捕获所有错误并输出
+set_error_handler(function($severity, $message, $file, $line) {
+    echo '<div style="background:#FED7D7;color:#9B2C2C;padding:12px;margin:8px;border-radius:8px;font-size:13px">';
+    echo '<b>PHP Error:</b> ' . htmlspecialchars($message) . ' in <b>' . htmlspecialchars($file) . '</b> line ' . $line;
+    echo '</div>';
+});
+set_exception_handler(function($e) {
+    echo '<div style="background:#FED7D7;color:#9B2C2C;padding:12px;margin:8px;border-radius:8px;font-size:13px">';
+    echo '<b>Exception:</b> ' . htmlspecialchars($e->getMessage()) . ' in <b>' . htmlspecialchars($e->getFile()) . '</b> line ' . $e->getLine();
+    echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
+    echo '</div>';
+});
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        while (ob_get_level()) ob_end_clean();
+        echo '<div style="background:#FED7D7;color:#9B2C2C;padding:12px;margin:8px;border-radius:8px;font-size:13px">';
+        echo '<b>Fatal Error:</b> ' . htmlspecialchars($error['message']) . ' in <b>' . htmlspecialchars($error['file']) . '</b> line ' . $error['line'];
+        echo '</div>';
+    }
+});
+
 $db = getDB();
 
 // 获取当前house_id
