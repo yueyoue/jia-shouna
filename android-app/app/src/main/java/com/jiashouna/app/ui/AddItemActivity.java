@@ -2389,8 +2389,7 @@ public class AddItemActivity extends AppCompatActivity {
             card.setOnClickListener(v -> {
                 // 关闭对话框后加入
                 pendingOutfitId = fOutfitId;
-                Toast.makeText(this, "✅ 物品保存后将加入「" + fName + "”
-, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "✅ 物品保存后将加入「" + fName + "」", Toast.LENGTH_SHORT).show();
             });
         }
 
