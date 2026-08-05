@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/helpers.php';
 corsHeaders();
 
+try {
 $action = $_GET['action'] ?? '';
 $db = getDB();
 $user = requireLogin();
@@ -267,4 +268,9 @@ switch ($action) {
 
     default:
         error('未知操作');
+}
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['code' => 500, 'msg' => 'PHP错误: ' . $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()], JSON_UNESCAPED_UNICODE);
+    exit;
 }
