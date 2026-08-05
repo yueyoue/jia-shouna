@@ -156,6 +156,14 @@ switch ($action) {
 
         if (!empty($outfit['cover_image'])) {
             $outfit['cover_image'] = IMAGE_URL_PREFIX . $outfit['cover_image'];
+        } elseif (!empty($items)) {
+            // 封面图为空时，用第一件物品的图片
+            foreach ($items as $it) {
+                if (!empty($it['cover_image'])) {
+                    $outfit['cover_image'] = $it['cover_image'];
+                    break;
+                }
+            }
         }
 
         success(['outfit' => $outfit]);

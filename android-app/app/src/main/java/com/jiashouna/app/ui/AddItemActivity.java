@@ -812,8 +812,10 @@ public class AddItemActivity extends AppCompatActivity {
                     if (extras != null) bitmap = (Bitmap) extras.get("data");
                 }
                 if (bitmap != null) {
+                    bitmap = resizeBitmap(bitmap, 1600);
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+                    android.util.Log.d("AddItem", "AI photo size: " + baos.size() + " bytes");
                     callAiRecognize(baos.toByteArray());
                 } else {
                     Toast.makeText(this, "拍照获取失败,请重试", Toast.LENGTH_SHORT).show();
@@ -829,8 +831,9 @@ public class AddItemActivity extends AppCompatActivity {
                     Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
                     addPhotoToList(bitmap);
                     // 从相册选取后也调用AI识别
+                    bitmap = resizeBitmap(bitmap, 1600);
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
                     callAiRecognize(baos.toByteArray());
                 }
             } catch (Exception e) {
@@ -2450,6 +2453,19 @@ public class AddItemActivity extends AppCompatActivity {
         if (name.contains("外套") || name.contains("夹克") || name.contains("大衣") || name.contains("羽绒")) return "outer";
         if (name.contains("包") || name.contains("袋") || name.contains("项链") || name.contains("手表")) return "accessory";
         return "top";
+    }
+
+    /**
+     * 缩放Bitmap到指定最大尺寸，保持宽高比
+     */
+    private Bitmap resizeBitmap(Bitmap bitmap, int maxDimension) {
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        if (w <= maxDimension && h <= maxDimension) return bitmap;
+        float scale = Math.min((float) maxDimension / w, (float) maxDimension / h);
+        int newW = Math.round(w * scale);
+        int newH = Math.round(h * scale);
+        return Bitmap.createScaledBitmap(bitmap, newW, newH, true);
     }
 
     private int dp(int dp) {
