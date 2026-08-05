@@ -107,7 +107,7 @@ public class DocumentListActivity extends AppCompatActivity {
         if (!currentCategory.isEmpty()) params.put("category", currentCategory);
 
         String debugUrl = "document.php?action=list&house_id=" + houseId;
-        android.util.Log.d("DocDebug", "请求: " + debugUrl + " houseId=" + houseId);
+        android.util.Log.d("DocDebug", "请求: " + debugUrl);
 
         ApiClient.get("document.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
@@ -120,25 +120,100 @@ public class DocumentListActivity extends AppCompatActivity {
                         boolean hasData = documents.size() > 0;
                         layoutEmpty.setVisibility(hasData ? View.GONE : View.VISIBLE);
                         swipeRefresh.setVisibility(hasData ? View.VISIBLE : View.GONE);
-                        Toast.makeText(DocumentListActivity.this, "✅ 加载成功 " + documents.size() + " 条", Toast.LENGTH_SHORT).show();
                     } catch (Exception e) {
-                        Toast.makeText(DocumentListActivity.this, "解析异常: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        showDebugError("解析异常: " + e.getMessage(), debugUrl, houseId);
                     }
                 });
             }
             @Override public void onError(String msg) {
                 runOnUiThread(() -> {
                     swipeRefresh.setRefreshing(false);
-                    // 显示详细错误信息
-                    String debugInfo = "加载失败\n" +
-                        "URL: " + debugUrl + "\n" +
-                        "houseId: " + houseId + "\n" +
-                        "错误: " + msg;
-                    android.util.Log.e("DocDebug", debugInfo);
-                    Toast.makeText(DocumentListActivity.this, debugInfo, Toast.LENGTH_LONG).show();
+                    showDebugError(msg, debugUrl, houseId);
                 });
             }
         });
+    }
+
+    /**
+     * 在页面上直接显示调试错误信息（空状态区域）
+     */
+    private void showDebugError(String errorMsg, String url, int houseId) {
+        layoutEmpty.removeAllViews();
+        layoutEmpty.setGravity(Gravity.CENTER);
+        layoutEmpty.setPadding(dp(24), dp(24), dp(24), dp(24));
+
+        TextView tvIcon = new TextView(this);
+        tvIcon.setText("⚠️");
+        tvIcon.setTextSize(40);
+        tvIcon.setGravity(Gravity.CENTER);
+        layoutEmpty.addView(tvIcon);
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("加载失败 - 调试信息");
+        tvTitle.setTextSize(16);
+        tvTitle.setTextColor(0xFFF56565);
+        tvTitle.setTypeface(null, Typeface.BOLD);
+        tvTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        tlp.topMargin = dp(12);
+        tvTitle.setLayoutParams(tlp);
+        layoutEmpty.addView(tvTitle);
+
+        // 详细信息卡片
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(16), dp(12), dp(16), dp(12));
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(0xFFFFF5F5);
+        cardBg.setCornerRadius(dp(12));
+        cardBg.setStroke(dp(1), 0xFFFED7D7);
+        card.setBackground(cardBg);
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        clp.topMargin = dp(16);
+        card.setLayoutParams(clp);
+
+        addDebugRow(card, "请求URL", url);
+        addDebugRow(card, "houseId", String.valueOf(houseId));
+        addDebugRow(card, "错误类型", errorMsg);
+        addDebugRow(card, "Token", App.getInstance().getToken().isEmpty() ? "❌ 空" : "✅ 有 (" + App.getInstance().getToken().length() + "位)");
+        addDebugRow(card, "BASE_URL", App.BASE_URL);
+
+        layoutEmpty.addView(card);
+
+        // logcat 输出
+        android.util.Log.e("DocDebug", "===== 文件档案加载失败 =====");
+        android.util.Log.e("DocDebug", "URL: " + url);
+        android.util.Log.e("DocDebug", "houseId: " + houseId);
+        android.util.Log.e("DocDebug", "错误: " + errorMsg);
+        android.util.Log.e("DocDebug", "Token为空: " + App.getInstance().getToken().isEmpty());
+        android.util.Log.e("DocDebug", "BASE_URL: " + App.BASE_URL);
+
+        layoutEmpty.setVisibility(View.VISIBLE);
+        swipeRefresh.setVisibility(View.GONE);
+    }
+
+    private void addDebugRow(LinearLayout parent, String label, String value) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(4), 0, dp(4));
+
+        TextView tvLabel = new TextView(this);
+        tvLabel.setText(label + ": ");
+        tvLabel.setTextSize(12);
+        tvLabel.setTextColor(0xFF718096);
+        tvLabel.setTypeface(null, Typeface.BOLD);
+        row.addView(tvLabel);
+
+        TextView tvValue = new TextView(this);
+        tvValue.setText(value);
+        tvValue.setTextSize(12);
+        tvValue.setTextColor(0xFF2D3748);
+        tvValue.setTextIsSelectable(true);
+        row.addView(tvValue);
+
+        parent.addView(row);
     }
 
     private void loadStats() {
