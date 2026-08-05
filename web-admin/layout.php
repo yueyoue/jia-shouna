@@ -17,6 +17,7 @@ $navGroups = [
     '数据管理' => [
         ['p' => 'spaces', 'icon' => '🏠', 'label' => '收纳空间'],
         ['p' => 'items', 'icon' => '📦', 'label' => '物品管理'],
+        ['p' => 'outfits', 'icon' => '👔', 'label' => '衣帽间'],
         ['p' => 'reminders', 'icon' => '⏰', 'label' => '临期提醒'],
         ['p' => 'stats', 'icon' => '📈', 'label' => '数据统计'],
     ],
@@ -36,6 +37,7 @@ $navGroups = [
 // Page titles
 $pageTitles = [
     'dashboard' => '数据看板',
+    'outfits' => '衣帽间',
     'items' => '物品管理',
     'spaces' => '收纳空间',
     'api-config' => '接口配置',

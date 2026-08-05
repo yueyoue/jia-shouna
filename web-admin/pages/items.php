@@ -24,10 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['post_action'] ?? '') === '
     if ($editId) {
         $now = time();
         $spaceId = intval($_POST['space_id'] ?? 0);
-        $stmt = $db->prepare('UPDATE goods SET name=?, barcode=?, category=?, brand=?, spec=?, quantity=?, unit=?, purchase_date=?, expiry_date=?, purchase_price=?, note=?, space_id=?, updated_at=? WHERE id=?');
+        $stmt = $db->prepare('UPDATE goods SET name=?, barcode=?, category=?, color=?, season=?, brand=?, spec=?, size=?, material=?, shoe_size=?, quantity=?, unit=?, purchase_date=?, expiry_date=?, purchase_price=?, note=?, space_id=?, updated_at=? WHERE id=?');
         $stmt->execute([
             trim($_POST['name'] ?? ''), $_POST['barcode'] ?? '', $_POST['category'] ?? '',
-            $_POST['brand'] ?? '', $_POST['spec'] ?? '', floatval($_POST['quantity'] ?? 1),
+            $_POST['color'] ?? '', $_POST['season'] ?? '',
+            $_POST['brand'] ?? '', $_POST['spec'] ?? '',
+            $_POST['size'] ?? '', $_POST['material'] ?? '', $_POST['shoe_size'] ?? '',
+            floatval($_POST['quantity'] ?? 1),
             $_POST['unit'] ?? '个', $_POST['purchase_date'] ?: null, $_POST['expiry_date'] ?: null,
             $_POST['purchase_price'] ?: null, $_POST['note'] ?? '', $spaceId ?: null, $now, $editId
         ]);
@@ -236,10 +239,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
     header('Content-Disposition: attachment; filename=items_export_' . date('YmdHis') . '.csv');
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
-    fputcsv($output, ['名称', '条码', '分类', '品牌', '规格', '数量', '单位', '购买日期', '保质期', '价格', '家庭', '空间', '录入用户', '备注']);
+    fputcsv($output, ['名称', '条码', '分类', '颜色', '季节', '品牌', '规格', '尺码', '材质', '鞋码', '数量', '单位', '购买日期', '保质期', '价格', '家庭', '空间', '录入用户', '备注']);
     foreach ($exportItems as $ei) {
         fputcsv($output, [
-            $ei['name'], $ei['barcode'], $ei['category'], $ei['brand'], $ei['spec'],
+            $ei['name'], $ei['barcode'], $ei['category'], $ei['color'] ?? '', $ei['season'] ?? '', $ei['brand'], $ei['spec'],
+            $ei['size'] ?? '', $ei['material'] ?? '', $ei['shoe_size'] ?? '',
             $ei['quantity'], $ei['unit'], $ei['purchase_date'], $ei['expiry_date'],
             $ei['purchase_price'], $ei['house_name'], $ei['space_name'],
             $ei['creator_name'], $ei['note']
@@ -392,6 +396,8 @@ function filterByTag(tagName) {
             <tr>
                 <th>物品信息</th>
                 <th>分类</th>
+                <th>颜色</th>
+                <th>季节</th>
                 <th>家庭</th>
                 <th>存放位置</th>
                 <th>数量</th>
@@ -421,6 +427,13 @@ function filterByTag(tagName) {
                     </div>
                 </td>
                 <td><span class="tag tag-orange"><?= $item['category'] ?: '-' ?></span></td>
+                <td>
+                    <?php if (!empty($item['color'])): ?>
+                    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:4px;background:<?= getColorHex($item['color']) ?>"></span><?= htmlspecialchars($item['color']) ?>
+                    <?php else: ?>-
+                    <?php endif; ?>
+                </td>
+                <td><?= htmlspecialchars($item['season'] ?? '-') ?></td>
                 <td><div class="path-cell"><?= htmlspecialchars($item['house_name'] ?? '-') ?></div></td>
                 <td><div class="path-cell"><?= htmlspecialchars($item['space_name'] ?? '-') ?></div></td>
                 <td><strong><?= $item['quantity'] ?></strong> <?= $item['unit'] ?></td>
@@ -703,8 +716,18 @@ async function deleteItem(id) {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group"><label class="form-label">条形码</label><input name="barcode" class="form-control" value="<?= htmlspecialchars($editItem['barcode'] ?? '') ?>"></div>
                 <div class="form-group"><label class="form-label">分类</label><input name="category" class="form-control" value="<?= htmlspecialchars($editItem['category'] ?? '') ?>"></div>
+                <div class="form-group"><label class="form-label">颜色</label><input name="color" class="form-control" value="<?= htmlspecialchars($editItem['color'] ?? '') ?>" placeholder="如：黑色"></div>
+                <div class="form-group"><label class="form-label">季节</label><select name="season" class="form-control">
+                    <option value="">不指定</option>
+                    <?php foreach (['春','夏','秋','冬','四季','春秋'] as $s): ?>
+                    <option value="<?= $s ?>" <?= ($editItem['season'] ?? '') === $s ? 'selected' : '' ?>><?= $s ?></option>
+                    <?php endforeach; ?>
+                </select></div>
                 <div class="form-group"><label class="form-label">品牌</label><input name="brand" class="form-control" value="<?= htmlspecialchars($editItem['brand'] ?? '') ?>"></div>
                 <div class="form-group"><label class="form-label">规格</label><input name="spec" class="form-control" value="<?= htmlspecialchars($editItem['spec'] ?? '') ?>"></div>
+                <div class="form-group"><label class="form-label">尺码</label><input name="size" class="form-control" value="<?= htmlspecialchars($editItem['size'] ?? '') ?>" placeholder="如：M/L/XL"></div>
+                <div class="form-group"><label class="form-label">材质</label><input name="material" class="form-control" value="<?= htmlspecialchars($editItem['material'] ?? '') ?>" placeholder="如：纯棉/涤纶"></div>
+                <div class="form-group"><label class="form-label">鞋码</label><input name="shoe_size" class="form-control" value="<?= htmlspecialchars($editItem['shoe_size'] ?? '') ?>" placeholder="如：42"></div>
                 <div class="form-group"><label class="form-label">数量</label><input name="quantity" class="form-control" type="number" step="0.01" value="<?= $editItem['quantity'] ?>"></div>
                 <div class="form-group"><label class="form-label">单位</label><input name="unit" class="form-control" value="<?= htmlspecialchars($editItem['unit'] ?? '个') ?>"></div>
                 <div class="form-group"><label class="form-label">生产日期</label><input name="purchase_date" class="form-control" type="date" value="<?= $editItem['purchase_date'] ?? '' ?>"></div>

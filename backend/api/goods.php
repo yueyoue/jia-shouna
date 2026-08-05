@@ -14,6 +14,8 @@ switch ($action) {
         $houseId = intval($_GET['house_id'] ?? 0);
         $spaceId = intval($_GET['space_id'] ?? 0);
         $category = $_GET['category'] ?? '';
+        $color = $_GET['color'] ?? '';
+        $season = $_GET['season'] ?? '';
         $tagId = intval($_GET['tag_id'] ?? 0);
         $keyword = $_GET['keyword'] ?? '';
         $unassigned = intval($_GET['unassigned'] ?? 0);
@@ -64,6 +66,14 @@ switch ($action) {
         if ($category) {
             $where[] = "g.category = ?";
             $params[] = $category;
+        }
+        if ($color) {
+            $where[] = "g.color = ?";
+            $params[] = $color;
+        }
+        if ($season) {
+            $where[] = "(g.season = ? OR g.season = '四季')";
+            $params[] = $season;
         }
         if ($keyword) {
             $where[] = "(g.name LIKE ? OR g.barcode LIKE ? OR g.note LIKE ?)";
@@ -188,7 +198,7 @@ switch ($action) {
         if (!$houseId || !$spaceId || empty($name)) error('请填写物品名称并选择存放位置');
 
         $now = time();
-        $stmt = $db->prepare("INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, brand, manufacturer, spec, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO goods (house_id, space_id, creator_id, name, barcode, category, color, season, brand, manufacturer, spec, size, material, shoe_size, quantity, unit, purchase_date, expiry_date, purchase_price, stock_threshold, note, is_private, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)");
         // 清理空字符串为null（避免DATE/DECIMAL列插入空字符串报错）
         $purchaseDate = !empty($input['purchase_date']) ? $input['purchase_date'] : null;
         $expiryDate = !empty($input['expiry_date']) ? $input['expiry_date'] : null;
@@ -197,8 +207,10 @@ switch ($action) {
 
         $stmt->execute([
             $houseId, $spaceId, $user['id'], $name,
-            $input['barcode'] ?? '', $input['category'] ?? '', $input['brand'] ?? '',
-            $input['manufacturer'] ?? '', $input['spec'] ?? '', floatval($input['quantity'] ?? 1), $input['unit'] ?? '个',
+            $input['barcode'] ?? '', $input['category'] ?? '', $input['color'] ?? '', $input['season'] ?? '',
+            $input['brand'] ?? '', $input['manufacturer'] ?? '', $input['spec'] ?? '',
+            $input['size'] ?? '', $input['material'] ?? '', $input['shoe_size'] ?? '',
+            floatval($input['quantity'] ?? 1), $input['unit'] ?? '个',
             $purchaseDate, $expiryDate,
             $purchasePrice, $stockThreshold,
             $input['note'] ?? '', intval($input['is_private'] ?? 0),
@@ -287,7 +299,7 @@ switch ($action) {
         $goods = $stmt->fetch();
         if (!$goods) error('物品不存在');
 
-        $allowedFields = ['name', 'barcode', 'category', 'brand', 'manufacturer', 'spec', 'quantity', 'unit', 'purchase_date', 'expiry_date', 'purchase_price', 'stock_threshold', 'note', 'is_private'];
+        $allowedFields = ['name', 'barcode', 'category', 'color', 'season', 'brand', 'manufacturer', 'spec', 'size', 'material', 'shoe_size', 'quantity', 'unit', 'purchase_date', 'expiry_date', 'purchase_price', 'stock_threshold', 'note', 'is_private'];
         $fields = [];
         $params = [];
         // DATE/DECIMAL字段的空值需要转为null，避免MySQL严格模式报错

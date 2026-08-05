@@ -195,3 +195,20 @@ function createThumbnail($srcPath, $thumbPath, $maxWidth = 200) {
     imagedestroy($thumb);
     return true;
 }
+
+/**
+ * 颜色名转HEX色值（用于Web端显示颜色圆点）
+ */
+function getColorHex($colorName) {
+    $map = [
+        '黑色' => '#1A1A1A', '白色' => '#FFFFFF', '红色' => '#E53E3E',
+        '蓝色' => '#3182CE', '绿色' => '#38A169', '黄色' => '#ECC94B',
+        '灰色' => '#718096', '粉色' => '#ED64A6', '紫色' => '#805AD5',
+        '橙色' => '#DD6B20', '棕色' => '#975A16', '米色' => '#FEFCBF',
+        '卡其色' => '#D4A574', '藏青' => '#1A365D', '酒红' => '#9B2C2C',
+        '军绿' => '#2F5233', '浅蓝' => '#63B3ED', '深蓝' => '#1A365D',
+        '灰色' => '#A0AEC0', '银色' => '#CBD5E0', '金色' => '#D69E2E',
+    ];
+    if (empty($colorName)) return '#CBD5E0';
+    return $map[$colorName] ?? '#CBD5E0';
+}

@@ -109,8 +109,11 @@ switch ($action) {
                 // 构建 prompt
                 $systemPrompt = '你是家庭收纳物品识别助手。用户会上传家中物品的照片，你需要识别出这是什么物品。'
                     . '严格只返回一个JSON对象，不要有其他文字：'
-                    . '{"goods_name":"物品名称","brand":"品牌或null","spec":"规格或null","category":"分类(' . $categoryStr . ')","barcode":"条码或null","expire_date":"日期或null","storage_tip":"存放建议","confidence":0.85}'
-                    . '无信息的字段返回null，不要猜。';
+                    . '{"goods_name":"物品名称","brand":"品牌或null","spec":"规格或null","category":"分类(' . $categoryStr . ')","color":"主色调(如:黑色/白色/红色/蓝色/灰色/米色/绿色/粉色/黄色/棕色/紫色/橙色)","season":"适用季节(春/夏/秋/冬/四季/春秋)","barcode":"条码或null","expire_date":"日期或null","storage_tip":"存放建议","confidence":0.85}'
+                    . '规则：'
+                    . '1. color：识别物品的主色调，用标准颜色名。非衣物类也要识别颜色。'
+                    . '2. season：如果是衣物/鞋帽，根据材质和厚度推断季节(短袖/薄=夏，羽绒/厚=冬，卫衣/长袖=春秋，T恤/基础款=四季)。非衣物类返回"四季"。'
+                    . '3. 无信息的字段返回null，不要猜。';
 
                 // 直接调用 AI API
                 $startTime = microtime(true);
@@ -197,6 +200,8 @@ switch ($action) {
                     'suggested_name' => $aiResult['goods_name'] ?? '',
                     'suggested_category' => $aiResult['category'] ?? '',
                     'suggested_brand' => $aiResult['brand'] ?? '',
+                    'color' => $aiResult['color'] ?? '',
+                    'season' => $aiResult['season'] ?? '',
                     'suggested_tags' => [],
                     'barcode' => $aiResult['barcode'] ?? '',
                     'spec' => $aiResult['spec'] ?? '',
