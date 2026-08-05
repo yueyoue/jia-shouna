@@ -10,6 +10,7 @@ import com.jiashouna.app.ui.fragment.HomeFragment;
 import com.jiashouna.app.ui.fragment.SpacesFragment;
 import com.jiashouna.app.ui.fragment.RemindersFragment;
 import com.jiashouna.app.ui.fragment.ProfileFragment;
+import com.jiashouna.app.ui.fragment.DressingRoomFragment;
 
 public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNav;
@@ -42,8 +43,8 @@ public class MainActivity extends AppCompatActivity {
                 // 不切换fragment，保持当前页面
                 bottomNav.setSelectedItemId(R.id.nav_home);
                 return false;
-            } else if (id == R.id.nav_reminders) {
-                loadFragment(new RemindersFragment());
+            } else if (id == R.id.nav_outfit) {
+                loadFragment(new DressingRoomFragment());
                 return true;
             } else if (id == R.id.nav_profile) {
                 loadFragment(new ProfileFragment());

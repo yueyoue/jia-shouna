@@ -34,6 +34,7 @@
         <activity android:name=".ui.ImageViewerActivity" android:theme="@style/Theme.AppCompat.NoActionBar" />
         <activity android:name=".ui.AddSpaceActivity" />
         <activity android:name=".ui.FamilyShareActivity" />
+        <activity android:name=".ui.OutfitCreateActivity" />
         <activity android:name=".ui.SpaceDetailActivity" />
         <activity android:name=".ui.BarcodeScanActivity" android:screenOrientation="portrait" />
         <activity android:name=".ui.CaptureActivityPortrait" android:screenOrientation="portrait" />

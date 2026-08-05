@@ -29,7 +29,8 @@ public class AddItemActivity extends AppCompatActivity {
     private Spinner etUnit;
     private EditText etPurchaseDate;
     private TextView tvExpiryDateAuto;
-    private Spinner spExpiryUnit, spCategory, spExpiryReminder;
+    private Spinner spExpiryUnit, spCategory, spExpiryReminder, spSeason;
+    private View btnCreateOutfit;
     private String selectedPurchaseDate = "";
     private View spacePicker;
     private TextView tvSpaceName, tvSpacePath, tvScanHint;
@@ -150,6 +151,27 @@ public class AddItemActivity extends AppCompatActivity {
 
         // 初始化过期提醒 Spinner
         spExpiryReminder = findViewById(R.id.sp_expiry_reminder);
+
+        // 服装季节 Spinner
+        spSeason = findViewById(R.id.sp_season);
+        if (spSeason != null) {
+            String[] seasonOptions = {"不指定", "春", "夏", "秋", "冬", "四季", "春秋"};
+            ArrayAdapter<String> seasonAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, seasonOptions);
+            seasonAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spSeason.setAdapter(seasonAdapter);
+        }
+
+        // 创建套装按钮
+        btnCreateOutfit = findViewById(R.id.btn_create_outfit);
+        if (btnCreateOutfit != null) {
+            btnCreateOutfit.setOnClickListener(v -> {
+                Intent intent = new Intent(this, OutfitCreateActivity.class);
+                intent.putExtra("preselect_goods_name", etName.getText().toString().trim());
+                intent.putExtra("preselect_goods_category", spCategory.getSelectedItem().toString());
+                intent.putExtra("preselect_goods_color", etColor != null ? etColor.getText().toString().trim() : "");
+                startActivity(intent);
+            });
+        }
         if (spExpiryReminder != null) {
             String[] reminderOptions = {"不提醒", "过期前3天", "过期前7天", "过期前14天", "过期前30天"};
             ArrayAdapter<String> reminderAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, reminderOptions);
@@ -329,6 +351,7 @@ public class AddItemActivity extends AppCompatActivity {
                 }
                 if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.VISIBLE);
                 if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.GONE);
+                if (btnCreateOutfit != null) btnCreateOutfit.setVisibility(View.VISIBLE);
                 break;
             case 6: // 鞋帽
                 if (layoutFieldsClothing != null) {
@@ -337,6 +360,7 @@ public class AddItemActivity extends AppCompatActivity {
                 }
                 if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.VISIBLE);
                 if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.VISIBLE);
+                if (btnCreateOutfit != null) btnCreateOutfit.setVisibility(View.VISIBLE);
                 break;
             case 7: // 其他
                 if (layoutFieldsClothing != null) {
@@ -346,6 +370,7 @@ public class AddItemActivity extends AppCompatActivity {
                 // 其他不显示尺码和鞋码
                 if (layoutSizeOnly != null) layoutSizeOnly.setVisibility(View.GONE);
                 if (layoutShoeSize != null) layoutShoeSize.setVisibility(View.GONE);
+                if (btnCreateOutfit != null) btnCreateOutfit.setVisibility(View.GONE);
                 break;
         }
     }
@@ -500,6 +525,23 @@ public class AddItemActivity extends AppCompatActivity {
             if (category.isEmpty()) category = safeGetString(data, "category");
             final String spec = safeGetString(data, "spec");
             final String storageTip = safeGetString(data, "storage_tip");
+
+            // AI识别颜色和季节
+            String aiColor = safeGetString(data, "color");
+            String aiSeason = safeGetString(data, "season");
+            // 自动填入颜色
+            if (!aiColor.isEmpty() && etColor != null) {
+                etColor.setText(aiColor);
+            }
+            // 自动选中季节 Spinner
+            if (!aiSeason.isEmpty() && spSeason != null) {
+                for (int i = 0; i < spSeason.getCount(); i++) {
+                    if (spSeason.getItemAtPosition(i).toString().equals(aiSeason)) {
+                        spSeason.setSelection(i);
+                        break;
+                    }
+                }
+            }
             String msg = "名称: " + name;
             if (!brand.isEmpty()) msg += "\n品牌: " + brand;
             if (!spec.isEmpty()) msg += "\n规格: " + spec;
@@ -1736,6 +1778,7 @@ public class AddItemActivity extends AppCompatActivity {
             if (etColor != null) body.addProperty("color", etColor.getText().toString().trim());
             if (etMaterial != null) body.addProperty("material", etMaterial.getText().toString().trim());
             if (etShoeSize != null) body.addProperty("shoe_size", etShoeSize.getText().toString().trim());
+            if (spSeason != null && spSeason.getSelectedItemPosition() > 0) body.addProperty("season", spSeason.getSelectedItem().toString());
             // 数码字段
             if (etModel != null) body.addProperty("model", etModel.getText().toString().trim());
             if (etSerialNumber != null) body.addProperty("serial_number", etSerialNumber.getText().toString().trim());
@@ -1926,6 +1969,7 @@ public class AddItemActivity extends AppCompatActivity {
         if (etColor != null) body.addProperty("color", etColor.getText().toString().trim());
         if (etMaterial != null) body.addProperty("material", etMaterial.getText().toString().trim());
         if (etShoeSize != null) body.addProperty("shoe_size", etShoeSize.getText().toString().trim());
+        if (spSeason != null && spSeason.getSelectedItemPosition() > 0) body.addProperty("season", spSeason.getSelectedItem().toString());
         if (etModel != null) body.addProperty("model", etModel.getText().toString().trim());
         if (etSerialNumber != null) body.addProperty("serial_number", etSerialNumber.getText().toString().trim());
         if (etWarranty != null) body.addProperty("warranty", etWarranty.getText().toString().trim());

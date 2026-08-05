@@ -397,17 +397,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void updateReminderBadge(int count) {
-        if (getActivity() == null) return;
-        com.google.android.material.bottomnavigation.BottomNavigationView nav =
-            getActivity().findViewById(R.id.bottom_nav);
-        if (nav == null) return;
-
-        if (count > 0) {
-            nav.getOrCreateBadge(R.id.nav_reminders).setNumber(count);
-            nav.getOrCreateBadge(R.id.nav_reminders).setVisible(true);
-        } else {
-            nav.removeBadge(R.id.nav_reminders);
-        }
+        // 提醒已合并到首页公告横幅，底部导航不再显示提醒角标
     }
 
     /**

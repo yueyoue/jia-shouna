@@ -13,9 +13,9 @@
         android:icon="@android:drawable/ic_menu_camera"
         android:title="扫码" />
     <item
-        android:id="@+id/nav_reminders"
-        android:icon="@android:drawable/ic_popup_reminder"
-        android:title="提醒" />
+        android:id="@+id/nav_outfit"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="衣帽间" />
     <item
         android:id="@+id/nav_profile"
         android:icon="@android:drawable/ic_menu_myplaces"
