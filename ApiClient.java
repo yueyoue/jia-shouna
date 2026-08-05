@@ -1,0 +1,156 @@
+package com.jiashouna.app.api;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.jiashouna.app.App;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+public class ApiClient {
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private static final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build();
+    private static final Gson gson = new Gson();
+
+    public interface ApiCallback {
+        void onSuccess(JsonObject data);
+        void onError(String msg);
+    }
+
+    // GET 请求
+    public static void get(String path, Map<String, String> params, ApiCallback callback) {
+        StringBuilder url = new StringBuilder(App.BASE_URL + path);
+        if (params != null && !params.isEmpty()) {
+            url.append(url.toString().contains("?") ? "&" : "?");
+            for (Map.Entry<String, String> e : params.entrySet()) {
+                url.append(e.getKey()).append("=").append(e.getValue()).append("&");
+            }
+        }
+        Request.Builder builder = new Request.Builder().url(url.toString()).get();
+        String token = App.getInstance().getToken();
+        if (!token.isEmpty()) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+        client.newCall(builder.build()).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {
+                callback.onError("网络错误: " + e.getMessage());
+            }
+            @Override public void onResponse(Call call, Response response) throws IOException {
+                handleResponse(response, callback);
+            }
+        });
+    }
+
+    // POST JSON 请求
+    public static void post(String path, JsonObject body, ApiCallback callback) {
+        String token = App.getInstance().getToken();
+        Request.Builder builder = new Request.Builder()
+                .url(App.BASE_URL + path)
+                .post(RequestBody.create(body.toString(), JSON));
+        if (!token.isEmpty()) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+        client.newCall(builder.build()).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {
+                callback.onError("网络错误: " + e.getMessage());
+            }
+            @Override public void onResponse(Call call, Response response) throws IOException {
+                handleResponse(response, callback);
+            }
+        });
+    }
+
+    // 同步GET
+    public static JsonObject syncGet(String path, Map<String, String> params) throws IOException {
+        StringBuilder url = new StringBuilder(App.BASE_URL + path);
+        if (params != null && !params.isEmpty()) {
+            url.append(url.toString().contains("?") ? "&" : "?");
+            for (Map.Entry<String, String> e : params.entrySet()) {
+                url.append(e.getKey()).append("=").append(e.getValue()).append("&");
+            }
+        }
+        Request.Builder builder = new Request.Builder().url(url.toString()).get();
+        String token = App.getInstance().getToken();
+        if (!token.isEmpty()) builder.addHeader("Authorization", "Bearer " + token);
+        Response response = client.newCall(builder.build()).execute();
+        if (response.body() != null) {
+            return JsonParser.parseString(response.body().string()).getAsJsonObject();
+        }
+        return null;
+    }
+
+    private static void handleResponse(Response response, ApiCallback callback) {
+        try {
+            int httpCode = response.code();
+            android.util.Log.d("ApiClient", "HTTP " + httpCode + " " + response.request().url());
+            if (response.body() == null) {
+                android.util.Log.e("ApiClient", "Null body for " + response.request().url());
+                callback.onError("服务器无响应 (HTTP " + httpCode + ")");
+                return;
+            }
+            String body = response.body().string();
+            android.util.Log.d("ApiClient", "Response body (first 300): " + (body != null ? body.substring(0, Math.min(300, body.length())) : "null"));
+            if (body == null || body.trim().isEmpty()) {
+                callback.onError("服务器返回空内容 (HTTP " + httpCode + ")");
+                return;
+            }
+            body = body.trim();
+            // 尝试提取JSON部分（跳过可能的PHP警告/Notice输出）
+            int jsonStart = body.indexOf('{');
+            if (jsonStart < 0) {
+                // 也可能返回的是JSON数组
+                jsonStart = body.indexOf('[');
+            }
+            if (jsonStart > 0) {
+                body = body.substring(jsonStart);
+            }
+            com.google.gson.JsonElement element;
+            try {
+                com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(new java.io.StringReader(body));
+                reader.setLenient(true);
+                element = com.google.gson.JsonParser.parseReader(reader);
+            } catch (Exception parseErr) {
+                callback.onError("服务器返回了无效的数据格式");
+                return;
+            }
+            if (element == null || element.isJsonNull()) {
+                callback.onError("服务器返回了空数据");
+                return;
+            }
+            if (!element.isJsonObject()) {
+                callback.onError("服务器返回了非预期的数据类型");
+                return;
+            }
+            JsonObject json = element.getAsJsonObject();
+            if (!json.has("code")) {
+                callback.onError("服务器响应格式不正确");
+                return;
+            }
+            int code = json.get("code").getAsInt();
+            if (code == 0) {
+                JsonObject data = json.has("data") && !json.get("data").isJsonNull() ? json.getAsJsonObject("data") : new JsonObject();
+                android.util.Log.d("ApiClient", "Success, data keys: " + data.keySet());
+                callback.onSuccess(data);
+            } else {
+                String msg = json.has("msg") ? json.get("msg").getAsString() : "请求失败";
+                android.util.Log.e("ApiClient", "API error " + code + ": " + msg);
+                callback.onError(msg);
+            }
+        } catch (Exception e) {
+            callback.onError("解析错误: " + e.getMessage());
+        }
+    }
+}

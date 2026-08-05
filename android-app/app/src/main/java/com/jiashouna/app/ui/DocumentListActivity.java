@@ -106,6 +106,9 @@ public class DocumentListActivity extends AppCompatActivity {
         params.put("house_id", String.valueOf(houseId));
         if (!currentCategory.isEmpty()) params.put("category", currentCategory);
 
+        String debugUrl = "document.php?action=list&house_id=" + houseId;
+        android.util.Log.d("DocDebug", "请求: " + debugUrl + " houseId=" + houseId);
+
         ApiClient.get("document.php?action=list", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
@@ -117,13 +120,22 @@ public class DocumentListActivity extends AppCompatActivity {
                         boolean hasData = documents.size() > 0;
                         layoutEmpty.setVisibility(hasData ? View.GONE : View.VISIBLE);
                         swipeRefresh.setVisibility(hasData ? View.VISIBLE : View.GONE);
-                    } catch (Exception ignored) {}
+                        Toast.makeText(DocumentListActivity.this, "✅ 加载成功 " + documents.size() + " 条", Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Toast.makeText(DocumentListActivity.this, "解析异常: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
                 });
             }
             @Override public void onError(String msg) {
                 runOnUiThread(() -> {
                     swipeRefresh.setRefreshing(false);
-                    Toast.makeText(DocumentListActivity.this, "加载失败", Toast.LENGTH_SHORT).show();
+                    // 显示详细错误信息
+                    String debugInfo = "加载失败\n" +
+                        "URL: " + debugUrl + "\n" +
+                        "houseId: " + houseId + "\n" +
+                        "错误: " + msg;
+                    android.util.Log.e("DocDebug", debugInfo);
+                    Toast.makeText(DocumentListActivity.this, debugInfo, Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -145,10 +157,14 @@ public class DocumentListActivity extends AppCompatActivity {
                         tvStatExpiring.setText("⚠ 即将到期 " + expiring);
                         tvStatExpired.setText("🔴 已过期 " + expired);
                         layoutStats.setVisibility(View.VISIBLE);
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) {
+                        android.util.Log.e("DocDebug", "stats解析异常: " + e.getMessage());
+                    }
                 });
             }
-            @Override public void onError(String msg) {}
+            @Override public void onError(String msg) {
+                android.util.Log.e("DocDebug", "stats加载失败: " + msg);
+            }
         });
     }
 
