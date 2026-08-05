@@ -6,6 +6,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.*;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import com.google.gson.*;
 import com.jiashouna.app.App;
@@ -300,7 +301,7 @@ public class DressingRoomFragment extends Fragment {
         info.addView(tags);
         card.addView(info);
 
-        // 点击进入详情
+        // 点击进入详情/编辑
         int outfitId = outfit.has("id") ? outfit.get("id").getAsInt() : 0;
         if (outfitId > 0) {
             card.setClickable(true);
@@ -311,6 +312,16 @@ public class DressingRoomFragment extends Fragment {
                 intent.putExtra("outfit_id", fid);
                 intent.putExtra("edit_mode", true);
                 startActivity(intent);
+            });
+            // 长按删除
+            card.setOnLongClickListener(v -> {
+                new AlertDialog.Builder(getActivity())
+                    .setTitle("删除套装")
+                    .setMessage("确定删除「" + outfit.get("name").getAsString() + "”？\n物品不会被删除。")
+                    .setPositiveButton("删除", (d, w) -> deleteOutfit(fid))
+                    .setNegativeButton("取消", null)
+                    .show();
+                return true;
             });
         }
 
@@ -337,6 +348,24 @@ public class DressingRoomFragment extends Fragment {
         TextView tvDesc = emptyView.findViewById(R.id.tv_empty_desc);
         if (tvTitle != null) tvTitle.setText(title);
         if (tvDesc != null) tvDesc.setText(desc);
+    }
+
+    private void deleteOutfit(int outfitId) {
+        com.google.gson.JsonObject body = new com.google.gson.JsonObject();
+        body.addProperty("id", outfitId);
+        ApiClient.post("outfit.php?action=delete", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(com.google.gson.JsonObject data) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    Toast.makeText(getActivity(), "已删除", Toast.LENGTH_SHORT).show();
+                    loadOutfits();
+                });
+            }
+            @Override public void onError(String msg) {
+                if (getActivity() != null) getActivity().runOnUiThread(() ->
+                    Toast.makeText(getActivity(), "删除失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private int dp(int dp) {

@@ -132,15 +132,8 @@ switch ($action) {
             $db->prepare("INSERT INTO backup_record (filename, file_size, type, method, status, operator_id, created_at) VALUES (?, ?, 'images', 'manual', 1, ?, ?)")
                 ->execute([$filename, $fileSize, $_SESSION['admin_id'], time()]);
 
-            // 清除输出缓冲，确保文件下载正常
-            while (ob_get_level()) ob_end_clean();
-
-            // 直接输出文件供下载
-            header('Content-Type: application/zip');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . $fileSize);
-            readfile($filepath);
-            exit;
+            // 返回下载链接，由前端触发下载
+            jsonResponse(0, '打包成功', ['filename' => $filename, 'file_size' => $fileSize, 'file_count' => $fileCount, 'download_url' => '?action=download&file=' . urlencode($filename)]);
 
         } catch (Exception $e) {
             jsonResponse(500, '打包失败: ' . $e->getMessage());

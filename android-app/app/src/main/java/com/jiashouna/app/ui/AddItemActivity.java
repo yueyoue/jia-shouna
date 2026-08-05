@@ -65,6 +65,7 @@ public class AddItemActivity extends AppCompatActivity {
 
     private boolean isEditMode = false;
     private int editGoodsId = 0;
+    private int pendingOutfitId = 0; // 待关联的套装ID
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -161,16 +162,10 @@ public class AddItemActivity extends AppCompatActivity {
             spSeason.setAdapter(seasonAdapter);
         }
 
-        // 创建套装按钮
+        // 加入套装按钮 - 弹出选择对话框
         btnCreateOutfit = findViewById(R.id.btn_create_outfit);
         if (btnCreateOutfit != null) {
-            btnCreateOutfit.setOnClickListener(v -> {
-                Intent intent = new Intent(this, OutfitCreateActivity.class);
-                intent.putExtra("preselect_goods_name", etName.getText().toString().trim());
-                intent.putExtra("preselect_goods_category", spCategory.getSelectedItem().toString());
-                intent.putExtra("preselect_goods_color", etColor != null ? etColor.getText().toString().trim() : "");
-                startActivity(intent);
-            });
+            btnCreateOutfit.setOnClickListener(v -> showOutfitDialog());
         }
         if (spExpiryReminder != null) {
             String[] reminderOptions = {"不提醒", "过期前3天", "过期前7天", "过期前14天", "过期前30天"};
@@ -1809,6 +1804,16 @@ public class AddItemActivity extends AppCompatActivity {
             ApiClient.post(endpoint, body, new ApiClient.ApiCallback() {
                 @Override public void onSuccess(JsonObject data) {
                     runOnUiThread(() -> {
+                        // 如果有待关联的套装，把物品加入
+                        if (pendingOutfitId > 0 && !isEditMode) {
+                            int goodsId = 0;
+                            try {
+                                if (data.has("id")) goodsId = data.get("id").getAsInt();
+                            } catch (Exception ignored) {}
+                            if (goodsId > 0) {
+                                addItemToOutfit(pendingOutfitId, goodsId);
+                            }
+                        }
                         Toast.makeText(AddItemActivity.this, "✅ 保存成功", Toast.LENGTH_SHORT).show();
                         if (continueAfterSave) {
                             resetForm();
@@ -2152,6 +2157,299 @@ public class AddItemActivity extends AppCompatActivity {
                 } catch (Exception ignored) {}
             }
         }).start();
+    }
+
+    /**
+     * 加入套装对话框 - 新建或加入已有套装
+     */
+    private void showOutfitDialog() {
+        String goodsName = etName.getText().toString().trim();
+        String goodsColor = etColor != null ? etColor.getText().toString().trim() : "";
+        String season = spSeason != null && spSeason.getSelectedItemPosition() > 0 ? spSeason.getSelectedItem().toString() : "";
+        String category = spCategory != null ? spCategory.getSelectedItem().toString() : "";
+
+        // 弹出选择：新建套装 / 加入已有套装
+        String[] options = {"🏷 新建套装", "📋 加入已有套装"};
+        new AlertDialog.Builder(this)
+            .setTitle("加入套装")
+            .setItems(options, (dialog, which) -> {
+                if (which == 0) {
+                    showCreateOutfitDialog(goodsName, goodsColor, season, category);
+                } else {
+                    showJoinOutfitDialog(season);
+                }
+            })
+            .show();
+    }
+
+    /**
+     * 新建套装 - 推荐名称
+     */
+    private void showCreateOutfitDialog(String goodsName, String goodsColor, String season, String category) {
+        // 系统推荐名称
+        String suggestedName = "";
+        if (!season.isEmpty() && !goodsColor.isEmpty()) {
+            suggestedName = season + "季" + goodsColor + "搭配";
+        } else if (!season.isEmpty() && !goodsName.isEmpty()) {
+            suggestedName = season + "季" + goodsName + "搭配";
+        } else if (!goodsName.isEmpty()) {
+            suggestedName = goodsName + "套装";
+        } else {
+            suggestedName = "我的套装";
+        }
+
+        EditText input = new EditText(this);
+        input.setText(suggestedName);
+        input.setHint("输入套装名称");
+        input.setPadding(dp(16), dp(12), dp(16), dp(12));
+        input.setTextSize(14);
+        // 全选方便用户修改
+        input.selectAll();
+
+        new AlertDialog.Builder(this)
+            .setTitle("🏷 新建套装")
+            .setMessage("系统推荐名称（可修改）：")
+            .setView(input)
+            .setPositiveButton("创建", (d, w) -> {
+                String name = input.getText().toString().trim();
+                if (name.isEmpty()) name = suggestedName;
+                createOutfitAndAddItem(name, season);
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    /**
+     * 创建套装并把当前物品加入
+     */
+    private void createOutfitAndAddItem(String name, String season) {
+        int houseId = App.getInstance().getCurrentHouseId();
+        JsonObject body = new JsonObject();
+        body.addProperty("house_id", houseId);
+        body.addProperty("name", name);
+        body.addProperty("season", season);
+        // 暂不关联物品，等物品保存后再关联
+        body.add("items", new com.google.gson.JsonArray());
+
+        Toast.makeText(this, "正在创建套装...", Toast.LENGTH_SHORT).show();
+        ApiClient.post("outfit.php?action=create", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        int outfitId = data.has("id") ? data.get("id").getAsInt() : 0;
+                        if (outfitId > 0) {
+                            Toast.makeText(AddItemActivity.this, "✅ 套装已创建，保存物品后自动加入", Toast.LENGTH_SHORT).show();
+                            // 保存 outfitId，等物品保存后关联
+                            pendingOutfitId = outfitId;
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "创建失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    /**
+     * 加入已有套装 - 按季节匹配
+     */
+    private void showJoinOutfitDialog(String season) {
+        int houseId = App.getInstance().getCurrentHouseId();
+        String url = "outfit.php?action=list&house_id=" + houseId;
+        if (!season.isEmpty()) url += "&season=" + season;
+
+        Toast.makeText(this, "加载套装列表...", Toast.LENGTH_SHORT).show();
+        ApiClient.get(url, null, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonArray list = data.has("list") ? data.getAsJsonArray("list") : new JsonArray();
+                        if (list.size() == 0) {
+                            String msg = season.isEmpty() ? "还没有套装" : "没有匹配 " + season + " 的套装";
+                            new AlertDialog.Builder(AddItemActivity.this)
+                                .setTitle("加入套装")
+                                .setMessage(msg + "，是否新建一个？")
+                                .setPositiveButton("新建", (d, w) -> showCreateOutfitDialog(
+                                    etName.getText().toString().trim(),
+                                    etColor != null ? etColor.getText().toString().trim() : "",
+                                    season, ""))
+                                .setNegativeButton("取消", null)
+                                .show();
+                            return;
+                        }
+                        showOutfitPickerDialog(list);
+                    } catch (Exception e) {
+                        Toast.makeText(AddItemActivity.this, "加载失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "加载失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    /**
+     * 套装选择列表 - 展示缩略图
+     */
+    private void showOutfitPickerDialog(JsonArray outfits) {
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(16), dp(12), dp(16), dp(8));
+
+        for (int i = 0; i < outfits.size(); i++) {
+            JsonObject outfit = outfits.get(i).getAsJsonObject();
+            int outfitId = outfit.get("id").getAsInt();
+            String name = outfit.has("name") ? outfit.get("name").getAsString() : "";
+            String season = outfit.has("season") && !outfit.get("season").isJsonNull() ? outfit.get("season").getAsString() : "";
+            JsonArray items = outfit.has("items") && !outfit.get("items").isJsonNull() ? outfit.getAsJsonArray("items") : new JsonArray();
+
+            // 套装卡片
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(12), dp(10), dp(12), dp(10));
+            android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
+            cardBg.setCornerRadius(dp(10));
+            cardBg.setColor(0xFFF7FAFC);
+            cardBg.setStroke(dp(1), 0xFFE2E8F0);
+            card.setBackground(cardBg);
+            LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            cardLp.bottomMargin = dp(8);
+            card.setLayoutParams(cardLp);
+
+            // 左侧：物品缩略图网格 (2x2)
+            LinearLayout grid = new LinearLayout(this);
+            grid.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(dp(56), dp(56));
+            grid.setLayoutParams(gridLp);
+
+            for (int row = 0; row < 2; row++) {
+                LinearLayout gridRow = new LinearLayout(this);
+                gridRow.setOrientation(LinearLayout.HORIZONTAL);
+                gridRow.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
+                for (int col = 0; col < 2; col++) {
+                    int idx = row * 2 + col;
+                    android.widget.ImageView img = new android.widget.ImageView(this);
+                    img.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                    img.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1));
+                    if (idx < items.size()) {
+                        JsonObject item = items.get(idx).getAsJsonObject();
+                        String cover = item.has("cover_image") && !item.get("cover_image").isJsonNull() ? item.get("cover_image").getAsString() : "";
+                        if (!cover.isEmpty()) {
+                            try { com.bumptech.glide.Glide.with(this).load(cover).centerCrop().into(img); } catch (Exception ignored) {}
+                        } else {
+                            img.setBackgroundColor(0xFFEDF2F7);
+                        }
+                    } else {
+                        img.setBackgroundColor(0xFFEDF2F7);
+                    }
+                    gridRow.addView(img);
+                }
+                grid.addView(gridRow);
+            }
+            card.addView(grid);
+
+            // 右侧：名称+季节+数量
+            LinearLayout info = new LinearLayout(this);
+            info.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            infoLp.leftMargin = dp(12);
+            info.setLayoutParams(infoLp);
+
+            TextView tvName = new TextView(this);
+            tvName.setText(name);
+            tvName.setTextSize(14);
+            tvName.setTextColor(0xFF2D3748);
+            tvName.setTypeface(null, android.graphics.Typeface.BOLD);
+            info.addView(tvName);
+
+            String meta = "";
+            if (!season.isEmpty()) meta += season + " · ";
+            meta += items.size() + " 件";
+            TextView tvMeta = new TextView(this);
+            tvMeta.setText(meta);
+            tvMeta.setTextSize(11);
+            tvMeta.setTextColor(0xFF718096);
+            LinearLayout.LayoutParams metaLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            metaLp.topMargin = dp(4);
+            tvMeta.setLayoutParams(metaLp);
+            info.addView(tvMeta);
+
+            card.addView(info);
+            container.addView(card);
+
+            // 点击加入
+            final int fOutfitId = outfitId;
+            final String fName = name;
+            card.setOnClickListener(v -> {
+                // 关闭对话框后加入
+                pendingOutfitId = fOutfitId;
+                Toast.makeText(this, "✅ 物品保存后将加入「" + fName + "”
+, Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("选择套装")
+            .setView(container)
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    /**
+     * 将物品加入套装
+     */
+    private void addItemToOutfit(int outfitId, int goodsId) {
+        // 先获取套装详情，然后更新添加物品
+        ApiClient.get("outfit.php?action=detail&id=" + outfitId, null, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                try {
+                    JsonObject outfit = data.getAsJsonObject("outfit");
+                    JsonArray existingItems = outfit.has("items") && !outfit.get("items").isJsonNull()
+                        ? outfit.getAsJsonArray("items") : new JsonArray();
+
+                    // 构建新的items列表
+                    com.google.gson.JsonArray newItems = new com.google.gson.JsonArray();
+                    for (int i = 0; i < existingItems.size(); i++) {
+                        JsonObject it = existingItems.get(i).getAsJsonObject();
+                        JsonObject item = new JsonObject();
+                        item.addProperty("goods_id", it.get("goods_id").getAsInt());
+                        item.addProperty("slot", it.has("slot") && !it.get("slot").isJsonNull() ? it.get("slot").getAsString() : "");
+                        newItems.add(item);
+                    }
+                    // 添加新物品
+                    JsonObject newItem = new JsonObject();
+                    newItem.addProperty("goods_id", goodsId);
+                    newItem.addProperty("slot", guessSlot(etName.getText().toString().trim(),
+                        spCategory != null ? spCategory.getSelectedItem().toString() : ""));
+                    newItems.add(newItem);
+
+                    // 更新套装
+                    JsonObject body = new JsonObject();
+                    body.addProperty("id", outfitId);
+                    body.add("items", newItems);
+                    ApiClient.post("outfit.php?action=update", body, new ApiClient.ApiCallback() {
+                        @Override public void onSuccess(JsonObject data) {}
+                        @Override public void onError(String msg) {}
+                    });
+                } catch (Exception ignored) {}
+            }
+            @Override public void onError(String msg) {}
+        });
+    }
+
+    private String guessSlot(String name, String category) {
+        if (category.equals("鞋帽") || name.contains("鞋") || name.contains("靴")) return "shoes";
+        if (name.contains("帽")) return "hat";
+        if (name.contains("裤") || name.contains("裙")) return "bottom";
+        if (name.contains("外套") || name.contains("夹克") || name.contains("大衣") || name.contains("羽绒")) return "outer";
+        if (name.contains("包") || name.contains("袋") || name.contains("项链") || name.contains("手表")) return "accessory";
+        return "top";
     }
 
     private int dp(int dp) {

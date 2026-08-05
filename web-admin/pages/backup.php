@@ -402,14 +402,28 @@ async function doBackupDb() {
 
 // ====== 打包图片 ======
 function doBackupImages() {
+    var btn = document.getElementById('btn-backup-img');
     var status = document.getElementById('backup-img-status');
-    status.textContent = '⏳ 打包中，图片较多时可能需要等待...';
-    // 直接跳转下载
-    window.location.href = BACKUP_API + '?action=backup_images';
-    setTimeout(function() {
-        status.innerHTML = '<span style="color:#48BB78">✅ 下载已开始</span>';
-        setTimeout(function() { status.textContent = ''; }, 5000);
-    }, 2000);
+    btn.disabled = true; btn.textContent = '⏳ 打包中...';
+    status.textContent = '';
+
+    fetch(BACKUP_API + '?action=backup_images', {method:'POST'})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.disabled = false; btn.textContent = '📦 打包下载';
+            if (data.code === 0 && data.data && data.data.download_url) {
+                status.innerHTML = '<span style="color:#48BB78">✅ ' + data.msg + ' (' + data.data.file_count + ' 张图片, ' + formatSize(data.data.file_size) + ')</span>';
+                // 触发下载
+                window.location.href = BACKUP_API + '?action=download&file=' + encodeURIComponent(data.data.filename);
+                loadBackupFiles();
+            } else {
+                status.innerHTML = '<span style="color:#F56565">❌ ' + (data.msg || '打包失败') + '</span>';
+            }
+        })
+        .catch(function() {
+            btn.disabled = false; btn.textContent = '📦 打包下载';
+            status.innerHTML = '<span style="color:#F56565">❌ 请求失败</span>';
+        });
 }
 
 // ====== JSON 导出 ======
