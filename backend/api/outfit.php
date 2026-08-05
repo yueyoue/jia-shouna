@@ -1,22 +1,7 @@
 <?php
-// 临时调试
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
-ini_set('log_errors', '0');
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/helpers.php';
 corsHeaders();
-
-// 捕获致命错误
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-        while (ob_get_level()) ob_end_clean();
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['code' => 500, 'msg' => 'Fatal: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']], JSON_UNESCAPED_UNICODE);
-    }
-});
 
 $action = $_GET['action'] ?? '';
 $db = getDB();
