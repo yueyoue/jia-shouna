@@ -2213,9 +2213,8 @@ public class AddItemActivity extends AppCompatActivity {
             .setMessage("系统推荐名称（可修改）：")
             .setView(input)
             .setPositiveButton("创建", (d, w) -> {
-                String name = input.getText().toString().trim();
-                if (name.isEmpty()) name = suggestedName;
-                createOutfitAndAddItem(name, season);
+                String inputName = input.getText().toString().trim();
+                createOutfitAndAddItem(inputName.isEmpty() ? suggestedName : inputName, season);
             })
             .setNegativeButton("取消", null)
             .show();
