@@ -1,6 +1,7 @@
 -- ============================================
--- 家收纳 数据库结构
+-- 家收纳 数据库结构（完整版，含所有迁移）
 -- Database: MySQL 5.7+ / 8.0+
+-- 版本: v2.0 - 合并所有迁移，全新安装无需手动迁移
 -- ============================================
 
 SET NAMES utf8mb4;
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS `storage_space` (
     `house_id` INT UNSIGNED NOT NULL COMMENT '所属房屋ID',
     `parent_id` INT UNSIGNED DEFAULT 0 COMMENT '父级空间ID, 0=一级空间',
     `name` VARCHAR(100) NOT NULL COMMENT '空间名称',
+    `space_code` VARCHAR(10) DEFAULT NULL COMMENT '空间短编码',
     `level` TINYINT NOT NULL DEFAULT 1 COMMENT '层级: 1=房间 2=容器 3=区域',
     `icon` VARCHAR(50) DEFAULT '🏠' COMMENT '图标',
     `color` VARCHAR(20) DEFAULT '#FF8C42' COMMENT '主题色',
@@ -82,6 +84,7 @@ CREATE TABLE IF NOT EXISTS `storage_space` (
     `created_at` INT UNSIGNED NOT NULL COMMENT '创建时间',
     `updated_at` INT UNSIGNED NOT NULL COMMENT '更新时间',
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_space_code` (`space_code`),
     KEY `idx_house` (`house_id`),
     KEY `idx_parent` (`parent_id`),
     KEY `idx_creator` (`creator_id`)
@@ -110,9 +113,14 @@ CREATE TABLE IF NOT EXISTS `goods` (
     `name` VARCHAR(200) NOT NULL COMMENT '物品名称',
     `barcode` VARCHAR(100) DEFAULT '' COMMENT '条形码',
     `category` VARCHAR(50) DEFAULT '' COMMENT '分类',
+    `color` VARCHAR(30) DEFAULT '' COMMENT '颜色',
+    `season` VARCHAR(30) DEFAULT '' COMMENT '适用季节: 春/夏/秋/冬/四季/春秋',
     `brand` VARCHAR(100) DEFAULT '' COMMENT '品牌',
     `manufacturer` VARCHAR(200) DEFAULT '' COMMENT '生产厂商',
     `spec` VARCHAR(200) DEFAULT '' COMMENT '规格',
+    `size` VARCHAR(20) DEFAULT '' COMMENT '尺码(S/M/L/XL等)',
+    `material` VARCHAR(50) DEFAULT '' COMMENT '材质',
+    `shoe_size` VARCHAR(10) DEFAULT '' COMMENT '鞋码',
     `quantity` DECIMAL(10,2) NOT NULL DEFAULT 1 COMMENT '数量',
     `unit` VARCHAR(20) DEFAULT '个' COMMENT '单位',
     `purchase_date` DATE DEFAULT NULL COMMENT '购买日期',
@@ -185,10 +193,28 @@ CREATE TABLE IF NOT EXISTS `goods_borrow` (
     `return_reminder` INT UNSIGNED DEFAULT NULL COMMENT '归还提醒时间',
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1=已领用 2=已归还',
     `note` VARCHAR(500) DEFAULT '' COMMENT '备注',
+    `lend_to` VARCHAR(100) DEFAULT '' COMMENT '借出对象(姓名)',
+    `remind_at` INT UNSIGNED DEFAULT NULL COMMENT '归还提醒时间戳',
     PRIMARY KEY (`id`),
     KEY `idx_goods` (`goods_id`),
     KEY `idx_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='领用记录表';
+
+-- -------------------------------------------
+-- 物品流转日志表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `goods_log` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `goods_id` INT UNSIGNED NOT NULL COMMENT '物品ID',
+    `user_id` INT UNSIGNED NOT NULL COMMENT '操作人ID',
+    `action` VARCHAR(30) NOT NULL COMMENT '操作类型: create/edit/borrow/lend/return/import',
+    `detail` VARCHAR(500) DEFAULT '' COMMENT '操作详情',
+    `extra` TEXT DEFAULT NULL COMMENT '扩展JSON(借出对象、数量等)',
+    `created_at` INT UNSIGNED NOT NULL COMMENT '操作时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_goods` (`goods_id`),
+    KEY `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='物品流转日志表';
 
 -- -------------------------------------------
 -- 提醒表
@@ -214,11 +240,86 @@ CREATE TABLE IF NOT EXISTS `reminder` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='提醒表';
 
 -- -------------------------------------------
+-- 套装表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `outfit` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `house_id` INT UNSIGNED NOT NULL COMMENT '所属家庭',
+    `creator_id` INT UNSIGNED NOT NULL COMMENT '创建者',
+    `name` VARCHAR(100) NOT NULL COMMENT '套装名称',
+    `season` VARCHAR(30) DEFAULT '' COMMENT '适用季节',
+    `occasion` VARCHAR(50) DEFAULT '' COMMENT '场合: 通勤/运动/约会/居家/正装/休闲',
+    `cover_image` VARCHAR(500) DEFAULT '' COMMENT '套装封面图',
+    `note` TEXT COMMENT '备注',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '0=已删除 1=正常',
+    `created_at` INT UNSIGNED NOT NULL,
+    `updated_at` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_house` (`house_id`),
+    KEY `idx_season` (`season`),
+    KEY `idx_creator` (`creator_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='套装表';
+
+-- -------------------------------------------
+-- 套装-物品关联表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `outfit_item` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `outfit_id` INT UNSIGNED NOT NULL COMMENT '套装ID',
+    `goods_id` INT UNSIGNED NOT NULL COMMENT '物品ID',
+    `slot` VARCHAR(20) DEFAULT '' COMMENT '位置: top/bottom/hat/shoes/outer/accessory',
+    `sort_order` INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_outfit_goods` (`outfit_id`, `goods_id`),
+    KEY `idx_outfit` (`outfit_id`),
+    KEY `idx_goods` (`goods_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='套装物品关联表';
+
+-- -------------------------------------------
+-- 文件档案表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `document` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `house_id` INT UNSIGNED NOT NULL COMMENT '所属家庭',
+    `creator_id` INT UNSIGNED NOT NULL COMMENT '创建者',
+    `name` VARCHAR(200) NOT NULL COMMENT '文件名称',
+    `category` VARCHAR(30) NOT NULL DEFAULT '其他' COMMENT '分类: 证件/合同/票据/保单/房产/车辆/教育/医疗/其他',
+    `doc_no` VARCHAR(100) DEFAULT '' COMMENT '证件号码/合同编号',
+    `issuer` VARCHAR(100) DEFAULT '' COMMENT '签发机构/甲方',
+    `issue_date` DATE DEFAULT NULL COMMENT '签发日期',
+    `expiry_date` DATE DEFAULT NULL COMMENT '到期日期',
+    `storage_location` VARCHAR(200) DEFAULT '' COMMENT '存放位置(物理)',
+    `space_id` INT UNSIGNED DEFAULT NULL COMMENT '关联收纳空间',
+    `note` TEXT DEFAULT NULL COMMENT '备注',
+    `is_private` TINYINT NOT NULL DEFAULT 1 COMMENT '是否私密(默认私密)',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '0=已删除 1=正常',
+    `created_at` INT UNSIGNED NOT NULL,
+    `updated_at` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_house` (`house_id`),
+    KEY `idx_category` (`category`),
+    KEY `idx_creator` (`creator_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件档案表';
+
+-- -------------------------------------------
+-- 文件图片表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `document_image` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `document_id` INT UNSIGNED NOT NULL,
+    `image_path` VARCHAR(500) NOT NULL,
+    `sort_order` INT NOT NULL DEFAULT 0,
+    `created_at` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_doc` (`document_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件档案图片表';
+
+-- -------------------------------------------
 -- 第三方接口配置表
 -- -------------------------------------------
 CREATE TABLE IF NOT EXISTS `api_config` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `type` VARCHAR(30) NOT NULL COMMENT '接口类型: barcode/image',
+    `type` VARCHAR(30) NOT NULL COMMENT '接口类型: barcode/image/ai',
     `name` VARCHAR(100) NOT NULL COMMENT '服务商名称',
     `api_url` VARCHAR(500) NOT NULL COMMENT '接口地址',
     `api_key` VARCHAR(255) DEFAULT '' COMMENT 'API Key',
@@ -355,6 +456,44 @@ CREATE TABLE IF NOT EXISTS `sync_log` (
     KEY `idx_user_house` (`user_id`, `house_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据同步记录表';
 
+-- -------------------------------------------
+-- AI 调用总日志表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `ai_call_log` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` INT UNSIGNED NOT NULL COMMENT '用户ID',
+    `type` VARCHAR(20) DEFAULT 'recognize' COMMENT '调用类型: recognize识别/confirm入库',
+    `image_url` VARCHAR(500) DEFAULT NULL COMMENT '图片地址',
+    `ai_provider` VARCHAR(30) DEFAULT '' COMMENT 'AI服务商',
+    `ai_model` VARCHAR(50) DEFAULT '' COMMENT '模型名称',
+    `prompt_tokens` INT UNSIGNED DEFAULT 0 COMMENT '输入token数',
+    `completion_tokens` INT UNSIGNED DEFAULT 0 COMMENT '输出token数',
+    `total_tokens` INT UNSIGNED DEFAULT 0 COMMENT '总消耗',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1成功 0失败',
+    `error_msg` VARCHAR(500) DEFAULT NULL COMMENT '错误信息',
+    `duration` INT UNSIGNED DEFAULT 0 COMMENT '总耗时(ms)',
+    `created_at` INT UNSIGNED NOT NULL COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user` (`user_id`),
+    KEY `idx_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI调用日志表';
+
+-- -------------------------------------------
+-- AI Agent 工具调用记录表
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS `ai_tool_call_log` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `call_id` INT UNSIGNED NOT NULL COMMENT '关联 ai_call_log.id',
+    `tool_name` VARCHAR(50) NOT NULL COMMENT '工具名称',
+    `tool_params` TEXT COMMENT '工具入参(JSON)',
+    `tool_result` TEXT COMMENT '工具返回结果(JSON)',
+    `execute_time` INT UNSIGNED DEFAULT 0 COMMENT '执行耗时(ms)',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1成功 0失败',
+    `created_at` INT UNSIGNED NOT NULL COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_call` (`call_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI Agent工具调用记录表';
+
 -- ============================================
 -- 初始数据
 -- ============================================
@@ -390,47 +529,7 @@ INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `is_active`, `pr
 ('image', '百度AI图像识别', 'https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general', '', 0, 10, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('image', '腾讯云图像识别', 'https://ai.tencent.com/api/image/tag', '', 0, 5, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
--- -------------------------------------------
--- AI 调用总日志表
--- -------------------------------------------
-CREATE TABLE IF NOT EXISTS `ai_call_log` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `user_id` INT UNSIGNED NOT NULL COMMENT '用户ID',
-  `type` VARCHAR(20) DEFAULT 'recognize' COMMENT '调用类型: recognize识别/confirm入库',
-  `image_url` VARCHAR(500) DEFAULT NULL COMMENT '图片地址',
-  `ai_provider` VARCHAR(30) DEFAULT '' COMMENT 'AI服务商',
-  `ai_model` VARCHAR(50) DEFAULT '' COMMENT '模型名称',
-  `prompt_tokens` INT UNSIGNED DEFAULT 0 COMMENT '输入token数',
-  `completion_tokens` INT UNSIGNED DEFAULT 0 COMMENT '输出token数',
-  `total_tokens` INT UNSIGNED DEFAULT 0 COMMENT '总消耗',
-  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1成功 0失败',
-  `error_msg` VARCHAR(500) DEFAULT NULL COMMENT '错误信息',
-  `duration` INT UNSIGNED DEFAULT 0 COMMENT '总耗时(ms)',
-  `created_at` INT UNSIGNED NOT NULL COMMENT '创建时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_user` (`user_id`),
-  KEY `idx_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI调用日志表';
-
--- -------------------------------------------
--- AI Agent 工具调用记录表
--- -------------------------------------------
-CREATE TABLE IF NOT EXISTS `ai_tool_call_log` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `call_id` INT UNSIGNED NOT NULL COMMENT '关联 ai_call_log.id',
-  `tool_name` VARCHAR(50) NOT NULL COMMENT '工具名称',
-  `tool_params` TEXT COMMENT '工具入参(JSON)',
-  `tool_result` TEXT COMMENT '工具返回结果(JSON)',
-  `execute_time` INT UNSIGNED DEFAULT 0 COMMENT '执行耗时(ms)',
-  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1成功 0失败',
-  `created_at` INT UNSIGNED NOT NULL COMMENT '创建时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_call` (`call_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI Agent工具调用记录表';
-
--- -------------------------------------------
 -- AI 服务商默认配置
--- -------------------------------------------
 INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `api_secret`, `extra_params`, `is_active`, `priority`, `total_calls`, `success_calls`, `created_at`, `updated_at`) VALUES
 ('ai', '智谱 GLM-4V-Flash', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', '', '', '{"model":"glm-4v-flash","provider":"zhipu"}', 1, 100, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 ('ai', '面壁智能 MiniCPM-V-4.6-1B', 'https://api.modelbest.cn/v1/chat/completions', '', '', '{"model":"MiniCPM-V-4.6-1B","provider":"modelbest"}', 0, 50, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
@@ -443,45 +542,3 @@ INSERT INTO `api_config` (`type`, `name`, `api_url`, `api_key`, `api_secret`, `e
 ('ai', 'OpenRouter Gemma-4-31B（免费）', 'https://openrouter.ai/api/v1/chat/completions', '', '', '{"model":"google/gemma-4-31b-it:free","provider":"openrouter"}', 0, 68, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 SET FOREIGN_KEY_CHECKS = 1;
-
--- ============================================
--- 衣帽间功能：套装系统 + 物品扩展字段
--- ============================================
-
--- goods 表新增字段
-ALTER TABLE `goods` ADD COLUMN `color` VARCHAR(30) DEFAULT '' COMMENT '颜色' AFTER `category`;
-ALTER TABLE `goods` ADD COLUMN `season` VARCHAR(30) DEFAULT '' COMMENT '适用季节' AFTER `color`;
-ALTER TABLE `goods` ADD COLUMN `size` VARCHAR(20) DEFAULT '' COMMENT '尺码' AFTER `spec`;
-ALTER TABLE `goods` ADD COLUMN `material` VARCHAR(50) DEFAULT '' COMMENT '材质' AFTER `size`;
-ALTER TABLE `goods` ADD COLUMN `shoe_size` VARCHAR(10) DEFAULT '' COMMENT '鞋码' AFTER `material`;
-
--- 套装表
-CREATE TABLE IF NOT EXISTS `outfit` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `house_id` INT UNSIGNED NOT NULL COMMENT '所属家庭',
-    `creator_id` INT UNSIGNED NOT NULL COMMENT '创建者',
-    `name` VARCHAR(100) NOT NULL COMMENT '套装名称',
-    `season` VARCHAR(30) DEFAULT '' COMMENT '适用季节',
-    `occasion` VARCHAR(50) DEFAULT '' COMMENT '场合',
-    `cover_image` VARCHAR(500) DEFAULT '' COMMENT '封面图',
-    `note` TEXT COMMENT '备注',
-    `status` TINYINT NOT NULL DEFAULT 1,
-    `created_at` INT UNSIGNED NOT NULL,
-    `updated_at` INT UNSIGNED NOT NULL,
-    PRIMARY KEY (`id`),
-    KEY `idx_house` (`house_id`),
-    KEY `idx_season` (`season`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='套装表';
-
--- 套装物品关联表
-CREATE TABLE IF NOT EXISTS `outfit_item` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `outfit_id` INT UNSIGNED NOT NULL COMMENT '套装ID',
-    `goods_id` INT UNSIGNED NOT NULL COMMENT '物品ID',
-    `slot` VARCHAR(20) DEFAULT '' COMMENT '位置: top/bottom/hat/shoes/outer/accessory',
-    `sort_order` INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_outfit_goods` (`outfit_id`, `goods_id`),
-    KEY `idx_outfit` (`outfit_id`),
-    KEY `idx_goods` (`goods_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='套装物品关联表';
