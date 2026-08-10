@@ -201,6 +201,10 @@ public class SpacesFragment extends Fragment {
             if (hasChildren) {
                 JsonArray children = room.getAsJsonArray("children");
                 for (int j = 0; j < children.size(); j++) {
+                    // Add dashed divider between sub-items
+                    if (j > 0) {
+                        subItemsContainer.addView(createDashedDivider());
+                    }
                     JsonObject child = children.get(j).getAsJsonObject();
                     View childItem = createSubItemRecursive(child, j == children.size() - 1, 0);
                     subItemsContainer.addView(childItem);
@@ -375,6 +379,10 @@ public class SpacesFragment extends Fragment {
 
             JsonArray children = space.getAsJsonArray("children");
             for (int j = 0; j < children.size(); j++) {
+                // Add dashed divider between sub-items
+                if (j > 0) {
+                    childContainer.addView(createDashedDivider());
+                }
                 JsonObject child = children.get(j).getAsJsonObject();
                 View childItem = createSubItemRecursive(child, j == children.size() - 1, depth + 1);
                 childContainer.addView(childItem);
@@ -647,6 +655,25 @@ public class SpacesFragment extends Fragment {
         emptyView.setVisibility(View.VISIBLE);
         layoutSpaces.removeAllViews();
         addSpaceHint.setVisibility(View.GONE);
+    }
+
+    /**
+     * 创建虚线分隔线
+     */
+    private View createDashedDivider() {
+        android.graphics.drawable.GradientDrawable dash = new android.graphics.drawable.GradientDrawable();
+        dash.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        dash.setStroke(dp(1), Color.parseColor("#E2E8F0"), dp(6), dp(4));
+        dash.setColor(Color.TRANSPARENT);
+
+        View divider = new View(getActivity());
+        divider.setBackground(dash);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+        lp.leftMargin = dp(44);
+        lp.rightMargin = dp(16);
+        divider.setLayoutParams(lp);
+        return divider;
     }
 
     private int dp(int dp) {
