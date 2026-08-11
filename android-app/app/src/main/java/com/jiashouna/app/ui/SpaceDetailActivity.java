@@ -32,6 +32,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
 
     private JsonArray currentChildren = new JsonArray();
     private int selectedContainerId = 0; // 0=显示全部
+    private JsonObject currentSpaceData = null; // 保存当前空间数据，用于编辑
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +47,8 @@ public class SpaceDetailActivity extends AppCompatActivity {
         }
 
         tvTitle = findViewById(R.id.tv_title);
+        // 隐藏标题，只保留返回按钮
+        if (tvTitle != null) tvTitle.setVisibility(View.GONE);
         layoutBreadcrumb = findViewById(R.id.layout_breadcrumb);
         tvSpaceIcon = findViewById(R.id.tv_space_icon);
         tvSpaceName = findViewById(R.id.tv_space_name);
@@ -58,7 +61,8 @@ public class SpaceDetailActivity extends AppCompatActivity {
         layoutLoading = findViewById(R.id.layout_loading);
         layoutEmpty = findViewById(R.id.layout_empty);
 
-        if (spaceName != null) tvTitle.setText(spaceName);
+        // 标题已隐藏，不再设置标题文本
+        // if (spaceName != null) tvTitle.setText(spaceName);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_add).setOnClickListener(v -> {
@@ -76,6 +80,16 @@ public class SpaceDetailActivity extends AppCompatActivity {
                 intent.putExtra("edit_space_id", spaceId);
                 intent.putExtra("house_id", houseId);
                 intent.putExtra("space_name", spaceName);
+                // 传递父空间信息
+                if (currentSpaceData != null) {
+                    int parentId = currentSpaceData.has("parent_id") ? currentSpaceData.get("parent_id").getAsInt() : 0;
+                    String parentName = currentSpaceData.has("parent_name") && !currentSpaceData.get("parent_name").isJsonNull()
+                        ? currentSpaceData.get("parent_name").getAsString() : "";
+                    if (parentId > 0) {
+                        intent.putExtra("parent_id", parentId);
+                        intent.putExtra("parent_space_name", parentName);
+                    }
+                }
                 startActivity(intent);
             });
         }
@@ -129,6 +143,7 @@ public class SpaceDetailActivity extends AppCompatActivity {
     }
 
     private void bindSpaceInfo(JsonObject space) {
+        currentSpaceData = space; // 保存当前空间数据
         String icon = space.has("icon") && !space.get("icon").isJsonNull()
                 ? space.get("icon").getAsString() : "📦";
         String name = space.has("name") ? space.get("name").getAsString() : "";
@@ -137,7 +152,8 @@ public class SpaceDetailActivity extends AppCompatActivity {
         int itemCount = space.has("item_count") ? space.get("item_count").getAsInt() : 0;
         int expiringCount = space.has("expiring_count") ? space.get("expiring_count").getAsInt() : 0;
 
-        tvTitle.setText(name);
+        // 标题已隐藏，不再设置标题文本
+        // tvTitle.setText(name);
         tvSpaceIcon.setText(icon);
         tvSpaceName.setText(name);
         tvSpaceDesc.setText(desc.isEmpty() ? "收纳空间" : desc);

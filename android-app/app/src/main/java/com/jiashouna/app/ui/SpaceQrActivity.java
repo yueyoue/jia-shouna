@@ -11,6 +11,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.jiashouna.app.App;
 import com.jiashouna.app.R;
@@ -31,6 +32,7 @@ public class SpaceQrActivity extends AppCompatActivity {
     private int spaceId;
     private String spaceName;
     private String spaceCode;
+    private String spacePath = "";
     private ImageView ivQrCode;
     private TextView tvSpaceName, tvSpaceCode, tvLoading;
     private Button btnSave;
@@ -174,6 +176,40 @@ public class SpaceQrActivity extends AppCompatActivity {
                         String name = data.has("space_name") ? data.get("space_name").getAsString() : spaceName;
                         if (!name.isEmpty()) spaceName = name;
 
+                        // 获取空间路径
+                        if (data.has("path") && !data.get("path").isJsonNull()) {
+                            JsonArray path = data.getAsJsonArray("path");
+                            StringBuilder sb = new StringBuilder();
+                            for (int i = 0; i < path.size(); i++) {
+                                JsonObject p = path.get(i).getAsJsonObject();
+                                String pName = p.has("name") ? p.get("name").getAsString() : "";
+                                if (!pName.isEmpty()) {
+                                    if (sb.length() > 0) sb.append(" > ");
+                                    sb.append(pName);
+                                }
+                            }
+                            spacePath = sb.toString();
+                        }
+                        // 如果没有path，尝试从space对象中获取
+                        if (spacePath.isEmpty() && data.has("space") && !data.get("space").isJsonNull()) {
+                            JsonObject space = data.getAsJsonObject("space");
+                            if (space.has("path") && !space.get("path").isJsonNull()) {
+                                JsonArray path = space.getAsJsonArray("path");
+                                StringBuilder sb = new StringBuilder();
+                                for (int i = 0; i < path.size(); i++) {
+                                    JsonObject p = path.get(i).getAsJsonObject();
+                                    String pName = p.has("name") ? p.get("name").getAsString() : "";
+                                    if (!pName.isEmpty()) {
+                                        if (sb.length() > 0) sb.append(" > ");
+                                        sb.append(pName);
+                                    }
+                                }
+                                spacePath = sb.toString();
+                            }
+                        }
+                        // 如果仍然没有路径，使用空间名
+                        if (spacePath.isEmpty()) spacePath = spaceName;
+
                         tvSpaceName.setText(spaceName);
                         tvSpaceCode.setText("编码: " + spaceCode);
                         tvLoading.setText("");
@@ -183,7 +219,7 @@ public class SpaceQrActivity extends AppCompatActivity {
                         Bitmap qrBitmap = generateQrBitmap(qrContent, dp(240));
                         if (qrBitmap != null) {
                             // 合成带文字的完整图片
-                            Bitmap fullBitmap = createQrCard(qrBitmap, spaceName, spaceCode);
+                            Bitmap fullBitmap = createQrCard(qrBitmap, spaceName, spaceCode, spacePath);
                             ivQrCode.setImageBitmap(fullBitmap);
                             btnSave.setEnabled(true);
                         } else {
@@ -226,7 +262,7 @@ public class SpaceQrActivity extends AppCompatActivity {
     /**
      * 创建带空间名和编码的完整二维码卡片图片
      */
-    private Bitmap createQrCard(Bitmap qrBitmap, String name, String code) {
+    private Bitmap createQrCard(Bitmap qrBitmap, String name, String code, String path) {
         int cardW = dp(320);
         int cardH = dp(400);
         Bitmap card = Bitmap.createBitmap(cardW, cardH, Bitmap.Config.ARGB_8888);
@@ -266,12 +302,17 @@ public class SpaceQrActivity extends AppCompatActivity {
         tipPaint.setTextAlign(Paint.Align.CENTER);
         canvas.drawText("扫码查看空间物品", cardW / 2f, qrY + qrSize + dp(24), tipPaint);
 
-        // 应用名
-        Paint appPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        appPaint.setTextSize(dp(10));
-        appPaint.setColor(0xFFCBD5E0);
-        appPaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("家收纳", cardW / 2f, qrY + qrSize + dp(42), appPaint);
+        // 空间路径（替换原来的"家收纳"）
+        Paint pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        pathPaint.setTextSize(dp(10));
+        pathPaint.setColor(0xFFCBD5E0);
+        pathPaint.setTextAlign(Paint.Align.CENTER);
+        // 如果路径太长，截断显示
+        String displayPath = path != null ? path : "";
+        if (displayPath.length() > 30) {
+            displayPath = displayPath.substring(0, 27) + "...";
+        }
+        canvas.drawText(displayPath, cardW / 2f, qrY + qrSize + dp(42), pathPaint);
 
         return card;
     }
@@ -285,20 +326,20 @@ public class SpaceQrActivity extends AppCompatActivity {
                 Toast.makeText(this, "生成失败", Toast.LENGTH_SHORT).show();
                 return;
             }
-            Bitmap fullBitmap = createQrCard(qrBitmap, spaceName, spaceCode);
+            Bitmap fullBitmap = createQrCard(qrBitmap, spaceName, spaceCode, spacePath);
 
-            String fileName = "space_qr_" + spaceCode + ".jpg";
+            String fileName = "space_qr_" + spaceCode + ".png";
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
-                values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
                 values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/家收纳");
 
                 Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
                 if (uri != null) {
                     OutputStream os = getContentResolver().openOutputStream(uri);
-                    fullBitmap.compress(Bitmap.CompressFormat.JPEG, 95, os);
+                    fullBitmap.compress(Bitmap.CompressFormat.PNG, 100, os);
                     if (os != null) os.close();
                     Toast.makeText(this, "✅ 已保存到相册「家收纳」文件夹", Toast.LENGTH_LONG).show();
                 }
@@ -308,7 +349,7 @@ public class SpaceQrActivity extends AppCompatActivity {
                 java.io.File dir = new java.io.File(path).getParentFile();
                 if (dir != null && !dir.exists()) dir.mkdirs();
                 FileOutputStream fos = new FileOutputStream(path);
-                fullBitmap.compress(Bitmap.CompressFormat.JPEG, 95, fos);
+                fullBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
                 fos.close();
                 Toast.makeText(this, "✅ 已保存: " + path, Toast.LENGTH_LONG).show();
             }

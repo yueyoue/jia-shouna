@@ -35,7 +35,8 @@
             android:text="空间详情"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/btn_add"

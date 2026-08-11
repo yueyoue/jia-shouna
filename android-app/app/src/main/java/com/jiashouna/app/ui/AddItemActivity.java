@@ -543,6 +543,17 @@ public class AddItemActivity extends AppCompatActivity {
             final String spec = safeGetString(data, "spec");
             final String storageTip = safeGetString(data, "storage_tip");
 
+            // 根据物品名称识别功能/用途
+            final String itemFunction = identifyItemFunction(name, category);
+            // 合并存储建议和功能识别
+            String combinedNote = "";
+            if (!storageTip.isEmpty()) combinedNote += storageTip;
+            if (!itemFunction.isEmpty()) {
+                if (!combinedNote.isEmpty()) combinedNote += "\n";
+                combinedNote += "功能: " + itemFunction;
+            }
+            final String finalCombinedNote = combinedNote;
+
             // AI识别颜色和季节
             String aiColor = safeGetString(data, "color");
             String aiSeason = safeGetString(data, "season");
@@ -627,7 +638,14 @@ public class AddItemActivity extends AppCompatActivity {
             }
             if (!storageTip.isEmpty()) {
                 android.widget.CheckBox cb = new android.widget.CheckBox(this);
-                cb.setText("存放建议: " + storageTip);
+                cb.setText("存放建议: " + finalCombinedNote);
+                cb.setChecked(etNote.getText().toString().trim().isEmpty());
+                cb.setTextSize(14);
+                dialogLayout.addView(cb);
+                checkBoxes.add(cb);
+            } else if (!itemFunction.isEmpty()) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText("功能: " + itemFunction);
                 cb.setChecked(etNote.getText().toString().trim().isEmpty());
                 cb.setTextSize(14);
                 dialogLayout.addView(cb);
@@ -647,7 +665,7 @@ public class AddItemActivity extends AppCompatActivity {
             dialogLayout.addView(cbAll, 1);
 
             // 字段名到复选框的映射
-            final String fName = name, fBrand = brand, fSpec = spec, fBarcode = barcode, fCategory = category, fStorageTip = storageTip;
+            final String fName = name, fBrand = brand, fSpec = spec, fBarcode = barcode, fCategory = category, fStorageTip = finalCombinedNote.isEmpty() ? storageTip : finalCombinedNote;
 
             new AlertDialog.Builder(this).setTitle("AI 识别结果").setView(dialogLayout)
                 .setPositiveButton("填入选中项", (d, w) -> {
@@ -712,6 +730,83 @@ public class AddItemActivity extends AppCompatActivity {
             if (el.getAsJsonPrimitive().isNumber()) return el.getAsDouble();
             return Double.parseDouble(el.getAsString());
         } catch (Exception e) { return 0; }
+    }
+
+    /**
+     * 根据物品名称识别功能/用途，写入备注
+     * 例如：药品识别出感冒药、消炎药等
+     */
+    private String identifyItemFunction(String name, String category) {
+        if (name == null || name.isEmpty()) return "";
+
+        // 药品功能识别
+        if ("药品".equals(category) || name.contains("药") || name.contains("胶囊") || name.contains("片剂")
+            || name.contains("颗粒") || name.contains("口服液") || name.contains("滴丸")) {
+            if (name.contains("感冒") || name.contains("感康") || name.contains("白加黑") || name.contains("泰诺")
+                || name.contains("新康泰克") || name.contains("快克") || name.contains("999") || name.contains("板蓝根"))
+                return "感冒药";
+            if (name.contains("消炎") || name.contains("阿莫西林") || name.contains("头孢") || name.contains("青霉素")
+                || name.contains("罗红霉素") || name.contains("阿奇霉素") || name.contains("左氧氟沙星"))
+                return "消炎药/抗生素";
+            if (name.contains("退烧") || name.contains("退热") || name.contains("布洛芬") || name.contains("对乙酰氨基酚")
+                || name.contains("美林") || name.contains("芬必得"))
+                return "退烧/止痛药";
+            if (name.contains("胃") || name.contains("健胃") || name.contains("吗丁啉") || name.contains("奥美拉唑")
+                || name.contains("达喜") || name.contains("斯达舒"))
+                return "胃药";
+            if (name.contains("止咳") || name.contains("川贝") || name.contains("枇杷") || name.contains("蜜炼"))
+                return "止咳药";
+            if (name.contains("维生素") || name.contains("VC") || name.contains("VB") || name.contains("钙")
+                || name.contains("铁") || name.contains("锌") || name.contains("鱼肝油"))
+                return "保健品/营养补充";
+            if (name.contains("创可贴") || name.contains("碘伏") || name.contains("纱布") || name.contains("棉签")
+                || name.contains("酒精") || name.contains("红药水"))
+                return "外伤用药/急救用品";
+            if (name.contains("眼药") || name.contains("滴眼") || name.contains("眼膏"))
+                return "眼药";
+            if (name.contains("过敏") || name.contains("氯雷他定") || name.contains("西替利嗪") || name.contains("扑尔敏"))
+                return "抗过敏药";
+            return "药品";
+        }
+
+        // 食品功能识别
+        if ("食品".equals(category)) {
+            if (name.contains("奶") || name.contains("酸奶") || name.contains("纯牛奶"))
+                return "乳制品";
+            if (name.contains("饼干") || name.contains("薯片") || name.contains("巧克力") || name.contains("糖果")
+                || name.contains("坚果") || name.contains("果脯"))
+                return "零食";
+            if (name.contains("酱油") || name.contains("醋") || name.contains("盐") || name.contains("糖")
+                || name.contains("味精") || name.contains("鸡精") || name.contains("辣椒") || name.contains("花椒"))
+                return "调味品";
+            if (name.contains("可乐") || name.contains("雪碧") || name.contains("果汁") || name.contains("奶茶")
+                || name.contains("咖啡") || name.contains("矿泉水"))
+                return "饮料";
+        }
+
+        // 日用品功能识别
+        if ("日用品".equals(category)) {
+            if (name.contains("洗衣") || name.contains("洗洁精") || name.contains("柔顺剂"))
+                return "清洁用品";
+            if (name.contains("纸巾") || name.contains("抽纸") || name.contains("卷纸") || name.contains("湿巾"))
+                return "纸巾";
+            if (name.contains("牙膏") || name.contains("牙刷") || name.contains("漱口水"))
+                return "口腔护理";
+            if (name.contains("洗发") || name.contains("沐浴") || name.contains("洗手"))
+                return "洗护用品";
+        }
+
+        // 数码功能识别
+        if ("数码".equals(category)) {
+            if (name.contains("充电线") || name.contains("数据线") || name.contains("充电器") || name.contains("适配器"))
+                return "充电配件";
+            if (name.contains("耳机") || name.contains("音箱") || name.contains("麦克风"))
+                return "音频设备";
+            if (name.contains("手机壳") || name.contains("膜") || name.contains("保护套"))
+                return "手机配件";
+        }
+
+        return "";
     }
 
     private void startBarcodeScan() {
@@ -1027,6 +1122,16 @@ public class AddItemActivity extends AppCompatActivity {
                 String expireDate = safeGetString(data, "expire_date");
                 String storageTip = safeGetString(data, "storage_tip");
 
+                // 根据物品名称识别功能/用途
+                String itemFunc = identifyItemFunction(name, category);
+                String combinedStorageTip = "";
+                if (!storageTip.isEmpty()) combinedStorageTip += storageTip;
+                if (!itemFunc.isEmpty()) {
+                    if (!combinedStorageTip.isEmpty()) combinedStorageTip += "\n";
+                    combinedStorageTip += "功能: " + itemFunc;
+                }
+                final String finalStorageTip = combinedStorageTip.isEmpty() ? storageTip : combinedStorageTip;
+
                 // 处理保质期
                 if (!expireDate.isEmpty()) {
                     try {
@@ -1082,14 +1187,14 @@ public class AddItemActivity extends AppCompatActivity {
                 if (!spec.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("规格: " + spec); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
                 if (!barcode.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("条码: " + barcode); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
                 if (!category.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("分类: " + category); c.setChecked(true); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
-                if (!storageTip.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("存放建议: " + storageTip); c.setChecked(etNote.getText().toString().trim().isEmpty()); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
+                if (!storageTip.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("存放建议: " + finalStorageTip); c.setChecked(etNote.getText().toString().trim().isEmpty()); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); } else if (!itemFunc.isEmpty()) { android.widget.CheckBox c = new android.widget.CheckBox(this); c.setText("功能: " + itemFunc); c.setChecked(etNote.getText().toString().trim().isEmpty()); c.setTextSize(14); dialogLayout2.addView(c); cbs.add(c); }
 
                 android.widget.CheckBox cbAll2 = new android.widget.CheckBox(this);
                 cbAll2.setText("全选"); cbAll2.setChecked(true); cbAll2.setTextSize(13); cbAll2.setTextColor(0xFF4A90D9);
                 cbAll2.setOnCheckedChangeListener((btn, checked) -> { for (android.widget.CheckBox c : cbs) c.setChecked(checked); });
                 dialogLayout2.addView(cbAll2, 1);
 
-                final String rName = name, rBrand = brand, rSpec = spec, rBarcode = barcode, rCategory = category, rStorageTip = storageTip;
+                final String rName = name, rBrand = brand, rSpec = spec, rBarcode = barcode, rCategory = category, rStorageTip = finalStorageTip;
 
                 new AlertDialog.Builder(this)
                     .setTitle("✅ 识别结果")

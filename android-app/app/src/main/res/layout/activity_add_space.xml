@@ -126,11 +126,17 @@
 
                 <!-- 上级空间 -->
                 <LinearLayout
+                    android:id="@+id/layout_parent_selector"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -157,9 +163,10 @@
 
                     <TextView
                         android:id="@+id/btn_select_parent"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:gravity="center"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:padding="4dp"
                         android:text="▾"
                         android:textColor="@color/text_hint"
                         android:textSize="14sp" />

@@ -90,6 +90,11 @@ public class AddSpaceActivity extends AppCompatActivity {
         btnCancel.setOnClickListener(v -> finish());
         if (btnCreateHouse != null) btnCreateHouse.setOnClickListener(v -> showCreateHouseDialog());
         btnSelectParent.setOnClickListener(v -> loadParentSpaces());
+        // 上级空间整行可点击
+        View layoutParentSelector = findViewById(R.id.layout_parent_selector);
+        if (layoutParentSelector != null) {
+            layoutParentSelector.setOnClickListener(v -> loadParentSpaces());
+        }
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         loadHouses();
@@ -112,12 +117,18 @@ public class AddSpaceActivity extends AppCompatActivity {
             @Override public void onSuccess(JsonObject data) {
                 runOnUiThread(() -> {
                     try {
-                        String name = data.has("name") ? data.get("name").getAsString() : "";
-                        String icon = data.has("icon") ? data.get("icon").getAsString() : "🏠";
-                        String color = data.has("color") ? data.get("color").getAsString() : "#FF8C42";
-                        int level = data.has("level") ? data.get("level").getAsInt() : 1;
-                        boolean shared = data.has("shared") && data.get("shared").getAsInt() == 1;
-                        int houseId = data.has("house_id") ? data.get("house_id").getAsInt() : 0;
+                        // 兼容两种返回格式: 直接在data根层级 或 在space子对象中
+                        JsonObject space = data.has("space") && !data.get("space").isJsonNull()
+                            ? data.getAsJsonObject("space") : data;
+
+                        String name = space.has("name") ? space.get("name").getAsString() : "";
+                        String icon = space.has("icon") && !space.get("icon").isJsonNull()
+                            ? space.get("icon").getAsString() : "🏠";
+                        String color = space.has("color") && !space.get("color").isJsonNull()
+                            ? space.get("color").getAsString() : "#FF8C42";
+                        int level = space.has("level") ? space.get("level").getAsInt() : 1;
+                        boolean shared = space.has("shared") && space.get("shared").getAsInt() == 1;
+                        int houseId = space.has("house_id") ? space.get("house_id").getAsInt() : 0;
 
                         etName.setText(name);
                         selectedIcon = icon;
@@ -125,6 +136,29 @@ public class AddSpaceActivity extends AppCompatActivity {
                         selectedLevel = level;
                         if (houseId > 0) selectedHouseId = houseId;
                         swShared.setChecked(shared);
+
+                        // 加载上级空间信息
+                        int pId = space.has("parent_id") ? space.get("parent_id").getAsInt() : 0;
+                        String pName = space.has("parent_name") && !space.get("parent_name").isJsonNull()
+                            ? space.get("parent_name").getAsString() : "";
+                        // 如果没有parent_name，尝试从path数组中获取
+                        if (pName.isEmpty() && space.has("path") && !space.get("path").isJsonNull()) {
+                            JsonArray path = space.getAsJsonArray("path");
+                            if (path.size() >= 2) {
+                                // 倒数第二个是父空间
+                                JsonObject parentObj = path.get(path.size() - 2).getAsJsonObject();
+                                pName = parentObj.has("name") ? parentObj.get("name").getAsString() : "";
+                                pId = parentObj.has("id") ? parentObj.get("id").getAsInt() : pId;
+                            }
+                        }
+                        if (pId > 0) {
+                            parentSpaceId = pId;
+                            parentSpaceName = pName;
+                            tvParentSpace.setText(pName.isEmpty() ? "已选上级" : pName);
+                        } else {
+                            tvParentSpace.setText("一级空间 (无上级)");
+                        }
+
                         buildIconSelector();
                         buildColorSelector();
                     } catch (Exception e) {
