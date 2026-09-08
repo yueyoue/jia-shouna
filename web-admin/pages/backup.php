@@ -216,6 +216,10 @@ $stats['last_backup'] = $lastBackupTs;
                 <code style="background:#E6FFFA;padding:2px 8px;border-radius:4px;font-size:12px;color:#234E52;word-break:break-all">backend/uploads/images/</code>
                 <div style="margin-top:6px;color:#4A5568">将整个 <code>images/</code> 文件夹下载到本地即可完成备份</div>
             </div>
+            <div class="ac-actions" style="margin-top:10px">
+                <button class="ac-btn ac-btn-outline" onclick="cleanupOrphanImages()">🧹 清理孤立图片</button>
+                <span id="cleanup-img-status" style="font-size:12px;color:#718096"></span>
+            </div>
         </div>
     </div>
 
@@ -412,6 +416,29 @@ async function doBackupDb() {
 // ====== JSON 导出 ======
 function doExportJson() {
     window.location.href = BACKUP_API + '?action=export_json';
+}
+
+// ====== 清理孤立图片 ======
+async function cleanupOrphanImages() {
+    var status = document.getElementById('cleanup-img-status');
+    if (!confirm('确定要清理孤立图片吗？\n\n这会删除未被任何物品引用的图片文件（如AI识别后未保存的拍照图片）。\n已关联物品的图片不会受影响。')) return;
+
+    status.textContent = '⏳ 清理中...';
+    try {
+        var resp = await fetch('../backend/api/upload.php?action=cleanup_orphan', {method:'POST'});
+        var data = await resp.json();
+        if (data.code === 0) {
+            var d = data.data;
+            status.innerHTML = '<span style="color:#48BB78">✅ 已清理 ' + d.deleted + ' 张孤立图片，释放 ' + d.freed_display + '</span>';
+            showToast('清理完成: ' + d.deleted + ' 张图片', 'success');
+            // 刷新页面更新统计
+            setTimeout(function() { location.reload(); }, 1500);
+        } else {
+            status.innerHTML = '<span style="color:#F56565">❌ ' + (data.msg || '清理失败') + '</span>';
+        }
+    } catch(e) {
+        status.innerHTML = '<span style="color:#F56565">❌ 请求失败</span>';
+    }
 }
 
 // ====== CSV 导出 ======

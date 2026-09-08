@@ -69,6 +69,7 @@ public class AddItemActivity extends AppCompatActivity {
     private boolean isEditMode = false;
     private int editGoodsId = 0;
     private int pendingOutfitId = 0; // 待关联的套装ID
+    private String lastAiImagePath = ""; // AI识别上传的服务器图片路径，用于取消时清理
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -545,6 +546,8 @@ public class AddItemActivity extends AppCompatActivity {
                 Toast.makeText(this, "识别失败: 返回数据为空", Toast.LENGTH_SHORT).show();
                 return;
             }
+            // 记录服务器图片路径，用于取消时清理
+            lastAiImagePath = safeGetString(data, "image_path");
             // 兼容两种返回格式: image-recognize.php 和 ai/recognize.php
             String tmpName = safeGetString(data, "suggested_name");
             if (tmpName.isEmpty()) tmpName = safeGetString(data, "goods_name");
@@ -731,6 +734,7 @@ public class AddItemActivity extends AppCompatActivity {
                     Toast.makeText(this, "✅ 已填入选中项", Toast.LENGTH_SHORT).show();
                     // AI识别填入后立即检查重复
                     checkDuplicateImmediate(fBarcode, fName, fBrand, fSpec);
+                    lastAiImagePath = ""; // 已使用，不清理
                 })
                 .setNeutralButton("全部填入", (d, w) -> {
                     if (!fName.isEmpty()) etName.setText(fName);
@@ -748,11 +752,20 @@ public class AddItemActivity extends AppCompatActivity {
                     Toast.makeText(this, "✅ 已填入全部", Toast.LENGTH_SHORT).show();
                     // AI识别填入后立即检查重复
                     checkDuplicateImmediate(fBarcode, fName, fBrand, fSpec);
+                    lastAiImagePath = ""; // 已使用，不清理
                 })
-                .setNegativeButton("重新识别", (d, w) -> startAiRecognize())
+                .setNegativeButton("重新识别", (d, w) -> {
+                    // 删除已上传的服务器图片
+                    deleteServerImage(lastAiImagePath);
+                    lastAiImagePath = "";
+                    startAiRecognize();
+                })
                 .show();
         } catch (Exception e) {
             android.util.Log.e("AddItem", "AI result parse error: " + e.getMessage(), e);
+            // 解析失败也清理图片
+            deleteServerImage(lastAiImagePath);
+            lastAiImagePath = "";
             String detail = e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "null");
             new AlertDialog.Builder(this)
                 .setTitle("解析失败")
@@ -1181,6 +1194,8 @@ public class AddItemActivity extends AppCompatActivity {
                 return;
             }
             boolean recognized = data.has("recognized") && !data.get("recognized").isJsonNull() && data.get("recognized").getAsBoolean();
+            // 记录服务器图片路径，用于取消时清理
+            lastAiImagePath = safeGetString(data, "image_path");
 
             if (recognized) {
                 String name = safeGetString(data, "suggested_name");
@@ -1282,6 +1297,7 @@ public class AddItemActivity extends AppCompatActivity {
                         }
                         Toast.makeText(this, "✅ 已填入选中项", Toast.LENGTH_SHORT).show();
                         checkDuplicateImmediate(rBarcode, rName, rBrand, rSpec);
+                        lastAiImagePath = ""; // 已使用，不清理
                     })
                     .setNeutralButton("全部填入", (d, w) -> {
                         if (!rName.isEmpty()) etName.setText(rName);
@@ -1292,8 +1308,12 @@ public class AddItemActivity extends AppCompatActivity {
                         if (catPos >= 0) spCategory.setSelection(catPos);
                         Toast.makeText(this, "✅ 已填入全部", Toast.LENGTH_SHORT).show();
                         checkDuplicateImmediate(rBarcode, rName, rBrand, rSpec);
+                        lastAiImagePath = ""; // 已使用，不清理
                     })
                     .setNegativeButton("重新识别", (d, w) -> {
+                        // 删除已上传的服务器图片
+                        deleteServerImage(lastAiImagePath);
+                        lastAiImagePath = "";
                         if (photos.size() > 0) recognizeImage(photos.get(photos.size() - 1));
                     })
                     .show();
@@ -3436,6 +3456,37 @@ public class AddItemActivity extends AppCompatActivity {
         int newW = Math.round(w * scale);
         int newH = Math.round(h * scale);
         return Bitmap.createScaledBitmap(bitmap, newW, newH, true);
+    }
+
+    /**
+     * 删除服务器上的临时图片（AI识别后未保存物品时清理）
+     */
+    private void deleteServerImage(String imagePath) {
+        if (imagePath == null || imagePath.isEmpty()) return;
+        try {
+            okhttp3.FormBody formBody = new okhttp3.FormBody.Builder()
+                .add("image_path", imagePath)
+                .build();
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                .url(App.BASE_URL + "upload.php?action=delete_image")
+                .post(formBody)
+                .build();
+            String token = App.getInstance().getToken();
+            if (token != null && !token.isEmpty()) {
+                request = request.newBuilder().addHeader("Authorization", "Bearer " + token).build();
+            }
+            new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+                .newCall(request)
+                .enqueue(new okhttp3.Callback() {
+                    @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {}
+                    @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) {
+                        android.util.Log.d("AddItem", "Cleanup image: " + imagePath);
+                    }
+                });
+        } catch (Exception ignored) {}
     }
 
     private int dp(int dp) {

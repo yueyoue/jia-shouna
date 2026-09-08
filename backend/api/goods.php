@@ -382,6 +382,20 @@ switch ($action) {
                 $g = $stmt->fetch();
                 if (!$g) continue;
 
+                // 删除物品图片文件和数据库记录
+                $imgStmt = $db->prepare("SELECT image_path FROM goods_image WHERE goods_id = ?");
+                $imgStmt->execute([$gid]);
+                while ($img = $imgStmt->fetch()) {
+                    $imgFile = UPLOAD_PATH . $img['image_path'];
+                    if (file_exists($imgFile)) @unlink($imgFile);
+                    // 删除缩略图
+                    $thumbFile = UPLOAD_PATH . str_replace('/images/', '/images/', dirname($img['image_path'])) . '/thumb/' . basename($img['image_path']);
+                    // 缩略图路径: images/YYYYMM/thumb/xxx.jpg
+                    $thumbDir = dirname($imgFile) . '/thumb/' . basename($imgFile);
+                    if (file_exists($thumbDir)) @unlink($thumbDir);
+                }
+                $db->prepare("DELETE FROM goods_image WHERE goods_id = ?")->execute([$gid]);
+
                 $stmt = $db->prepare("UPDATE goods SET status = 0, updated_at = ? WHERE id = ?");
                 $stmt->execute([$now, $gid]);
 
