@@ -719,6 +719,7 @@ public class AddItemActivity extends AppCompatActivity {
                         else if (text.startsWith("条码:")) etBarcode.setText(fBarcode);
                         else if (text.startsWith("分类:") && categoryPos >= 0) spCategory.setSelection(categoryPos);
                         else if (text.startsWith("存放建议:")) etNote.setText(fStorageTip);
+                        else if (text.startsWith("功能:")) etNote.setText(fStorageTip);
                     }
                     // 将AI识别的照片添加到物品图片
                     if (cameraImageUri != null) {
@@ -780,33 +781,54 @@ public class AddItemActivity extends AppCompatActivity {
     private String identifyItemFunction(String name, String category) {
         if (name == null || name.isEmpty()) return "";
 
-        // 药品功能识别
+        // 药品功能识别 - 扩展匹配
         if ("药品".equals(category) || name.contains("药") || name.contains("胶囊") || name.contains("片剂")
-            || name.contains("颗粒") || name.contains("口服液") || name.contains("滴丸")) {
+            || name.contains("颗粒") || name.contains("口服液") || name.contains("滴丸") || name.contains("软膏")
+            || name.contains("注射") || name.contains("糖浆") || name.contains("冲剂") || name.contains("丸")
+            || name.contains("散") || name.contains("膏") || name.contains("丹") || name.contains("酊")
+            || name.contains("栓") || name.contains("贴") || name.contains("喷雾") || name.contains("滴剂")) {
             if (name.contains("感冒") || name.contains("感康") || name.contains("白加黑") || name.contains("泰诺")
-                || name.contains("新康泰克") || name.contains("快克") || name.contains("999") || name.contains("板蓝根"))
+                || name.contains("新康泰克") || name.contains("快克") || name.contains("999") || name.contains("板蓝根")
+                || name.contains("感冒灵") || name.contains("氨酚") || name.contains("酚麻美敏") || name.contains("维C银翘")
+                || name.contains("小柴胡") || name.contains("连花清瘟") || name.contains("抗病毒"))
                 return "感冒药";
             if (name.contains("消炎") || name.contains("阿莫西林") || name.contains("头孢") || name.contains("青霉素")
-                || name.contains("罗红霉素") || name.contains("阿奇霉素") || name.contains("左氧氟沙星"))
+                || name.contains("罗红霉素") || name.contains("阿奇霉素") || name.contains("左氧氟沙星") || name.contains("诺氟沙星")
+                || name.contains("甲硝唑") || name.contains("克林霉素") || name.contains("克拉霉素"))
                 return "消炎药/抗生素";
             if (name.contains("退烧") || name.contains("退热") || name.contains("布洛芬") || name.contains("对乙酰氨基酚")
-                || name.contains("美林") || name.contains("芬必得"))
+                || name.contains("美林") || name.contains("芬必得") || name.contains("萘普生") || name.contains("双氯芬酸"))
                 return "退烧/止痛药";
             if (name.contains("胃") || name.contains("健胃") || name.contains("吗丁啉") || name.contains("奥美拉唑")
-                || name.contains("达喜") || name.contains("斯达舒"))
+                || name.contains("达喜") || name.contains("斯达舒") || name.contains("雷贝拉唑") || name.contains("泮托拉唑")
+                || name.contains("铝碳酸镁") || name.contains("蒙脱石") || name.contains("藿香正气") || name.contains("整肠"))
                 return "胃药";
-            if (name.contains("止咳") || name.contains("川贝") || name.contains("枇杷") || name.contains("蜜炼"))
+            if (name.contains("止咳") || name.contains("川贝") || name.contains("枇杷") || name.contains("蜜炼")
+                || name.contains("右美沙芬") || name.contains("复方甘草") || name.contains("蛇胆川贝") || name.contains("急支糖浆"))
                 return "止咳药";
             if (name.contains("维生素") || name.contains("VC") || name.contains("VB") || name.contains("钙")
-                || name.contains("铁") || name.contains("锌") || name.contains("鱼肝油"))
+                || name.contains("铁") || name.contains("锌") || name.contains("鱼肝油") || name.contains("叶酸")
+                || name.contains("辅酶Q10") || name.contains("益生菌") || name.contains("DHA") || name.contains("蛋白粉"))
                 return "保健品/营养补充";
             if (name.contains("创可贴") || name.contains("碘伏") || name.contains("纱布") || name.contains("棉签")
-                || name.contains("酒精") || name.contains("红药水"))
+                || name.contains("酒精") || name.contains("红药水") || name.contains("云南白药") || name.contains("双氧水")
+                || name.contains("绷带") || name.contains("止血"))
                 return "外伤用药/急救用品";
-            if (name.contains("眼药") || name.contains("滴眼") || name.contains("眼膏"))
+            if (name.contains("眼药") || name.contains("滴眼") || name.contains("眼膏") || name.contains("玻璃酸钠")
+                || name.contains("左氧氟沙星滴眼") || name.contains("妥布霉素"))
                 return "眼药";
-            if (name.contains("过敏") || name.contains("氯雷他定") || name.contains("西替利嗪") || name.contains("扑尔敏"))
+            if (name.contains("过敏") || name.contains("氯雷他定") || name.contains("西替利嗪") || name.contains("扑尔敏")
+                || name.contains("依巴斯汀") || name.contains("孟鲁司特") || name.contains("鼻炎") || name.contains("抗组胺"))
                 return "抗过敏药";
+            if (name.contains("降压") || name.contains("硝苯地平") || name.contains("氨氯地平") || name.contains("缬沙坦")
+                || name.contains("厄贝沙坦") || name.contains("美托洛尔") || name.contains("氢氯噻嗪") || name.contains("卡托普利"))
+                return "降压药";
+            if (name.contains("降糖") || name.contains("二甲双胍") || name.contains("格列") || name.contains("胰岛素")
+                || name.contains("阿卡波糖") || name.contains("达格列净"))
+                return "降糖药";
+            if (name.contains("安眠") || name.contains("安定") || name.contains("褪黑素") || name.contains("酸枣仁")
+                || name.contains("艾司唑仑") || name.contains("佐匹克隆"))
+                return "安神/助眠药";
             return "药品";
         }
 
@@ -938,6 +960,8 @@ public class AddItemActivity extends AppCompatActivity {
                 }
                 etBarcode.setText(barcode);
                 lookupBarcode(barcode);
+                // 扫码后立即检查库中是否有相同条形码的物品
+                checkDuplicateByBarcode(barcode);
             }
         } else if (requestCode == REQUEST_PHOTO) {
             try {
@@ -1250,6 +1274,7 @@ public class AddItemActivity extends AppCompatActivity {
                             else if (t.startsWith("条码:")) etBarcode.setText(rBarcode);
                             else if (t.startsWith("分类:") && catPos >= 0) spCategory.setSelection(catPos);
                             else if (t.startsWith("存放建议:")) etNote.setText(rStorageTip);
+                            else if (t.startsWith("功能:")) etNote.setText(rStorageTip);
                         }
                         Toast.makeText(this, "✅ 已填入选中项", Toast.LENGTH_SHORT).show();
                     })
@@ -1360,6 +1385,34 @@ public class AddItemActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 扫码后立即检查库中是否有相同条形码的物品
+     * 条形码匹配是最可靠的重复判定方式
+     */
+    private void checkDuplicateByBarcode(String barcode) {
+        int houseId = App.getInstance().getCurrentHouseId();
+        if (houseId <= 0 || barcode.isEmpty()) return;
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+        params.put("barcode", barcode);
+
+        ApiClient.get("goods.php?action=check_duplicate", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        int count = data.has("count") ? data.get("count").getAsInt() : 0;
+                        if (count > 0) {
+                            JsonArray duplicates = data.getAsJsonArray("duplicates");
+                            showDuplicateDialog(duplicates, false);
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+            @Override public void onError(String msg) {}
+        });
+    }
+
     private void lookupBarcode(String barcode) {
         HashMap<String, String> params = new HashMap<>();
         params.put("action", "lookup");
@@ -1420,6 +1473,16 @@ public class AddItemActivity extends AppCompatActivity {
                                 String scannedCategory = spCategory.getSelectedItem() != null ? spCategory.getSelectedItem().toString() : "";
                                 autoGenerateTags(scannedName, scannedCategory);
                                 if (!selectedTagNames.isEmpty()) updateTagDisplay();
+
+                                // 药品识别：根据名称自动识别药品类型并写入备注
+                                String scannedNote = etNote.getText().toString().trim();
+                                if (scannedNote.isEmpty()) {
+                                    String medicineType = identifyItemFunction(scannedName, scannedCategory);
+                                    if (!medicineType.isEmpty() && !medicineType.equals("药品")) {
+                                        etNote.setText(medicineType);
+                                    }
+                                }
+
                                 Toast.makeText(AddItemActivity.this, "✅ 已识别商品", Toast.LENGTH_SHORT).show();
                             } else {
                                 Toast.makeText(AddItemActivity.this, "条码已录入,但商品详情未查到,请手动补充", Toast.LENGTH_SHORT).show();
@@ -2061,19 +2124,25 @@ public class AddItemActivity extends AppCompatActivity {
 
     /**
      * 保存前检查是否有重复物品
-     * 重复判定：名称相同，有品牌和规格时需全部匹配
+     * 优先级：条形码匹配 > 名称+品牌+规格匹配
      */
     private void checkDuplicateBeforeSave(boolean continueAfterSave) {
         int houseId = App.getInstance().getCurrentHouseId();
         String name = etName.getText().toString().trim();
         String brand = etBrand.getText().toString().trim();
         String spec = etSpec != null ? etSpec.getText().toString().trim() : "";
+        String barcode = etBarcode.getText().toString().trim();
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        params.put("name", name);
-        if (!brand.isEmpty()) params.put("brand", brand);
-        if (!spec.isEmpty()) params.put("spec", spec);
+        // 优先发送条形码（后端会优先按条形码匹配）
+        if (!barcode.isEmpty()) {
+            params.put("barcode", barcode);
+        } else {
+            params.put("name", name);
+            if (!brand.isEmpty()) params.put("brand", brand);
+            if (!spec.isEmpty()) params.put("spec", spec);
+        }
 
         ApiClient.get("goods.php?action=check_duplicate", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {

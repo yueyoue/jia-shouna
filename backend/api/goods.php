@@ -849,12 +849,33 @@ switch ($action) {
         $name = trim($_GET['name'] ?? '');
         $brand = trim($_GET['brand'] ?? '');
         $spec = trim($_GET['spec'] ?? '');
-        if (!$houseId || empty($name)) error('缺少参数');
+        $barcode = trim($_GET['barcode'] ?? '');
+        if (!$houseId) error('缺少参数house_id');
+
+        // 优先按条形码匹配（最可靠）
+        if (!empty($barcode)) {
+            $stmt = $db->prepare("SELECT g.id, g.name, g.brand, g.spec, g.quantity, g.unit, g.space_id, g.barcode, s.name as space_name, s.icon as space_icon
+                FROM goods g
+                LEFT JOIN storage_space s ON g.space_id = s.id
+                WHERE g.status = 1 AND g.house_id = ? AND g.barcode = ?
+                ORDER BY g.updated_at DESC
+                LIMIT 5");
+            $stmt->execute([$houseId, $barcode]);
+            $duplicates = $stmt->fetchAll();
+            foreach ($duplicates as &$dup) {
+                $dup['space_display'] = ($dup['space_icon'] ?? '🏠') . ' ' . ($dup['space_name'] ?? '未知位置');
+                $dup['match_type'] = 'barcode';
+            }
+            success(['duplicates' => $duplicates, 'count' => count($duplicates), 'match_type' => 'barcode']);
+            break;
+        }
+
+        // 按名称+品牌+规格匹配
+        if (empty($name)) error('缺少参数');
 
         $where = ['g.status = 1', 'g.house_id = ?', 'g.name = ?'];
         $params = [$houseId, $name];
 
-        // 如果有品牌，需要匹配品牌
         if (!empty($brand)) {
             $where[] = 'g.brand = ?';
             $params[] = $brand;
@@ -862,7 +883,6 @@ switch ($action) {
             $where[] = '(g.brand IS NULL OR g.brand = \'\' )';
         }
 
-        // 如果有规格，需要匹配规格
         if (!empty($spec)) {
             $where[] = 'g.spec = ?';
             $params[] = $spec;
@@ -871,7 +891,7 @@ switch ($action) {
         }
 
         $whereStr = implode(' AND ', $where);
-        $stmt = $db->prepare("SELECT g.id, g.name, g.brand, g.spec, g.quantity, g.unit, g.space_id, s.name as space_name, s.icon as space_icon
+        $stmt = $db->prepare("SELECT g.id, g.name, g.brand, g.spec, g.quantity, g.unit, g.space_id, g.barcode, s.name as space_name, s.icon as space_icon
             FROM goods g
             LEFT JOIN storage_space s ON g.space_id = s.id
             WHERE $whereStr
@@ -880,12 +900,12 @@ switch ($action) {
         $stmt->execute($params);
         $duplicates = $stmt->fetchAll();
 
-        // 处理图标前缀
         foreach ($duplicates as &$dup) {
             $dup['space_display'] = ($dup['space_icon'] ?? '🏠') . ' ' . ($dup['space_name'] ?? '未知位置');
+            $dup['match_type'] = 'name';
         }
 
-        success(['duplicates' => $duplicates, 'count' => count($duplicates)]);
+        success(['duplicates' => $duplicates, 'count' => count($duplicates), 'match_type' => 'name']);
         break;
 
     case 'add_quantity':

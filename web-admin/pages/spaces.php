@@ -19,6 +19,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = '请填写空间名称';
         }
+    } elseif ($postAction === 'update_space') {
+        $id = intval($_POST['id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        $icon = $_POST['icon'] ?? '📦';
+        $parentId = intval($_POST['parent_id'] ?? 0);
+        if ($id && $name) {
+            // 计算新层级
+            $newLevel = 1;
+            if ($parentId > 0) {
+                $stmt = $db->prepare('SELECT level FROM storage_space WHERE id = ?');
+                $stmt->execute([$parentId]);
+                $parent = $stmt->fetch();
+                if ($parent) $newLevel = $parent['level'] + 1;
+            }
+            $now = time();
+            $stmt = $db->prepare('UPDATE storage_space SET name = ?, icon = ?, parent_id = ?, level = ?, updated_at = ? WHERE id = ?');
+            $stmt->execute([$name, $icon, $parentId, $newLevel, $now, $id]);
+            $msg = '空间更新成功';
+        } else {
+            $error = '请填写空间名称';
+        }
     } elseif ($postAction === 'create_house') {
         $name = trim($_POST['name'] ?? '');
         if ($name) {
@@ -402,14 +423,75 @@ async function loadSpaceItems(spaceId) {
 }
 
 async function editSpace(id) {
-    var name = prompt('请输入新的空间名称:');
-    if (!name) return;
-    var data = await api('../backend/api/space.php?action=update', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: id, name: name})
+    // 获取当前空间详情
+    var detail = await api('../backend/api/space.php?action=detail&id=' + id);
+    if (!detail || !detail.space) { showToast('获取空间信息失败', 'error'); return; }
+    var s = detail.space;
+
+    // 获取空间树用于选择上级
+    var houseId = <?= $selectedHouse ?>;
+    var treeData = await api('../backend/api/space.php?action=tree&house_id=' + houseId);
+    var tree = (treeData && treeData.tree) ? treeData.tree : [];
+
+    // 构建上级空间选项
+    var parentOptions = '<option value="0">一级空间 (无上级)</option>';
+    function buildParentOpts(items, prefix) {
+        items.forEach(function(item) {
+            if (item.id != id) {
+                parentOptions += '<option value="' + item.id + '"' + (item.id == s.parent_id ? ' selected' : '') + '>' + prefix + item.icon + ' ' + escHtml(item.name) + '</option>';
+            }
+            if (item.children && item.children.length > 0) {
+                item.children.forEach(function(child) {
+                    if (child.id != id) {
+                        parentOptions += '<option value="' + child.id + '"' + (child.id == s.parent_id ? ' selected' : '') + '>&nbsp;&nbsp;&nbsp;&nbsp;' + child.icon + ' ' + escHtml(child.name) + '</option>';
+                    }
+                });
+            }
+        });
+    }
+    buildParentOpts(tree, '');
+
+    // 图标选项
+    var icons = ['🏠','🛏','🍳','📦','👕','💊','🎮','📚','🛋','🚿','🧹','🚗'];
+    var iconHtml = '';
+    icons.forEach(function(ic) {
+        var isActive = ic == s.icon;
+        iconHtml += '<span class="ep-icon" data-icon="' + ic + '" style="display:inline-block;width:36px;height:36px;line-height:36px;text-align:center;font-size:18px;cursor:pointer;border-radius:8px;border:2px solid ' + (isActive ? '#FF8C42' : 'transparent') + ';background:' + (isActive ? '#FFF3E6' : '#F7FAFC') + '" onclick="epPickIcon(this)">' + ic + '</span>';
     });
-    if (data !== null) { showToast('更新成功', 'success'); location.reload(); }
+
+    // 创建动态modal
+    var overlay = document.createElement('div');
+    overlay.id = 'ep-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:480px;width:90%;padding:24px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+        '<div style="font-size:16px;font-weight:600">编辑空间: ' + escHtml(s.name) + '</div>' +
+        '<button style="cursor:pointer;font-size:22px;color:#999;background:none;border:none" onclick="document.getElementById(\'ep-modal-overlay\').remove()">&times;</button></div>' +
+        '<form id="ep-edit-form" method="POST" action="?p=spaces&house_id=' + houseId + '">' +
+        '<input type="hidden" name="post_action" value="update_space">' +
+        '<input type="hidden" name="id" value="' + id + '">' +
+        '<input type="hidden" name="icon" id="ep-icon-val" value="' + s.icon + '">' +
+        '<div style="margin-bottom:14px"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">空间名称</label>' +
+        '<input type="text" name="name" class="form-control" value="' + escHtml(s.name) + '"></div>' +
+        '<div style="margin-bottom:14px"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">上级空间</label>' +
+        '<select name="parent_id" class="form-control">' + parentOptions + '</select></div>' +
+        '<div style="margin-bottom:18px"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">空间图标</label>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap" id="ep-icon-picker">' + iconHtml + '</div></div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+        '<button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById(\'ep-modal-overlay\').remove()">取消</button>' +
+        '<button type="submit" class="btn btn-primary btn-sm">保存修改</button></div>' +
+        '</form></div>';
+    document.body.appendChild(overlay);
+}
+
+function epPickIcon(el) {
+    document.querySelectorAll('#ep-icon-picker .ep-icon').forEach(function(s) {
+        s.style.border = '2px solid transparent';
+        s.style.background = '#F7FAFC';
+    });
+    el.style.border = '2px solid #FF8C42';
+    el.style.background = '#FFF3E6';
+    document.getElementById('ep-icon-val').value = el.dataset.icon;
 }
 
 async function deleteSpace(id) {
