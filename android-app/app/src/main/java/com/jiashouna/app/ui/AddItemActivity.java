@@ -149,6 +149,19 @@ public class AddItemActivity extends AppCompatActivity {
         spCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 updateCategoryFields(position);
+                // 药品分类时，根据名称自动识别药品类型并写入备注
+                if (position == 1) {
+                    String name = etName.getText().toString().trim();
+                    if (!name.isEmpty()) {
+                        String medicineType = identifyItemFunction(name, "药品");
+                        if (!medicineType.isEmpty() && !medicineType.equals("药品")) {
+                            String currentNote = etNote.getText().toString().trim();
+                            if (currentNote.isEmpty() || currentNote.equals("药品")) {
+                                etNote.setText(medicineType);
+                            }
+                        }
+                    }
+                }
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
@@ -216,7 +229,24 @@ public class AddItemActivity extends AppCompatActivity {
                 if (timer != null) timer.cancel();
                 timer = new java.util.Timer();
                 timer.schedule(new java.util.TimerTask() {
-                    @Override public void run() { loadRecommendations(); }
+                    @Override public void run() {
+                        loadRecommendations();
+                        // 药品分类时，名称变化自动识别药品类型
+                        runOnUiThread(() -> {
+                            if (spCategory != null && spCategory.getSelectedItemPosition() == 1) {
+                                String name = etName.getText().toString().trim();
+                                if (!name.isEmpty()) {
+                                    String medicineType = identifyItemFunction(name, "药品");
+                                    if (!medicineType.isEmpty() && !medicineType.equals("药品")) {
+                                        String currentNote = etNote.getText().toString().trim();
+                                        if (currentNote.isEmpty() || currentNote.equals("药品")) {
+                                            etNote.setText(medicineType);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }, 800);
             }
         });
@@ -226,6 +256,17 @@ public class AddItemActivity extends AppCompatActivity {
 
         // 添加标签
         btnAddTag.setOnClickListener(v -> showTagDialog());
+
+        // 规格变化时自动判断单位
+        if (etSpec != null) {
+            etSpec.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override public void afterTextChanged(android.text.Editable s) {
+                    autoDetectUnit();
+                }
+            });
+        }
 
         // 保存返回
         btnSave.setOnClickListener(v -> saveItem(false));
@@ -1999,9 +2040,243 @@ public class AddItemActivity extends AppCompatActivity {
             return;
         }
 
-        // 检查是否选择了存放位置
+        // 编辑模式跳过重复检查
+        if (isEditMode) {
+            if (selectedSpaceId <= 0) {
+                new AlertDialog.Builder(this)
+                    .setTitle("未选择存放位置")
+                    .setMessage("该物品还没有指定存放位置，你希望？")
+                    .setPositiveButton("选择位置", (d, w) -> showSpacePickerDialog())
+                    .setNegativeButton("暂不归位", (d, w) -> doSave(continueAfterSave))
+                    .show();
+                return;
+            }
+            doSave(continueAfterSave);
+            return;
+        }
+
+        // 新增模式：检查重复物品
+        checkDuplicateBeforeSave(continueAfterSave);
+    }
+
+    /**
+     * 保存前检查是否有重复物品
+     * 重复判定：名称相同，有品牌和规格时需全部匹配
+     */
+    private void checkDuplicateBeforeSave(boolean continueAfterSave) {
+        int houseId = App.getInstance().getCurrentHouseId();
+        String name = etName.getText().toString().trim();
+        String brand = etBrand.getText().toString().trim();
+        String spec = etSpec != null ? etSpec.getText().toString().trim() : "";
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("house_id", String.valueOf(houseId));
+        params.put("name", name);
+        if (!brand.isEmpty()) params.put("brand", brand);
+        if (!spec.isEmpty()) params.put("spec", spec);
+
+        ApiClient.get("goods.php?action=check_duplicate", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        int count = data.has("count") ? data.get("count").getAsInt() : 0;
+                        if (count > 0) {
+                            JsonArray duplicates = data.getAsJsonArray("duplicates");
+                            showDuplicateDialog(duplicates, continueAfterSave);
+                        } else {
+                            // 没有重复，继续正常保存流程
+                            proceedWithSave(continueAfterSave);
+                        }
+                    } catch (Exception e) {
+                        proceedWithSave(continueAfterSave);
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                // 检查失败，继续保存
+                runOnUiThread(() -> proceedWithSave(continueAfterSave));
+            }
+        });
+    }
+
+    /**
+     * 显示重复物品对话框
+     */
+    private void showDuplicateDialog(JsonArray duplicates, boolean continueAfterSave) {
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(dp(24), dp(16), dp(24), dp(8));
+
+        TextView tvHint = new TextView(this);
+        tvHint.setText("已发现库中存在相同物品：");
+        tvHint.setTextSize(14);
+        tvHint.setTextColor(0xFF2D3748);
+        tvHint.setPadding(0, 0, 0, dp(12));
+        dialogLayout.addView(tvHint);
+
+        // 列出重复物品
+        for (int i = 0; i < duplicates.size(); i++) {
+            JsonObject dup = duplicates.get(i).getAsJsonObject();
+            String dupName = dup.has("name") ? dup.get("name").getAsString() : "";
+            String dupBrand = dup.has("brand") && !dup.get("brand").isJsonNull() ? dup.get("brand").getAsString() : "";
+            String dupSpec = dup.has("spec") && !dup.get("spec").isJsonNull() ? dup.get("spec").getAsString() : "";
+            double qty = dup.has("quantity") ? dup.get("quantity").getAsDouble() : 0;
+            String unit = dup.has("unit") && !dup.get("unit").isJsonNull() ? dup.get("unit").getAsString() : "个";
+            String spaceDisplay = dup.has("space_display") ? dup.get("space_display").getAsString() : "";
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(dp(12), dp(10), dp(12), dp(10));
+            android.graphics.drawable.GradientDrawable rowBg = new android.graphics.drawable.GradientDrawable();
+            rowBg.setCornerRadius(dp(8));
+            rowBg.setColor(0xFFFFFAF0);
+            rowBg.setStroke(dp(1), 0xFFFFD3B0);
+            row.setBackground(rowBg);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rowLp.topMargin = dp(6);
+            row.setLayoutParams(rowLp);
+
+            String info = dupName;
+            if (!dupBrand.isEmpty()) info += " | " + dupBrand;
+            if (!dupSpec.isEmpty()) info += " | " + dupSpec;
+            TextView tvInfo = new TextView(this);
+            tvInfo.setText(info);
+            tvInfo.setTextSize(13);
+            tvInfo.setTextColor(0xFF2D3748);
+            tvInfo.setTypeface(null, android.graphics.Typeface.BOLD);
+            row.addView(tvInfo);
+
+            TextView tvDetail = new TextView(this);
+            tvDetail.setText("库存: " + (int) qty + " " + unit + "  \u2502  位置: " + spaceDisplay);
+            tvDetail.setTextSize(12);
+            tvDetail.setTextColor(0xFF718096);
+            LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            detailLp.topMargin = dp(4);
+            tvDetail.setLayoutParams(detailLp);
+            row.addView(tvDetail);
+
+            dialogLayout.addView(row);
+        }
+
+        // 选项说明
+        TextView tvOptions = new TextView(this);
+        tvOptions.setText("\n请选择处理方式：");
+        tvOptions.setTextSize(13);
+        tvOptions.setTextColor(0xFF718096);
+        tvOptions.setPadding(0, dp(8), 0, 0);
+        dialogLayout.addView(tvOptions);
+
+        // 获取第一个重复物品的信息（用于"添加到已有"选项）
+        final JsonObject firstDup = duplicates.get(0).getAsJsonObject();
+        final int dupGoodsId = firstDup.has("id") ? firstDup.get("id").getAsInt() : 0;
+        final String dupSpaceDisplay = firstDup.has("space_display") ? firstDup.get("space_display").getAsString() : "";
+
+        new AlertDialog.Builder(this)
+            .setTitle("发现重复物品")
+            .setView(dialogLayout)
+            .setPositiveButton("添加到已有位置（增加数量）", (d, w) -> {
+                if (dupGoodsId > 0) {
+                    addToExistingItem(dupGoodsId, continueAfterSave);
+                } else {
+                    Toast.makeText(this, "物品ID异常", Toast.LENGTH_SHORT).show();
+                }
+            })
+            .setNeutralButton("保存到新位置", (d, w) -> {
+                // 复制原物品信息，让用户选新位置
+                if (dupGoodsId > 0) {
+                    copyFromExistingAndSelectSpace(dupGoodsId, continueAfterSave);
+                } else {
+                    proceedWithSave(continueAfterSave);
+                }
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    /**
+     * 添加数量到已有物品
+     */
+    private void addToExistingItem(int existingGoodsId, boolean continueAfterSave) {
+        String qtyStr = etQuantity.getText().toString().trim();
+        double addQty = qtyStr.isEmpty() ? 1 : Double.parseDouble(qtyStr);
+
+        JsonObject body = new JsonObject();
+        body.addProperty("id", existingGoodsId);
+        body.addProperty("quantity", addQty);
+
+        ApiClient.post("goods.php?action=add_quantity", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    double newQty = data.has("new_quantity") ? data.get("new_quantity").getAsDouble() : 0;
+                    Toast.makeText(AddItemActivity.this, "✅ 已添加数量，当前库存: " + (int) newQty, Toast.LENGTH_SHORT).show();
+                    if (continueAfterSave) {
+                        resetForm();
+                    } else {
+                        finish();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "操作失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    /**
+     * 从已有物品复制信息，然后让用户选择新位置保存
+     */
+    private void copyFromExistingAndSelectSpace(int existingGoodsId, boolean continueAfterSave) {
+        // 先获取已有物品的详情
+        HashMap<String, String> params = new HashMap<>();
+        params.put("id", String.valueOf(existingGoodsId));
+        ApiClient.get("goods.php?action=detail", params, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonObject goods = data.has("goods") ? data.getAsJsonObject("goods") : data;
+                        // 复制品牌、规格、分类等信息到当前表单
+                        if (goods.has("brand") && !goods.get("brand").isJsonNull()) {
+                            String b = goods.get("brand").getAsString();
+                            if (!b.isEmpty()) etBrand.setText(b);
+                        }
+                        if (goods.has("spec") && !goods.get("spec").isJsonNull() && etSpec != null) {
+                            String s = goods.get("spec").getAsString();
+                            if (!s.isEmpty()) etSpec.setText(s);
+                        }
+                        if (goods.has("category") && !goods.get("category").isJsonNull()) {
+                            String cat = goods.get("category").getAsString();
+                            int catPos = getCategoryPosition(cat);
+                            if (catPos >= 0 && spCategory != null) spCategory.setSelection(catPos);
+                        }
+                        if (goods.has("manufacturer") && !goods.get("manufacturer").isJsonNull() && etManufacturer != null) {
+                            etManufacturer.setText(goods.get("manufacturer").getAsString());
+                        }
+                        if (goods.has("barcode") && !goods.get("barcode").isJsonNull()) {
+                            etBarcode.setText(goods.get("barcode").getAsString());
+                        }
+
+                        // 提示用户选择新位置
+                        Toast.makeText(AddItemActivity.this, "已复制物品信息，请选择新位置", Toast.LENGTH_SHORT).show();
+                        showSpacePickerDialog();
+                    } catch (Exception e) {
+                        Toast.makeText(AddItemActivity.this, "复制信息失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddItemActivity.this, "获取物品信息失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    /**
+     * 正常保存流程（选择位置检查）
+     */
+    private void proceedWithSave(boolean continueAfterSave) {
         if (selectedSpaceId <= 0) {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
+            new AlertDialog.Builder(this)
                 .setTitle("未选择存放位置")
                 .setMessage("该物品还没有指定存放位置，你希望？")
                 .setPositiveButton("选择位置", (d, w) -> showSpacePickerDialog())
@@ -2009,7 +2284,6 @@ public class AddItemActivity extends AppCompatActivity {
                 .show();
             return;
         }
-
         doSave(continueAfterSave);
     }
 
@@ -2193,6 +2467,7 @@ public class AddItemActivity extends AppCompatActivity {
         // 重置表单字段,保留空间选择和模式
         etName.setText("");
         etBarcode.setText("");
+        etBrand.setText("");
         etQuantity.setText("1");
         etUnit.setSelection(0);
         etExpiryDays.setText("");
@@ -2964,6 +3239,7 @@ public class AddItemActivity extends AppCompatActivity {
      */
     /**
      * 读取EXIF方向信息，自动修正照片旋转
+     * 支持所有8种EXIF方向值，确保照片正面朝上显示
      * 手机拍照时传感器可能以横向拍摄，EXIF记录了正确显示的旋转角度
      */
     private Bitmap fixPhotoOrientation(Uri uri, Bitmap bitmap) {
@@ -2976,26 +3252,72 @@ public class AddItemActivity extends AppCompatActivity {
                 androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL);
             is.close();
 
-            int degrees = 0;
+            android.graphics.Matrix matrix = new android.graphics.Matrix();
+            boolean needsTransform = false;
+
             switch (orientation) {
                 case androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90:
-                    degrees = 90;
+                    matrix.postRotate(90);
+                    needsTransform = true;
                     break;
                 case androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180:
-                    degrees = 180;
+                    matrix.postRotate(180);
+                    needsTransform = true;
                     break;
                 case androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270:
-                    degrees = 270;
+                    matrix.postRotate(270);
+                    needsTransform = true;
+                    break;
+                case androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
+                    matrix.preScale(-1, 1);
+                    needsTransform = true;
+                    break;
+                case androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                    matrix.preScale(1, -1);
+                    needsTransform = true;
+                    break;
+                case androidx.exifinterface.media.ExifInterface.ORIENTATION_TRANSPOSE:
+                    // 先旋转90°再水平翻转
+                    matrix.postRotate(90);
+                    matrix.preScale(-1, 1);
+                    needsTransform = true;
+                    break;
+                case androidx.exifinterface.media.ExifInterface.ORIENTATION_TRANSVERSE:
+                    // 先旋转270°再水平翻转
+                    matrix.postRotate(270);
+                    matrix.preScale(-1, 1);
+                    needsTransform = true;
                     break;
                 default:
-                    return bitmap; // 不需要旋转
+                    // ORIENTATION_NORMAL or unknown - no transform needed
+                    break;
             }
 
-            android.graphics.Matrix matrix = new android.graphics.Matrix();
-            matrix.postRotate(degrees);
-            Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-            if (rotated != bitmap) bitmap.recycle();
-            return rotated;
+            if (needsTransform) {
+                Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+                if (rotated != bitmap) bitmap.recycle();
+                return rotated;
+            }
+
+            // 没有EXIF旋转信息时，检查宽高比
+            // 如果照片是横向的（宽>高），且宽高比接近4:3或16:9（典型拍照比例），
+            // 可能是横向拍摄未带EXIF信息，自动旋转为纵向
+            int w = bitmap.getWidth();
+            int h = bitmap.getHeight();
+            if (w > h) {
+                float ratio = (float) w / h;
+                // 典型手机拍照比例: 4:3=1.33, 16:9=1.78, 3:2=1.5
+                if (ratio >= 1.2f && ratio <= 2.0f) {
+                    // 这很可能是横向拍摄的照片，旋转90°使其纵向显示
+                    android.graphics.Matrix rotateMatrix = new android.graphics.Matrix();
+                    rotateMatrix.postRotate(90);
+                    Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, w, h, rotateMatrix, true);
+                    if (rotated != bitmap) bitmap.recycle();
+                    return rotated;
+                }
+            }
+
+            return bitmap;
         } catch (Exception e) {
             android.util.Log.w("AddItem", "fixPhotoOrientation failed: " + e.getMessage());
             return bitmap;
@@ -3014,5 +3336,51 @@ public class AddItemActivity extends AppCompatActivity {
 
     private int dp(int dp) {
         return (int) (dp * getResources().getDisplayMetrics().density);
+    }
+
+    /**
+     * 根据规格和名称自动判断单位
+     * 规格包含"盒"→盒, "瓶"→瓶, "包"→包, "袋"→袋, "罐"→罐, "箱"→箱, "套"→套, "件"→件
+     * 名称包含"药"→盒, "饮料"/"水"→瓶, "零食"/"饼"→包
+     * 默认不自动切换，让用户手动选择
+     */
+    private void autoDetectUnit() {
+        if (etSpec == null || etUnit == null) return;
+        String spec = etSpec.getText().toString().trim();
+        String name = etName.getText().toString().trim();
+        String combined = spec + " " + name;
+
+        // 只在规格字段有内容时才自动判断
+        if (spec.isEmpty()) return;
+
+        String detectedUnit = null;
+
+        // 优先从规格中匹配
+        if (spec.contains("盒") || spec.contains("盒装")) detectedUnit = "盒";
+        else if (spec.contains("瓶") || spec.contains("瓶装")) detectedUnit = "瓶";
+        else if (spec.contains("包") || spec.contains("包裝") || spec.contains("袋") || spec.contains("袋装")) detectedUnit = "包";
+        else if (spec.contains("罐") || spec.contains("罐装")) detectedUnit = "罐";
+        else if (spec.contains("箱") || spec.contains("箱装")) detectedUnit = "箱";
+        else if (spec.contains("套") || spec.contains("套装")) detectedUnit = "套";
+        else if (spec.contains("件")) detectedUnit = "件";
+        else if (spec.contains("支") || spec.contains("管")) detectedUnit = "个";
+
+        // 从名称中匹配（当规格没有匹配到时）
+        if (detectedUnit == null) {
+            if (name.contains("药") || name.contains("胶囊") || name.contains("片剂")) detectedUnit = "盒";
+            else if (name.contains("饮料") || name.contains("水") || name.contains("果汁") || name.contains("可乐")) detectedUnit = "瓶";
+            else if (name.contains("饼干") || name.contains("薯片") || name.contains("巧克力")) detectedUnit = "包";
+            else if (name.contains("洗衣液") || name.contains("洗发水") || name.contains("沐浴露")) detectedUnit = "瓶";
+        }
+
+        if (detectedUnit != null) {
+            android.widget.ArrayAdapter<String> adapter = (android.widget.ArrayAdapter<String>) etUnit.getAdapter();
+            if (adapter != null) {
+                int pos = adapter.getPosition(detectedUnit);
+                if (pos >= 0) {
+                    etUnit.setSelection(pos);
+                }
+            }
+        }
     }
 }

@@ -134,6 +134,12 @@ switch ($action) {
         $id = intval($input['id'] ?? 0);
         if (!$id) error('缺少参数id');
 
+        // 检查空间是否存在
+        $stmt = $db->prepare("SELECT * FROM storage_space WHERE id = ?");
+        $stmt->execute([$id]);
+        $currentSpace = $stmt->fetch();
+        if (!$currentSpace) error('空间不存在');
+
         $fields = [];
         $params = [];
         $allowedFields = ['name', 'icon', 'color', 'sort_order', 'shared'];
@@ -143,6 +149,45 @@ switch ($action) {
                 $params[] = $input[$field];
             }
         }
+
+        // 处理上级空间变更
+        if (isset($input['parent_id'])) {
+            $newParentId = intval($input['parent_id']);
+            $newLevel = 1;
+
+            if ($newParentId > 0) {
+                // 不能将自己设为自己的上级
+                if ($newParentId == $id) error('不能将空间设为自己的上级');
+
+                // 检查不能将上级设为自己的子空间（防止循环引用）
+                $checkStmt = $db->prepare("SELECT parent_id FROM storage_space WHERE id = ?");
+                $checkPid = $newParentId;
+                while ($checkPid > 0) {
+                    if ($checkPid == $id) error('不能将上级设为自己的子空间');
+                    $checkStmt->execute([$checkPid]);
+                    $row = $checkStmt->fetch();
+                    if (!$row) break;
+                    $checkPid = intval($row['parent_id']);
+                }
+
+                // 获取新父级的层级
+                $stmt = $db->prepare("SELECT level FROM storage_space WHERE id = ? AND house_id = ?");
+                $stmt->execute([$newParentId, $currentSpace['house_id']]);
+                $parent = $stmt->fetch();
+                if (!$parent) error('父级空间不存在');
+                $newLevel = $parent['level'] + 1;
+                if ($newLevel > 3) error('最多支持3级空间');
+            }
+
+            $fields[] = "parent_id = ?";
+            $params[] = $newParentId;
+            $fields[] = "level = ?";
+            $params[] = $newLevel;
+        } elseif (isset($input['level'])) {
+            $fields[] = "level = ?";
+            $params[] = intval($input['level']);
+        }
+
         if (empty($fields)) error('没有要更新的内容');
 
         $fields[] = "updated_at = ?";

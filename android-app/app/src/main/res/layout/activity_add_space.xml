@@ -305,6 +305,20 @@
                     android:checked="true" />
             </LinearLayout>
 
+            <!-- 删除按钮 (编辑模式显示) -->
+            <TextView
+                android:id="@+id/btn_delete_space"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_button_outline_warm"
+                android:gravity="center"
+                android:text="🗑 删除该空间"
+                android:textColor="@color/danger"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
             <!-- 装饰文字 -->
             <TextView
                 android:layout_width="match_parent"

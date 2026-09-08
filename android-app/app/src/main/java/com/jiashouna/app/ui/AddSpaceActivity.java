@@ -44,6 +44,7 @@ public class AddSpaceActivity extends AppCompatActivity {
     private int editSpaceId = 0; // 0=新建, >0=编辑
     private LocalDb localDb;
     private JsonArray houseList = new JsonArray();
+    private TextView btnDeleteSpace;
 
     private final String[] icons = {"🏠", "🛏", "🍳", "📦", "👕", "💊", "🎮", "📚"};
     private final String[] colorValues = {"#FF8C42", "#FFB380", "#4A90D9", "#9B59B6", "#27AE60", "#E74C3C", "#F39C12"};
@@ -76,6 +77,7 @@ public class AddSpaceActivity extends AppCompatActivity {
         btnCancel = findViewById(R.id.btn_cancel);
         layoutIconSelector = findViewById(R.id.layout_icon_selector);
         layoutColorSelector = findViewById(R.id.layout_color_selector);
+        btnDeleteSpace = findViewById(R.id.btn_delete_space);
 
         if (parentSpaceId > 0) {
             tvParentSpace.setText(parentSpaceName.isEmpty() ? "已选上级" : parentSpaceName);
@@ -102,6 +104,8 @@ public class AddSpaceActivity extends AppCompatActivity {
         // 编辑模式：加载现有空间数据
         if (editSpaceId > 0) {
             if (btnSave != null) btnSave.setText("保存修改");
+            // 显示删除按钮
+            if (btnDeleteSpace != null) btnDeleteSpace.setVisibility(View.VISIBLE);
             // 设置标题
             String editName = getIntent().getStringExtra("space_name");
             TextView tvTitle = findViewById(R.id.tv_title);
@@ -109,6 +113,11 @@ public class AddSpaceActivity extends AppCompatActivity {
                 tvTitle.setText(editName != null && !editName.isEmpty() ? "编辑: " + editName : "编辑空间");
             }
             loadSpaceData();
+        }
+
+        // 删除空间按钮
+        if (btnDeleteSpace != null) {
+            btnDeleteSpace.setOnClickListener(v -> confirmDeleteSpace());
         }
     }
 
@@ -462,7 +471,8 @@ public class AddSpaceActivity extends AppCompatActivity {
             body.addProperty("icon", selectedIcon);
             body.addProperty("color", selectedColor);
             body.addProperty("shared", swShared.isChecked() ? 1 : 0);
-            if (parentSpaceId > 0) {
+            // 编辑模式时始终发送parent_id（包括0，表示改为顶级空间）
+            if (editSpaceId > 0 || parentSpaceId > 0) {
                 body.addProperty("parent_id", parentSpaceId);
             }
 
@@ -505,5 +515,86 @@ public class AddSpaceActivity extends AppCompatActivity {
     private int dpToPx(int dp) {
         return (int) TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
+    }
+
+    /**
+     * 确认删除空间
+     * 如果空间内有物品，提示用户确认
+     */
+    private void confirmDeleteSpace() {
+        if (editSpaceId <= 0) return;
+
+        // 先检查空间内是否有物品
+        ApiClient.get("space.php?action=detail&id=" + editSpaceId, new HashMap<>(), new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    try {
+                        JsonObject space = data.has("space") && !data.get("space").isJsonNull()
+                            ? data.getAsJsonObject("space") : data;
+                        int itemCount = space.has("item_count") ? space.get("item_count").getAsInt() : 0;
+                        boolean hasChildren = space.has("children") && !space.get("children").isJsonNull()
+                            && space.getAsJsonArray("children").size() > 0;
+
+                        if (hasChildren) {
+                            new AlertDialog.Builder(AddSpaceActivity.this)
+                                .setTitle("无法删除")
+                                .setMessage("该空间下还有子空间，请先删除子空间")
+                                .setPositiveButton("确定", null)
+                                .show();
+                            return;
+                        }
+
+                        String spaceName = space.has("name") ? space.get("name").getAsString() : "";
+
+                        if (itemCount > 0) {
+                            new AlertDialog.Builder(AddSpaceActivity.this)
+                                .setTitle("确认删除")
+                                .setMessage("该空间内有 " + itemCount + " 件物品，删除空间后物品也将被删除。\n\n确定要删除「" + spaceName + "」吗？")
+                                .setPositiveButton("删除（含物品）", (d, w) -> doDeleteSpace(true))
+                                .setNegativeButton("取消", null)
+                                .show();
+                        } else {
+                            new AlertDialog.Builder(AddSpaceActivity.this)
+                                .setTitle("确认删除")
+                                .setMessage("确定要删除「" + spaceName + "」吗？")
+                                .setPositiveButton("删除", (d, w) -> doDeleteSpace(false))
+                                .setNegativeButton("取消", null)
+                                .show();
+                        }
+                    } catch (Exception e) {
+                        Toast.makeText(AddSpaceActivity.this, "获取空间信息失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> Toast.makeText(AddSpaceActivity.this, "获取空间信息失败: " + msg, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void doDeleteSpace(boolean deleteGoods) {
+        JsonObject body = new JsonObject();
+        body.addProperty("id", editSpaceId);
+        if (deleteGoods) body.addProperty("delete_goods", 1);
+
+        btnDeleteSpace.setEnabled(false);
+        btnDeleteSpace.setText("删除中...");
+
+        ApiClient.post("space.php?action=delete", body, new ApiClient.ApiCallback() {
+            @Override public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    Toast.makeText(AddSpaceActivity.this, "✅ 已删除", Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK);
+                    finish();
+                });
+            }
+            @Override public void onError(String msg) {
+                runOnUiThread(() -> {
+                    btnDeleteSpace.setEnabled(true);
+                    btnDeleteSpace.setText("🗑 删除该空间");
+                    Toast.makeText(AddSpaceActivity.this, "删除失败: " + msg, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 }

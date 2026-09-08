@@ -844,6 +844,75 @@ switch ($action) {
         success(['items' => $items, 'brand_column_exists' => !!$brandCol]);
         break;
 
+    case 'check_duplicate':
+        $houseId = intval($_GET['house_id'] ?? 0);
+        $name = trim($_GET['name'] ?? '');
+        $brand = trim($_GET['brand'] ?? '');
+        $spec = trim($_GET['spec'] ?? '');
+        if (!$houseId || empty($name)) error('缺少参数');
+
+        $where = ['g.status = 1', 'g.house_id = ?', 'g.name = ?'];
+        $params = [$houseId, $name];
+
+        // 如果有品牌，需要匹配品牌
+        if (!empty($brand)) {
+            $where[] = 'g.brand = ?';
+            $params[] = $brand;
+        } else {
+            $where[] = '(g.brand IS NULL OR g.brand = \'\' )';
+        }
+
+        // 如果有规格，需要匹配规格
+        if (!empty($spec)) {
+            $where[] = 'g.spec = ?';
+            $params[] = $spec;
+        } else {
+            $where[] = '(g.spec IS NULL OR g.spec = \'\' )';
+        }
+
+        $whereStr = implode(' AND ', $where);
+        $stmt = $db->prepare("SELECT g.id, g.name, g.brand, g.spec, g.quantity, g.unit, g.space_id, s.name as space_name, s.icon as space_icon
+            FROM goods g
+            LEFT JOIN storage_space s ON g.space_id = s.id
+            WHERE $whereStr
+            ORDER BY g.updated_at DESC
+            LIMIT 5");
+        $stmt->execute($params);
+        $duplicates = $stmt->fetchAll();
+
+        // 处理图标前缀
+        foreach ($duplicates as &$dup) {
+            $dup['space_display'] = ($dup['space_icon'] ?? '🏠') . ' ' . ($dup['space_name'] ?? '未知位置');
+        }
+
+        success(['duplicates' => $duplicates, 'count' => count($duplicates)]);
+        break;
+
+    case 'add_quantity':
+        $input = getJsonInput();
+        $id = intval($input['id'] ?? 0);
+        $addQty = floatval($input['quantity'] ?? 1);
+        if (!$id || $addQty <= 0) error('参数错误');
+
+        $stmt = $db->prepare('SELECT * FROM goods WHERE id = ? AND status = 1');
+        $stmt->execute([$id]);
+        $goods = $stmt->fetch();
+        if (!$goods) error('物品不存在');
+
+        $now = time();
+        $newQty = $goods['quantity'] + $addQty;
+        $stmt = $db->prepare('UPDATE goods SET quantity = ?, updated_at = ? WHERE id = ?');
+        $stmt->execute([$newQty, $now, $id]);
+
+        // 流转日志
+        try {
+            $db->prepare('INSERT INTO goods_log (goods_id, user_id, action, detail, created_at) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$id, $user['id'], 'edit', '数量增加 ' . $addQty . ' (总计 ' . $newQty . ')', $now]);
+        } catch (Exception $e) {}
+
+        success(['id' => $id, 'new_quantity' => $newQty]);
+        break;
+
     default:
         error('未知操作');
 }
