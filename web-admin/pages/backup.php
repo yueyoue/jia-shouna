@@ -198,22 +198,23 @@ $stats['last_backup'] = $lastBackupTs;
         </div>
     </div>
 
-    <!-- 2. 图片打包 -->
+    <!-- 2. 图片附件 -->
     <div class="action-card ac2">
         <div class="ac-head">
             <div class="ac-icon">🖼</div>
             <div>
-                <div class="ac-title">图片附件打包</div>
-                <div class="ac-desc">打包所有物品图片为 ZIP，下载到本地保存</div>
+                <div class="ac-title">图片附件备份</div>
+                <div class="ac-desc">物品图片需要手动备份到服务器的图片目录</div>
             </div>
         </div>
         <div class="ac-body">
-            <div class="ac-label">打包下载图片</div>
-            <div class="ac-sub">包含原图和缩略图，ZIP 格式</div>
+            <div class="ac-label">手动备份图片目录</div>
+            <div class="ac-sub">通过 FTP/SFTP 或服务器面板下载图片目录</div>
             <div class="ac-meta">图片: <?= $stats['total_images'] ?> 张 · 占用: <?= formatSize($stats['image_size']) ?></div>
-            <div class="ac-actions">
-                <button class="ac-btn ac-btn-secondary" id="btn-backup-img" onclick="doBackupImages()">📦 打包下载</button>
-                <span id="backup-img-status" style="font-size:12px;color:#718096"></span>
+            <div style="margin-top:10px;padding:10px;background:#fff;border-radius:6px;border:1px solid #B2F5EA;font-size:12px;line-height:1.8">
+                <div style="font-weight:600;color:#234E52;margin-bottom:4px">📂 图片目录路径：</div>
+                <code style="background:#E6FFFA;padding:2px 8px;border-radius:4px;font-size:12px;color:#234E52;word-break:break-all">backend/uploads/images/</code>
+                <div style="margin-top:6px;color:#4A5568">将整个 <code>images/</code> 文件夹下载到本地即可完成备份</div>
             </div>
         </div>
     </div>
@@ -294,16 +295,16 @@ $stats['last_backup'] = $lastBackupTs;
 <div class="guide-box">
     <div class="guide-title">📋 完整备份指南（删除站点重建前必读）</div>
     <div class="guide-step"><span class="num">1</span><div><strong>备份数据库</strong>：点击上方「⚡ 立即备份数据库」，下载 <code>.sql</code> 文件到本地电脑</div></div>
-    <div class="guide-step"><span class="num">2</span><div><strong>备份图片</strong>：点击「📦 打包下载」，下载图片 <code>.zip</code> 文件到本地电脑</div></div>
-    <div class="guide-step"><span class="num">3</span><div><strong>确认文件</strong>：检查本地是否有这两个文件，缺一不可</div></div>
+    <div class="guide-step"><span class="num">2</span><div><strong>备份图片</strong>：通过 FTP/SFTP 或服务器面板，将 <code>backend/uploads/images/</code> 整个文件夹下载到本地电脑</div></div>
+    <div class="guide-step"><span class="num">3</span><div><strong>确认文件</strong>：检查本地是否有 <code>.sql</code> 文件和 <code>images/</code> 文件夹，缺一不可</div></div>
     <div class="guide-step"><span class="num">4</span><div><strong>重建站点</strong>：删除旧站点，重新部署新站点</div></div>
     <div class="guide-step"><span class="num">5</span><div><strong>恢复数据库</strong>：在新站点的备份页面，点「🔄 数据恢复」→ 上传 <code>.sql</code> 文件 → 输入确认码 <code>RESTORE_CONFIRM</code> → 点击恢复</div></div>
-    <div class="guide-step"><span class="num">6</span><div><strong>恢复图片</strong>：将下载的 <code>.zip</code> 解压，把 <code>images/</code> 文件夹上传到新站点的 <code>backend/uploads/</code> 目录下</div></div>
+    <div class="guide-step"><span class="num">6</span><div><strong>恢复图片</strong>：将本地备份的 <code>images/</code> 文件夹上传到新站点的 <code>backend/uploads/</code> 目录下（保持目录结构不变）</div></div>
     <div class="guide-step"><span class="num">7</span><div><strong>运行迁移</strong>：依次访问以下4个迁移脚本，确保所有表结构就绪：<br>
         <code>migrate_outfit.php</code> · <code>migrate_goods_log.php</code> · <code>migrate_document.php</code> · <code>migrate_space_code.php</code></div></div>
     <div class="guide-step"><span class="num">8</span><div><strong>验证</strong>：登录新站点，检查物品、图片、套装、借出记录是否完整</div></div>
     <div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:6px;font-size:12px;color:#92400E">
-        ⚠ <strong>重要提醒</strong>：数据库备份不包含图片文件！图片需要单独备份。两样都要下载才能完整恢复。
+        ⚠ <strong>重要提醒</strong>：数据库备份不包含图片文件！图片需要单独通过 FTP/面板下载备份。两样都要有才能完整恢复。
     </div>
 </div>
 
@@ -406,32 +407,6 @@ async function doBackupDb() {
         showToast('备份请求失败', 'error');
     }
     btn.disabled = false; btn.textContent = '⚡ 立即备份';
-}
-
-// ====== 打包图片 ======
-function doBackupImages() {
-    var btn = document.getElementById('btn-backup-img');
-    var status = document.getElementById('backup-img-status');
-    btn.disabled = true; btn.textContent = '⏳ 打包中...';
-    status.textContent = '';
-
-    fetch(BACKUP_API + '?action=backup_images', {method:'POST'})
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            btn.disabled = false; btn.textContent = '📦 打包下载';
-            if (data.code === 0 && data.data && data.data.download_url) {
-                status.innerHTML = '<span style="color:#48BB78">✅ ' + data.msg + ' (' + data.data.file_count + ' 张图片, ' + formatSize(data.data.file_size) + ')</span>';
-                // 触发下载
-                window.location.href = BACKUP_API + '?action=download&file=' + encodeURIComponent(data.data.filename);
-                loadBackupFiles();
-            } else {
-                status.innerHTML = '<span style="color:#F56565">❌ ' + (data.msg || '打包失败') + '</span>';
-            }
-        })
-        .catch(function() {
-            btn.disabled = false; btn.textContent = '📦 打包下载';
-            status.innerHTML = '<span style="color:#F56565">❌ 请求失败</span>';
-        });
 }
 
 // ====== JSON 导出 ======
