@@ -729,6 +729,8 @@ public class AddItemActivity extends AppCompatActivity {
                         } catch (Exception ignored) {}
                     }
                     Toast.makeText(this, "✅ 已填入选中项", Toast.LENGTH_SHORT).show();
+                    // AI识别填入后立即检查重复
+                    checkDuplicateImmediate(fBarcode, fName, fBrand, fSpec);
                 })
                 .setNeutralButton("全部填入", (d, w) -> {
                     if (!fName.isEmpty()) etName.setText(fName);
@@ -744,6 +746,8 @@ public class AddItemActivity extends AppCompatActivity {
                         } catch (Exception ignored) {}
                     }
                     Toast.makeText(this, "✅ 已填入全部", Toast.LENGTH_SHORT).show();
+                    // AI识别填入后立即检查重复
+                    checkDuplicateImmediate(fBarcode, fName, fBrand, fSpec);
                 })
                 .setNegativeButton("重新识别", (d, w) -> startAiRecognize())
                 .show();
@@ -961,7 +965,7 @@ public class AddItemActivity extends AppCompatActivity {
                 etBarcode.setText(barcode);
                 lookupBarcode(barcode);
                 // 扫码后立即检查库中是否有相同条形码的物品
-                checkDuplicateByBarcode(barcode);
+                checkDuplicateImmediate(barcode, null, null, null);
             }
         } else if (requestCode == REQUEST_PHOTO) {
             try {
@@ -1277,6 +1281,7 @@ public class AddItemActivity extends AppCompatActivity {
                             else if (t.startsWith("功能:")) etNote.setText(rStorageTip);
                         }
                         Toast.makeText(this, "✅ 已填入选中项", Toast.LENGTH_SHORT).show();
+                        checkDuplicateImmediate(rBarcode, rName, rBrand, rSpec);
                     })
                     .setNeutralButton("全部填入", (d, w) -> {
                         if (!rName.isEmpty()) etName.setText(rName);
@@ -1286,6 +1291,7 @@ public class AddItemActivity extends AppCompatActivity {
                         if (!rStorageTip.isEmpty() && etNote.getText().toString().trim().isEmpty()) etNote.setText(rStorageTip);
                         if (catPos >= 0) spCategory.setSelection(catPos);
                         Toast.makeText(this, "✅ 已填入全部", Toast.LENGTH_SHORT).show();
+                        checkDuplicateImmediate(rBarcode, rName, rBrand, rSpec);
                     })
                     .setNegativeButton("重新识别", (d, w) -> {
                         if (photos.size() > 0) recognizeImage(photos.get(photos.size() - 1));
@@ -1389,13 +1395,33 @@ public class AddItemActivity extends AppCompatActivity {
      * 扫码后立即检查库中是否有相同条形码的物品
      * 条形码匹配是最可靠的重复判定方式
      */
-    private void checkDuplicateByBarcode(String barcode) {
+    private boolean duplicateChecked = false; // 避免同一次录入重复弹窗
+
+    /**
+     * 即时检查重复物品 - 供扫码和AI识别后调用
+     * @param barcode 条形码（可为空）
+     * @param name 物品名称（可为空）
+     * @param brand 品牌（可为空）
+     * @param spec 规格（可为空）
+     */
+    private void checkDuplicateImmediate(String barcode, String name, String brand, String spec) {
+        if (duplicateChecked) return; // 已经弹过窗，不再重复检查
         int houseId = App.getInstance().getCurrentHouseId();
-        if (houseId <= 0 || barcode.isEmpty()) return;
+        if (houseId <= 0) return;
 
         HashMap<String, String> params = new HashMap<>();
         params.put("house_id", String.valueOf(houseId));
-        params.put("barcode", barcode);
+
+        // 优先条形码匹配
+        if (barcode != null && !barcode.isEmpty()) {
+            params.put("barcode", barcode);
+        } else if (name != null && !name.isEmpty()) {
+            params.put("name", name);
+            if (brand != null && !brand.isEmpty()) params.put("brand", brand);
+            if (spec != null && !spec.isEmpty()) params.put("spec", spec);
+        } else {
+            return;
+        }
 
         ApiClient.get("goods.php?action=check_duplicate", params, new ApiClient.ApiCallback() {
             @Override public void onSuccess(JsonObject data) {
@@ -1403,6 +1429,7 @@ public class AddItemActivity extends AppCompatActivity {
                     try {
                         int count = data.has("count") ? data.get("count").getAsInt() : 0;
                         if (count > 0) {
+                            duplicateChecked = true;
                             JsonArray duplicates = data.getAsJsonArray("duplicates");
                             showDuplicateDialog(duplicates, false);
                         }
@@ -2123,10 +2150,16 @@ public class AddItemActivity extends AppCompatActivity {
     }
 
     /**
-     * 保存前检查是否有重复物品
-     * 优先级：条形码匹配 > 名称+品牌+规格匹配
+     * 保存前的最终重复检查（安全网）
+     * 如果扫码/AI已触发过检查则跳过
      */
     private void checkDuplicateBeforeSave(boolean continueAfterSave) {
+        if (duplicateChecked) {
+            // 已经检查过，直接保存
+            proceedWithSave(continueAfterSave);
+            return;
+        }
+
         int houseId = App.getInstance().getCurrentHouseId();
         String name = etName.getText().toString().trim();
         String brand = etBrand.getText().toString().trim();
@@ -2150,6 +2183,7 @@ public class AddItemActivity extends AppCompatActivity {
                     try {
                         int count = data.has("count") ? data.get("count").getAsInt() : 0;
                         if (count > 0) {
+                            duplicateChecked = true;
                             JsonArray duplicates = data.getAsJsonArray("duplicates");
                             showDuplicateDialog(duplicates, continueAfterSave);
                         } else {
@@ -2551,6 +2585,7 @@ public class AddItemActivity extends AppCompatActivity {
         tvExpiryDateAuto.setHint("输入生产日期和保质期后自动计算");
         tvExpiryDateAuto.setTextColor(Color.parseColor("#2D3748"));
         swPrivate.setChecked(false);
+        duplicateChecked = false; // 重置重复检查标记
 
         // 重置分类
         if (spCategory != null) spCategory.setSelection(0);
